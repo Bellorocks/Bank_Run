@@ -1,18 +1,19 @@
 /**
- * M8 · 03 — Debt Schedule: ammortamento obbligatorio e Cash Sweep.
+ * M8 · 03 — Debt Schedule: interessi, ammortamento obbligatorio e cash sweep.
  *
- * Il Debt Schedule è il motore di rimborso del debito in un LBO:
+ * Il motore di rimborso del debito in un LBO, su tre anni:
  *
- *   1. Ammortamento Obbligatorio (Mandatory Amortization): quota fissa
- *      concordata con il sindacato bancario (es. € 4,0m/anno).
- *   2. Flusso di Cassa Disponibile per il Servizio del Debito (CFADS).
- *   3. Excess Cash Flow = CFADS - Ammortamento Obbligatorio.
- *   4. Cash Sweep (Rimborso Volontario/Anticipato): percentuale (es. 50%)
- *      del flusso di cassa in eccesso impiegata per rimborsare anticipatamente
- *      il debito residuo.
- *   5. Saldo Finale di Debito (Ending Balance):
- *      Ending Debt = Beginning Debt - Mandatory Amortization - Cash Sweep.
- *   6. Il debito finale dell'anno t diventa il debito iniziale dell'anno t+1.
+ *   Interessi       = debito di inizio anno × tasso (niente circolarita')
+ *   Excess cash     = CFADS − interessi − ammortamento obbligatorio
+ *   Cash sweep      = excess cash × quota di sweep
+ *   Debito finale   = debito iniziale − ammortamento − cash sweep
+ *
+ * Il debito finale di un anno e' quello iniziale dell'anno dopo (gia'
+ * collegato nel foglio). Ogni riga e' una formula sola copiata sui tre anni:
+ * il task controlla coerenza, primo e ultimo anno.
+ *
+ * Vincolo per costruzione: il CFADS copre sempre interessi e ammortamento
+ * (excess cash positivo), e il debito non si estingue entro l'anno 3.
  */
 
 import {
@@ -22,30 +23,33 @@ import {
   hint,
   par,
   riga,
-  taskFormula,
   eur,
   pct,
   STILE_ETICHETTA,
   STILE_FORMULA,
   STILE_INPUT,
+  STILE_INPUT_PCT,
   STILE_TITOLO,
   STILE_TOTALE,
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
+import type { Task } from '../../types';
 
-// Geometria fissa
-const B_CFADS_Y1 = 'B4';
-const B_MAND_Y1 = 'B5';
-const C_MAND_Y2 = 'C5';
+const ANNI = 3;
+const COLONNE = ['C', 'D', 'E'] as const;
 
-const B_BEG_Y1 = 'B8';
-const C_BEG_Y2 = 'C8';
+const B_TASSO = 'B4';
+const B_AMORT = 'B5';
+const B_SWEEP = 'B6';
 
-const B_SWEEP_Y1 = 'B9'; // T1
-const C_SWEEP_Y2 = 'C9';
+const ROW_CFADS = 9;
+const ROW_INIZIALE = 10;
+const ROW_INTERESSI = 11;
+const ROW_EXCESS = 12;
+const ROW_SWEEP = 13;
+const ROW_FINALE = 14;
 
-const B_END_Y1 = 'B10'; // T2
-const C_END_Y2 = 'C10'; // T3
+const range = (row: number) => `${COLONNE[0]}${row}:${COLONNE[ANNI - 1]}${row}`;
 
 export default defineTemplate({
   id: 'M8-03-DEBTSCHEDULE',
@@ -53,90 +57,117 @@ export default defineTemplate({
   title: 'Debt schedule: ammortamento obbligatorio e cash sweep',
   rank: 3,
   mode: 'PRACTICE',
-  estimatedSeconds: 300,
+  estimatedSeconds: 420,
   skills: ['lbo.debt-schedule'],
   prerequisites: ['M8-02-DEBTSTRUCTURE', 'M0F-04-ITERATIVO'],
 
   generate: (rng) => {
     const r = rng.fork('dati');
 
-    const initialDebt = roundTo(triangular(r, 35_000_000, 45_000_000, 55_000_000), 1_000_000);
-    const mandatoryAmort = roundTo(initialDebt * 0.10, 500_000); // 10% annuo
-    const sweepPct = 0.50; // 50% sweep
+    const debito0 = roundTo(triangular(r, 35_000_000, 45_000_000, 55_000_000), 1_000_000);
+    const tasso = roundTo(triangular(r, 0.06, 0.075, 0.09), 0.0025);
+    const amort = roundTo(debito0 * triangular(r, 0.05, 0.075, 0.1), 250_000);
+    const sweepPct = roundTo(triangular(r, 0.25, 0.5, 0.75), 0.05);
+    const crescita = triangular(r, 0.05, 0.08, 0.12);
+    const cfads1 = roundTo(debito0 * tasso + amort + triangular(r, 1_500_000, 3_000_000, 5_000_000), 100_000);
+    const cfads = Array.from({ length: ANNI }, (_, t) => roundTo(cfads1 * Math.pow(1 + crescita, t), 100_000));
 
-    const cfads1 = roundTo(triangular(r, 8_000_000, 10_000_000, 12_000_000), 500_000);
-    const cfads2 = roundTo(cfads1 * 1.10, 500_000);
-    const cfads3 = roundTo(cfads2 * 1.10, 500_000);
+    const interessi: number[] = [];
+    const excess: number[] = [];
+    const sweep: number[] = [];
+    const finale: number[] = [];
+    let d = debito0;
+    for (let t = 0; t < ANNI; t++) {
+      const i = d * tasso;
+      const x = cfads[t] - i - amort;
+      if (x <= 0) throw new Error('M8-03: excess cash non positivo');
+      const sw = x * sweepPct;
+      interessi.push(i);
+      excess.push(x);
+      sweep.push(sw);
+      d = d - amort - sw;
+      finale.push(d);
+    }
+    if (d <= 0) throw new Error("M8-03: debito estinto prima dell'anno 3");
 
-    // Calcolo Y1
-    const excessCash1 = cfads1 - mandatoryAmort;
-    const sweep1 = excessCash1 * sweepPct;
-    const end1 = initialDebt - mandatoryAmort - sweep1;
-
-    // Calcolo Y2
-    const excessCash2 = cfads2 - mandatoryAmort;
-    const sweep2 = excessCash2 * sweepPct;
-    const end2 = end1 - mandatoryAmort - sweep2;
+    const c1 = COLONNE[0];
+    const tasks: Task[] = [
+      rigaTask(
+        'T1',
+        ROW_INTERESSI,
+        `Riga ${ROW_INTERESSI}: gli interessi di ogni anno, sul debito di inizio anno.`,
+        interessi,
+        [`${c1}${ROW_INIZIALE}`, B_TASSO],
+      ),
+      rigaTask(
+        'T2',
+        ROW_EXCESS,
+        `Riga ${ROW_EXCESS}: l'excess cash, cioe' il CFADS che resta dopo aver pagato interessi e ammortamento obbligatorio.`,
+        excess,
+        [`${c1}${ROW_CFADS}`, `${c1}${ROW_INTERESSI}`, B_AMORT],
+      ),
+      rigaTask(
+        'T3',
+        ROW_SWEEP,
+        `Riga ${ROW_SWEEP}: il cash sweep, la parte dell'excess cash che il contratto destina al rimborso anticipato.`,
+        sweep,
+        [`${c1}${ROW_EXCESS}`, B_SWEEP],
+      ),
+      rigaTask(
+        'T4',
+        ROW_FINALE,
+        `Riga ${ROW_FINALE}: il debito di fine anno, dopo ammortamento obbligatorio e cash sweep.`,
+        finale,
+        [`${c1}${ROW_INIZIALE}`, B_AMORT, `${c1}${ROW_SWEEP}`],
+      ),
+    ];
 
     const brief = [
-      `Costruisci il debt schedule triennale dell'acquisizione LBO.`,
-      ``,
-      `Parametri:`,
-      `- **Debito Iniziale Anno 1**: ${eur(initialDebt)}`,
-      `- **Ammortamento Obbligatorio**: ${eur(mandatoryAmort)} all'anno`,
-      `- **Cash Sweep %**: ${pct(sweepPct)} dell'Excess Cash Flow (CFADS − Ammortamento Obbligatorio)`,
-      `- **CFADS Anno 1**: ${eur(cfads1)} | **Anno 2**: ${eur(cfads2)} | **Anno 3**: ${eur(cfads3)}`,
-      ``,
-      `### I tuoi compiti:`,
-      `1. Calcola il **Cash Sweep dell'Anno 1** in \`${B_SWEEP_Y1}\` applicando il 50% all'eccesso di cassa: \`=(B4-B5)*0.5\` (o \`=(B4-B5)*$B$1\`).`,
-      `2. Calcola il **Debito Finale dell'Anno 1** in \`${B_END_Y1}\`: \`=B8-B5-B9\`.`,
-      `3. Calcola il **Debito Finale dell'Anno 2** in \`${C_END_Y2}\`: \`=C8-C5-C9\`.`,
+      '## Debt schedule',
+      '',
+      `Debito senior al closing: ${eur(debito0)}, al ${pct(tasso, 2)}. Il contratto prevede un ammortamento ` +
+        `obbligatorio di ${eur(amort)} l'anno e un **cash sweep** del ${pct(sweepPct, 0)}: quella quota ` +
+        "dell'excess cash va obbligatoriamente a rimborso anticipato.",
+      '',
+      "L'ordine conta: col CFADS si pagano prima gli interessi (sul debito di inizio anno), poi " +
+        "l'ammortamento obbligatorio; quel che resta e' l'excess cash, e solo una parte di quello va in sweep.",
+      '',
+      'Costruisci le quattro righe del piano, una formula per riga copiata sui tre anni. Il debito di ' +
+        "inizio anno e' gia' collegato a quello di fine anno precedente.",
     ].join('\n');
 
     const sheet = foglio('Model', [
       riga('A1', ['DEBT SCHEDULE & CASH SWEEP'], { style: STILE_TITOLO }),
-      riga('A3', ['Cash Flow (€)', 'Anno 1', 'Anno 2', 'Anno 3'], { style: STILE_TITOLO }),
-      colonna('A4', ['CFADS', 'Ammortamento Obbligatorio'], { style: STILE_ETICHETTA }),
-      riga('B4', [cfads1, cfads2, cfads3], { style: STILE_INPUT }),
-      riga('B5', [mandatoryAmort, mandatoryAmort, mandatoryAmort], { style: STILE_INPUT }),
+      riga('A3', ['Ipotesi'], { style: STILE_TITOLO }),
+      colonna('A4', ["Tasso d'interesse", 'Ammortamento obbligatorio annuo, €', 'Quota di cash sweep'], {
+        style: STILE_ETICHETTA,
+      }),
+      [{ ref: B_TASSO, content: tasso, style: { ...STILE_INPUT_PCT, numFmt: '0.00%' }, locked: true }],
+      [{ ref: B_AMORT, content: amort, style: STILE_INPUT, locked: true }],
+      [{ ref: B_SWEEP, content: sweepPct, style: { ...STILE_INPUT_PCT, numFmt: '0%' }, locked: true }],
 
-      riga('A7', ['Evoluzione Debito (€)', 'Anno 1', 'Anno 2', 'Anno 3'], { style: STILE_TITOLO }),
-      colonna('A8', [
-        'Debito Iniziale',
-        'Cash Sweep (50%)',
-        'Debito Finale',
-      ], { style: STILE_ETICHETTA }),
-      riga('B8', [initialDebt, '=B10', '=C10'], { style: STILE_FORMULA }),
-      riga('B9', [null, '=(C4-C5)*0.5', '=(D4-D5)*0.5'], { style: STILE_FORMULA, locked: false }),
-      riga('B10', [null, null, '=D8-D5-D9'], { style: STILE_TOTALE, locked: false }),
+      riga('A8', ['Piano (€)', 'Closing', ...COLONNE.map((_, i) => `Anno ${i + 1}`)], { style: STILE_TITOLO }),
+      colonna(
+        `A${ROW_CFADS}`,
+        ['CFADS', 'Debito di inizio anno', 'Interessi', 'Excess cash', 'Cash sweep', 'Debito di fine anno'],
+        { style: STILE_ETICHETTA },
+      ),
+      riga(`${c1}${ROW_CFADS}`, cfads, { style: STILE_INPUT }),
+      riga(
+        `${c1}${ROW_INIZIALE}`,
+        COLONNE.map((_, i) => `=${i === 0 ? 'B' : COLONNE[i - 1]}${ROW_FINALE}`),
+        { style: STILE_FORMULA },
+      ),
+      [{ ref: `B${ROW_FINALE}`, content: debito0, style: STILE_INPUT, locked: true }],
+      ...[ROW_INTERESSI, ROW_EXCESS, ROW_SWEEP, ROW_FINALE].map((row) =>
+        COLONNE.map((c) => ({
+          ref: `${c}${row}`,
+          content: null,
+          locked: false,
+          style: row === ROW_FINALE ? STILE_TOTALE : STILE_FORMULA,
+        })),
+      ),
     ]);
-
-    const tasks = [
-      taskFormula({
-        id: 'T1',
-        prompt: `Calcola il Cash Sweep dell'Anno 1 in ${B_SWEEP_Y1} come 50% di (CFADS - Ammortamento): =(B4-B5)*0.5.`,
-        target: `Model!${B_SWEEP_Y1}`,
-        atteso: sweep1,
-        referenzia: [B_CFADS_Y1, B_MAND_Y1],
-        skills: ['lbo.debt-schedule'],
-      }),
-      taskFormula({
-        id: 'T2',
-        prompt: `Calcola il Debito Finale dell'Anno 1 in ${B_END_Y1} sottraendo ammortamento e cash sweep dal debito iniziale: =B8-B5-B9.`,
-        target: `Model!${B_END_Y1}`,
-        atteso: end1,
-        referenzia: [B_BEG_Y1, B_MAND_Y1, B_SWEEP_Y1],
-        skills: ['lbo.debt-schedule'],
-      }),
-      taskFormula({
-        id: 'T3',
-        prompt: `Calcola il Debito Finale dell'Anno 2 in ${C_END_Y2} con la stessa logica: =C8-C5-C9.`,
-        target: `Model!${C_END_Y2}`,
-        atteso: end2,
-        referenzia: [C_BEG_Y2, C_MAND_Y2, C_SWEEP_Y2],
-        skills: ['lbo.debt-schedule'],
-      }),
-    ];
 
     return {
       templateId: 'M8-03-DEBTSCHEDULE',
@@ -144,12 +175,34 @@ export default defineTemplate({
       brief,
       sheets: [sheet],
       tasks,
-      parScore: par(tasks, { letturaSecondi: 20 }),
+      parScore: par(tasks, { letturaSecondi: 60 }),
+      startAt: `Model!${c1}${ROW_INTERESSI}`,
       hints: [
-        hint('H1', 'In B9 sottrai l\'ammortamento da B4 e moltiplica per 0.5: =(B4-B5)*0.5.', 10, 'T1'),
-        hint('H2', 'In B10 fai =B8-B5-B9.', 10, 'T2'),
-        hint('H3', 'In C10 fai =C8-C5-C9.', 10, 'T3'),
+        hint('H1', `In ${c1}${ROW_INTERESSI}: =${c1}${ROW_INIZIALE}*$B$4, poi copia a destra.`, 10, 'T1'),
+        hint('H2', `In ${c1}${ROW_EXCESS}: =${c1}${ROW_CFADS}-${c1}${ROW_INTERESSI}-$B$5.`, 10, 'T2'),
+        hint('H3', `In ${c1}${ROW_SWEEP}: =${c1}${ROW_EXCESS}*$B$6.`, 10, 'T3'),
+        hint('H4', `In ${c1}${ROW_FINALE}: =${c1}${ROW_INIZIALE}-$B$5-${c1}${ROW_SWEEP}.`, 10, 'T4'),
       ],
     };
   },
 });
+
+function rigaTask(id: string, row: number, prompt: string, attesi: readonly number[], referenzia: readonly string[]): Task {
+  const rg = range(row);
+  return {
+    id,
+    prompt: `${prompt} Una formula in ${COLONNE[0]}${row}, copiata fino a ${COLONNE[ANNI - 1]}${row}.`,
+    targetCell: `Model!${rg}`,
+    check: [
+      { kind: 'mustBeFormula' },
+      { kind: 'value', expected: attesi[0] },
+      { kind: 'value', expected: attesi[ANNI - 1], at: `${COLONNE[ANNI - 1]}${row}` },
+      { kind: 'mustReference', cells: referenzia },
+      { kind: 'mustNotContainLiteral', except: [] },
+      { kind: 'consistentRow', range: `Model!${rg}` },
+      { kind: 'noError' },
+    ],
+    skills: ['lbo.debt-schedule'],
+    minKeystrokes: 20,
+  };
+}

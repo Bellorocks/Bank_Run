@@ -40,6 +40,7 @@ const B_MULT_EXIT = 'B8'; // Multiplo Uscita Gruppo (10.0x) (dato)
 const B_COMB_EBITDA = 'B11'; // T1: Combined EBITDA = B4+B5+B6
 const B_COMB_EV = 'B12'; // T2: Combined Exit EV = B11 * B8
 const B_MULT_ARB = 'B13'; // T3: Multiple Arbitrage Gain = B5 * (B8 - B7)
+const B_VALORE_ADD = 'B14'; // T4: valore creato dall'add-on = (B5+B6)*B8 - B5*B7
 
 export default defineTemplate({
   id: 'M8-09-BUYANDBUILD',
@@ -56,14 +57,15 @@ export default defineTemplate({
 
     const ebitdaPlat = roundTo(triangular(r, 12_000_000, 15_000_000, 18_000_000), 500_000);
     const ebitdaAdd = roundTo(triangular(r, 3_000_000, 4_500_000, 6_000_000), 250_000);
-    const synergies = roundTo(ebitdaAdd * 0.20, 100_000); // 20% sinergie
+    const synergies = roundTo(ebitdaAdd * triangular(r, 0.1, 0.18, 0.25), 100_000);
 
-    const multAdd = 6.0;
-    const multExit = 10.0;
+    const multAdd = roundTo(triangular(r, 5, 6, 7), 0.5);
+    const multExit = roundTo(triangular(r, 8.5, 10, 11.5), 0.5);
 
     const combEbitda = ebitdaPlat + ebitdaAdd + synergies;
     const combEv = combEbitda * multExit;
     const multArb = ebitdaAdd * (multExit - multAdd);
+    const valoreAdd = (ebitdaAdd + synergies) * multExit - ebitdaAdd * multAdd;
 
     const brief = [
       `La tua platform company in portafoglio acquisisce un concorrente add-on tramite strategia **Buy-and-Build**.`,
@@ -75,10 +77,12 @@ export default defineTemplate({
       `- **Multiplo di Acquisto Add-on**: ${multiplo(multAdd)}`,
       `- **Multiplo di Uscita Previsto per il Gruppo**: ${multiplo(multExit)}`,
       ``,
-      `### I tuoi compiti:`,
-      `1. Calcola l'**EBITDA Combinato Pro-Forma** in \`${B_COMB_EBITDA}\`: \`=${B_EBITDA_PLAT}+${B_EBITDA_ADD}+${B_SYNERGIES}\`.`,
-      `2. Calcola l'**Enterprise Value Combinato all'Uscita (€)** in \`${B_COMB_EV}\`: \`=${B_COMB_EBITDA}*${B_MULT_EXIT}\`.`,
-      `3. Calcola il **Guadagno da Multiple Arbitrage sull'Add-on (€)** in \`${B_MULT_ARB}\`: \`=${B_EBITDA_ADD}*(${B_MULT_EXIT}-${B_MULT_ADD})\`.`,
+      "Le aziende piccole si comprano a multipli piu' bassi di quelle grandi. Una volta dentro il gruppo, " +
+        "l'EBITDA dell'add-on viene valutato al multiplo del gruppo: e' il **multiple arbitrage**. In piu' " +
+        "l'integrazione libera sinergie, che all'uscita valgono anch'esse il multiplo del gruppo.",
+      '',
+      "Calcola EBITDA ed EV combinati, il guadagno da arbitraggio sui multipli e il valore totale creato " +
+        "dall'add-on rispetto a quanto e' stato pagato.",
     ].join('\n');
 
     const sheet = foglio('Model', [
@@ -99,36 +103,56 @@ export default defineTemplate({
         'EBITDA Combinato Pro-Forma (€)',
         'Enterprise Value Combinato all\'Uscita (€)',
         'Guadagno da Multiple Arbitrage Add-on (€)',
+        "Valore creato dall'add-on vs prezzo pagato (€)",
       ], { style: STILE_ETICHETTA }),
       colonna(B_COMB_EBITDA, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_COMB_EV, [null], { style: STILE_FORMULA, locked: false }),
-      colonna(B_MULT_ARB, [null], { style: STILE_TOTALE, locked: false }),
+      colonna(B_MULT_ARB, [null], { style: STILE_FORMULA, locked: false }),
+      colonna(B_VALORE_ADD, [null], { style: STILE_TOTALE, locked: false }),
     ]);
 
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `Calcola l'EBITDA Combinato in ${B_COMB_EBITDA}: =${B_EBITDA_PLAT}+${B_EBITDA_ADD}+${B_SYNERGIES} o =SUM(B4:B6).`,
+        prompt: `In ${B_COMB_EBITDA} l'EBITDA pro-forma del gruppo dopo l'acquisizione, sinergie comprese.`,
         target: `Model!${B_COMB_EBITDA}`,
         atteso: combEbitda,
         referenzia: [B_EBITDA_PLAT, B_EBITDA_ADD, B_SYNERGIES],
+        senzaLiteral: [],
         skills: ['lbo.buy-and-build'],
+        minKeystrokes: 12,
       }),
       taskFormula({
         id: 'T2',
-        prompt: `Calcola l'Enterprise Value di Uscita in ${B_COMB_EV}: =${B_COMB_EBITDA}*${B_MULT_EXIT}.`,
+        prompt: `In ${B_COMB_EV} l'Enterprise Value del gruppo all'uscita.`,
         target: `Model!${B_COMB_EV}`,
         atteso: combEv,
         referenzia: [B_COMB_EBITDA, B_MULT_EXIT],
+        senzaLiteral: [],
         skills: ['lbo.buy-and-build'],
+        minKeystrokes: 8,
       }),
       taskFormula({
         id: 'T3',
-        prompt: `Calcola il guadagno da Multiple Arbitrage in ${B_MULT_ARB}: =${B_EBITDA_ADD}*(${B_MULT_EXIT}-${B_MULT_ADD}).`,
+        prompt: `In ${B_MULT_ARB} il guadagno da multiple arbitrage: quanto vale in piu' l'EBITDA dell'add-on (senza sinergie) solo perche' ora e' valutato al multiplo del gruppo.`,
         target: `Model!${B_MULT_ARB}`,
         atteso: multArb,
         referenzia: [B_EBITDA_ADD, B_MULT_EXIT, B_MULT_ADD],
+        senzaLiteral: [],
         skills: ['lbo.buy-and-build'],
+        minKeystrokes: 12,
+      }),
+      taskFormula({
+        id: 'T4',
+        prompt:
+          `In ${B_VALORE_ADD} il valore totale creato dall'add-on: quanto valgono all'uscita il suo EBITDA e le ` +
+          'sinergie, meno quanto e\' stato pagato per comprarlo.',
+        target: `Model!${B_VALORE_ADD}`,
+        atteso: valoreAdd,
+        referenzia: [B_EBITDA_ADD, B_SYNERGIES, B_MULT_EXIT, B_MULT_ADD],
+        senzaLiteral: [],
+        skills: ['lbo.buy-and-build'],
+        minKeystrokes: 18,
       }),
     ];
 
@@ -138,11 +162,13 @@ export default defineTemplate({
       brief,
       sheets: [sheet],
       tasks,
-      parScore: par(tasks, { letturaSecondi: 20 }),
+      parScore: par(tasks, { letturaSecondi: 50 }),
+      startAt: `Model!${B_COMB_EBITDA}`,
       hints: [
-        hint('H1', 'In B11 somma platform, add-on e sinergie: =SUM(B4:B6).', 10, 'T1'),
-        hint('H2', 'In B12 moltiplica l\'EBITDA combinato per il multiplo di uscita: =B11*B8.', 10, 'T2'),
-        hint('H3', 'In B13 calcola: =B5*(B8-B7).', 10, 'T3'),
+        hint('H1', '=SUM(B4:B6)', 10, 'T1'),
+        hint('H2', '=B11*B8', 10, 'T2'),
+        hint('H3', '=B5*(B8-B7)', 10, 'T3'),
+        hint('H4', '=(B5+B6)*B8-B5*B7: valore all\'uscita meno prezzo pagato.', 15, 'T4'),
       ],
     };
   },

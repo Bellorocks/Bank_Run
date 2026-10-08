@@ -75,8 +75,8 @@ export default defineTemplate({
       {
         id: 'T1',
         prompt:
-          'Vai in A1 e premi Ctrl+Freccia giu\': atterri sull\'ultima cella piena del primo blocco, prima del vuoto. Scrivi quel valore in J1.',
-        targetCell: 'Model!J1',
+          'Vai in A1 e premi Ctrl+Freccia giu\': atterri sull\'ultima cella piena del primo blocco, prima del vuoto. Scrivi quel valore in L1.',
+        targetCell: 'Model!L1',
         check: [
           {
             kind: 'value' as const,
@@ -90,8 +90,8 @@ export default defineTemplate({
       {
         id: 'T2',
         prompt:
-          'Da li\' (l\'ultima cella del primo blocco) premi ancora Ctrl+Freccia giu\': sotto e\' vuoto, quindi il salto scavalca il vuoto e ti porta sulla prossima cella piena, l\'inizio del blocco successivo. Scrivi quel valore in J2.',
-        targetCell: 'Model!J2',
+          'Da li\' (l\'ultima cella del primo blocco) premi ancora Ctrl+Freccia giu\': sotto e\' vuoto, quindi il salto scavalca il vuoto e ti porta sulla prossima cella piena, l\'inizio del blocco successivo. Scrivi quel valore in L2.',
+        targetCell: 'Model!L2',
         check: [
           {
             kind: 'value' as const,
@@ -105,8 +105,8 @@ export default defineTemplate({
       {
         id: 'T3',
         prompt:
-          'Sei gia\' dentro il secondo blocco: premi ancora Ctrl+Freccia giu\' e arrivi alla sua ultima cella piena. Scrivi quel valore in J3.',
-        targetCell: 'Model!J3',
+          'Sei gia\' dentro il secondo blocco: premi ancora Ctrl+Freccia giu\' e arrivi alla sua ultima cella piena. Scrivi quel valore in L3.',
+        targetCell: 'Model!L3',
         check: [
           {
             kind: 'value' as const,
@@ -120,8 +120,8 @@ export default defineTemplate({
       {
         id: 'T4',
         prompt:
-          'Vai in C1 e premi Ctrl+Freccia destra: stessa meccanica, in orizzontale. Scrivi il valore su cui atterri in J4.',
-        targetCell: 'Model!J4',
+          'Vai in C1 e premi Ctrl+Freccia destra: stessa meccanica, in orizzontale. Scrivi il valore su cui atterri in L4.',
+        targetCell: 'Model!L4',
         check: [
           {
             kind: 'value' as const,
@@ -159,13 +159,13 @@ export default defineTemplate({
             colonna('A15', blocco2, { style: STILE_INPUT }),
             riga('C1', blocco3, { style: STILE_INPUT }),
             blocco(
-              'I1',
+              'K1',
               [['Risposta T1'], ['Risposta T2'], ['Risposta T3'], ['Risposta T4']],
               { style: STILE_ETICHETTA },
             ),
-            areaLibera(['J1', 'J2', 'J3', 'J4']),
+            areaLibera(['L1', 'L2', 'L3', 'L4']),
           ],
-          { colWidths: { A: 70, B: 40, C: 60, D: 60, E: 60, F: 60, G: 60, H: 60, I: 130, J: 100 } },
+          { colWidths: { A: 70, B: 40, C: 60, D: 60, E: 60, F: 60, G: 60, H: 60, I: 40, J: 40, K: 130, L: 100 } },
         ),
       ],
       tasks,

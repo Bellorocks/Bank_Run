@@ -56,6 +56,12 @@ export interface ValueCheck extends CheckBase {
   readonly tolerance?: number;
   readonly toleranceMode?: ToleranceMode;
   readonly absoluteFloor?: number;
+  /**
+   * Cella (A1, stesso foglio del bersaglio) da controllare al posto dell'angolo
+   * in alto a sinistra. Serve ai task su una riga: l'ultima cella e' quella
+   * che smaschera un ancoraggio mancante.
+   */
+  readonly at?: string;
 }
 
 export interface TextCheck extends CheckBase {

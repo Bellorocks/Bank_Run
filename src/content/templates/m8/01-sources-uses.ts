@@ -132,27 +132,33 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `Calcola il totale degli Impieghi (Total Uses) in ${B_TOT_USES} sommando le celle B4:B7 con =SUM(B4:B7).`,
+        prompt: `In ${B_TOT_USES} il totale degli impieghi: tutto il denaro che serve al closing, fee comprese.`,
         target: `Model!${B_TOT_USES}`,
         atteso: totalUses,
         referenzia: [B_ACQ_EQ, B_REF_DEBT, B_ADV_FEES, B_FIN_FEES],
+        senzaLiteral: [],
         skills: ['lbo.sources-uses'],
+        minKeystrokes: 12,
       }),
       taskFormula({
         id: 'T2',
-        prompt: `Calcola il Debito Totale (Total Debt) in ${B_TOT_DEBT} come somma di Senior Debt e Mezzanine Debt (=B11+B12 o =SUM(B11:B12)).`,
+        prompt: `In ${B_TOT_DEBT} il debito finanziario complessivo raccolto per l'operazione.`,
         target: `Model!${B_TOT_DEBT}`,
         atteso: totalDebt,
         referenzia: [B_SR_DEBT, B_MEZZ_DEBT],
+        senzaLiteral: [],
         skills: ['lbo.sources-uses'],
+        minKeystrokes: 12,
       }),
       taskFormula({
         id: 'T3',
-        prompt: `Calcola l'Equity dello Sponsor in ${B_SPONSOR_EQ} come differenza tra Total Uses e Total Debt (=${B_TOT_USES}-${B_TOT_DEBT}).`,
+        prompt: `In ${B_SPONSOR_EQ} l'equity che lo sponsor deve versare perche' fonti e impieghi quadrino al centesimo.`,
         target: `Model!${B_SPONSOR_EQ}`,
         atteso: sponsorEquity,
         referenzia: [B_TOT_USES, B_TOT_DEBT],
+        senzaLiteral: [],
         skills: ['lbo.sources-uses'],
+        minKeystrokes: 8,
       }),
     ];
 

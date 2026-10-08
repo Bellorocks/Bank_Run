@@ -51,6 +51,7 @@ const B_EFF_GROWTH = 'B12'; // T1: Effetto EBITDA Growth = (B5-B4)*B6
 const B_EFF_MULT = 'B13'; // T2: Effetto Multiple Expansion = B5*(B7-B6)
 const B_EFF_DELEV = 'B14'; // T3: Effetto Deleveraging = B8-B9
 const B_TOT_BRIDGE = 'B15'; // Totale Valore Creato = SUM(B12:B14)
+const B_DELTA_EQ = 'B16'; // T4: ΔEquity calcolato direttamente, per riconciliare il bridge
 
 export default defineTemplate({
   id: 'M8-07-VALUEBRIDGE',
@@ -68,15 +69,17 @@ export default defineTemplate({
     const ebitdaEntry = roundTo(triangular(r, 10_000_000, 14_000_000, 18_000_000), 500_000);
     const ebitdaExit = roundTo(ebitdaEntry * triangular(r, 1.30, 1.45, 1.65), 500_000);
 
-    const multEntry = 8.0;
-    const multExit = 9.5;
+    // Il multiplo d'uscita puo' anche scendere: la multiple contraction esiste.
+    const multEntry = roundTo(triangular(r, 7, 8, 9.5), 0.5);
+    const multExit = roundTo(multEntry + triangular(r, -1.5, 0.5, 2), 0.5);
 
-    const ndEntry = roundTo(ebitdaEntry * 4.0, 500_000);
-    const ndExit = roundTo(ebitdaExit * 1.5, 500_000);
+    const ndEntry = roundTo(ebitdaEntry * triangular(r, 3.5, 4.25, 5), 500_000);
+    const ndExit = roundTo(ebitdaExit * triangular(r, 1, 1.75, 2.5), 500_000);
 
     const effGrowth = (ebitdaExit - ebitdaEntry) * multEntry;
     const effMult = ebitdaExit * (multExit - multEntry);
     const effDelev = ndEntry - ndExit;
+    const deltaEquity = ebitdaExit * multExit - ndExit - (ebitdaEntry * multEntry - ndEntry);
 
     const brief = [
       `Costruisci il **Value Creation Bridge** per spiegare agli investitori le origini del rendimento LBO.`,
@@ -86,10 +89,15 @@ export default defineTemplate({
       `- **Multiplo EV/EBITDA**: da ${multiplo(multEntry)} (Entry) a ${multiplo(multExit)} (Exit)`,
       `- **Debito Netto**: ridotto da ${eur(ndEntry)} (Entry) a ${eur(ndExit)} (Exit)`,
       ``,
-      `### I tuoi compiti:`,
-      `1. Calcola l'effetto **EBITDA Growth** in \`${B_EFF_GROWTH}\`: \`=(${B_EBITDA_EXIT}-${B_EBITDA_ENTRY})*${B_MULT_ENTRY}\`.`,
-      `2. Calcola l'effetto **Multiple Expansion** in \`${B_EFF_MULT}\`: \`=${B_EBITDA_EXIT}*(${B_MULT_EXIT}-${B_MULT_ENTRY})\`.`,
-      `3. Calcola l'effetto **Deleveraging** in \`${B_EFF_DELEV}\`: \`=${B_ND_ENTRY}-${B_ND_EXIT}\`.`,
+      "L'aumento di valore dell'equity si scompone in tre effetti che, sommati, devono dare esattamente " +
+        "la variazione dell'equity:",
+      '',
+      "- **crescita dell'EBITDA**, valutata al multiplo d'ingresso (cosi' non si conta due volte la variazione del multiplo);",
+      "- **variazione del multiplo**, applicata all'EBITDA d'uscita;",
+      '- **deleveraging**: il debito netto ripagato con la cassa generata diventa valore per gli azionisti.',
+      '',
+      "Calcola i tre effetti, poi la variazione dell'equity direttamente dai valori d'ingresso e d'uscita: " +
+        'se il bridge non riconcilia, uno dei tre effetti e\' sbagliato.',
     ].join('\n');
 
     const sheet = foglio('Model', [
@@ -112,38 +120,58 @@ export default defineTemplate({
         '1. EBITDA Growth Effect',
         '2. Multiple Expansion Effect',
         '3. Deleveraging Effect',
-        'TOTALE VALORE CREATO (ΔEquity)',
+        'TOTALE BRIDGE',
+        'Variazione equity calcolata direttamente',
       ], { style: STILE_ETICHETTA }),
       colonna(B_EFF_GROWTH, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_EFF_MULT, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_EFF_DELEV, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_TOT_BRIDGE, ['=SUM(B12:B14)'], { style: STILE_TOTALE }),
+      colonna(B_DELTA_EQ, [null], { style: STILE_TOTALE, locked: false }),
     ]);
 
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `Calcola il contributo dell'EBITDA Growth in ${B_EFF_GROWTH}: =(${B_EBITDA_EXIT}-${B_EBITDA_ENTRY})*${B_MULT_ENTRY}.`,
+        prompt: `In ${B_EFF_GROWTH} l'effetto della crescita dell'EBITDA, valutata al multiplo d'ingresso.`,
         target: `Model!${B_EFF_GROWTH}`,
         atteso: effGrowth,
         referenzia: [B_EBITDA_EXIT, B_EBITDA_ENTRY, B_MULT_ENTRY],
+        senzaLiteral: [],
         skills: ['lbo.value-bridge'],
+        minKeystrokes: 12,
       }),
       taskFormula({
         id: 'T2',
-        prompt: `Calcola il contributo della Multiple Expansion in ${B_EFF_MULT}: =${B_EBITDA_EXIT}*(${B_MULT_EXIT}-${B_MULT_ENTRY}).`,
+        prompt: `In ${B_EFF_MULT} l'effetto della variazione del multiplo, sull'EBITDA d'uscita.`,
         target: `Model!${B_EFF_MULT}`,
         atteso: effMult,
         referenzia: [B_EBITDA_EXIT, B_MULT_EXIT, B_MULT_ENTRY],
+        senzaLiteral: [],
         skills: ['lbo.value-bridge'],
+        minKeystrokes: 12,
       }),
       taskFormula({
         id: 'T3',
-        prompt: `Calcola il contributo del Deleveraging in ${B_EFF_DELEV}: =${B_ND_ENTRY}-${B_ND_EXIT}.`,
+        prompt: `In ${B_EFF_DELEV} l'effetto del deleveraging.`,
         target: `Model!${B_EFF_DELEV}`,
         atteso: effDelev,
         referenzia: [B_ND_ENTRY, B_ND_EXIT],
+        senzaLiteral: [],
         skills: ['lbo.value-bridge'],
+        minKeystrokes: 8,
+      }),
+      taskFormula({
+        id: 'T4',
+        prompt:
+          `In ${B_DELTA_EQ} la variazione dell'equity calcolata direttamente: equity all'uscita meno equity ` +
+          "all'ingresso, ciascuna come EV meno debito netto. Deve coincidere col totale del bridge.",
+        target: `Model!${B_DELTA_EQ}`,
+        atteso: deltaEquity,
+        referenzia: [B_EBITDA_ENTRY, B_EBITDA_EXIT, B_MULT_ENTRY, B_MULT_EXIT, B_ND_ENTRY, B_ND_EXIT],
+        senzaLiteral: [],
+        skills: ['lbo.value-bridge'],
+        minKeystrokes: 22,
       }),
     ];
 
@@ -153,11 +181,13 @@ export default defineTemplate({
       brief,
       sheets: [sheet],
       tasks,
-      parScore: par(tasks, { letturaSecondi: 20 }),
+      parScore: par(tasks, { letturaSecondi: 60 }),
+      startAt: `Model!${B_EFF_GROWTH}`,
       hints: [
-        hint('H1', 'In B12 calcola: =(B5-B4)*B6.', 10, 'T1'),
-        hint('H2', 'In B13 calcola: =B5*(B7-B6).', 10, 'T2'),
-        hint('H3', 'In B14 calcola la riduzione del debito: =B8-B9.', 10, 'T3'),
+        hint('H1', '=(B5-B4)*B6', 10, 'T1'),
+        hint('H2', '=B5*(B7-B6)', 10, 'T2'),
+        hint('H3', '=B8-B9: il debito che non c\'e\' piu\'.', 10, 'T3'),
+        hint('H4', '=(B5*B7-B9)-(B4*B6-B8)', 15, 'T4'),
       ],
     };
   },

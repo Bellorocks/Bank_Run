@@ -1,13 +1,16 @@
 /**
  * M8 · 10 — Exit Timing: scenari temporali e trade-off tra MoIC e IRR.
  *
- * Nel Private Equity il momento esatto di uscita (Anno 3, 5 o 7) cambia
- * radicalmente la dinamica dei rendimenti:
+ * Il momento dell'uscita (anno 3, 5 o 7) cambia la dinamica dei rendimenti:
+ * allungare l'holding period fa crescere il MoIC, ma non e' detto che faccia
+ * crescere l'IRR, perche' il tempo pesa all'esponente:
  *
- *   - Allungare l'holding period fa crescere il MoIC (più cassa cumulata e
- *     più debito rimborsato), ma fa scendere progressivamente l'IRR (legge dei
- *     rendimenti marginali decrescenti dovuta all'attualizzazione temporale).
- *   - IRR = (Exit Equity / Entry Equity) ^ (1 / Anni) - 1 = MoIC ^ (1 / Anni) - 1.
+ *   IRR = MoIC^(1/anni) − 1
+ *
+ * I tre MoIC sono estratti dal seed, quindi lo scenario con l'IRR piu' alto
+ * cambia da partita a partita: il secondo task chiede di farlo trovare al
+ * foglio, non all'occhio. Nessun pareggio: gli IRR distano sempre piu' di
+ * 0,2 punti.
  */
 
 import {
@@ -17,7 +20,6 @@ import {
   hint,
   par,
   riga,
-  taskFormula,
   eur,
   multiplo,
   STILE_ETICHETTA,
@@ -27,15 +29,19 @@ import {
   STILE_TITOLO,
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
+import type { Task } from '../../types';
 
-// Geometria fissa
-const B_Y3_MOIC = 'B9';
-const C_Y5_MOIC = 'C9';
-const D_Y7_MOIC = 'D9';
+const ANNI = [3, 5, 7] as const;
+const COLONNE = ['B', 'C', 'D'] as const;
+const ETICHETTE = ['3 anni', '5 anni', '7 anni'] as const;
 
-const B_Y3_IRR = 'B10'; // T1: IRR Anno 3 = B9^(1/B7)-1
-const C_Y5_IRR = 'C10'; // T2: IRR Anno 5 = C9^(1/C7)-1
-const D_Y7_IRR = 'D10'; // T3: IRR Anno 7 = D9^(1/D7)-1
+const B_ENTRY = 'B4';
+const ROW_INTEST = 6;
+const ROW_ANNI = 7;
+const ROW_EXIT = 8;
+const ROW_MOIC = 9;
+const ROW_IRR = 10;
+const B_MIGLIORE = 'B12';
 
 export default defineTemplate({
   id: 'M8-10-EXITTIMING',
@@ -52,76 +58,97 @@ export default defineTemplate({
 
     const entryEq = roundTo(triangular(r, 25_000_000, 30_000_000, 40_000_000), 1_000_000);
 
-    const moicY3 = 2.0;
-    const moicY5 = 2.8;
-    const moicY7 = 3.6;
+    let moic: number[] = [];
+    let irr: number[] = [];
+    // Ritenta finche' gli IRR non sono ben separati (al massimo poche volte).
+    for (let tentativo = 0; ; tentativo++) {
+      const m3 = roundTo(triangular(r, 1.6, 2, 2.5), 0.05);
+      const m5 = roundTo(m3 * triangular(r, 1.15, 1.35, 1.65), 0.05);
+      const m7 = roundTo(m5 * triangular(r, 1.1, 1.3, 1.55), 0.05);
+      moic = [m3, m5, m7];
+      irr = moic.map((m, i) => Math.pow(m, 1 / ANNI[i]) - 1);
+      const ordinati = [...irr].sort((a, b) => b - a);
+      if (ordinati[0] - ordinati[1] > 0.002 || tentativo > 50) break;
+    }
+    const exit = moic.map((m) => roundTo(entryEq * m, 100_000));
+    // Il MoIC nel foglio e' exit/entry: gli attesi partono dagli importi arrotondati.
+    const moicFoglio = exit.map((x) => x / entryEq);
+    const irrFoglio = moicFoglio.map((m, i) => Math.pow(m, 1 / ANNI[i]) - 1);
+    const migliore = ETICHETTE[irrFoglio.indexOf(Math.max(...irrFoglio))];
 
-    const exitY3 = entryEq * moicY3;
-    const exitY5 = entryEq * moicY5;
-    const exitY7 = entryEq * moicY7;
-
-    const irrY3 = Math.pow(moicY3, 1 / 3) - 1;
-    const irrY5 = Math.pow(moicY5, 1 / 5) - 1;
-    const irrY7 = Math.pow(moicY7, 1 / 7) - 1;
+    const rg = `${COLONNE[0]}${ROW_IRR}:${COLONNE[2]}${ROW_IRR}`;
+    const tasks: Task[] = [
+      {
+        id: 'T1',
+        prompt:
+          `Riga ${ROW_IRR}: l'IRR annuo composto di ciascuno scenario, dal suo MoIC e dalla sua durata. ` +
+          `Una formula in B${ROW_IRR}, copiata fino a D${ROW_IRR}.`,
+        targetCell: `Model!${rg}`,
+        check: [
+          { kind: 'mustBeFormula' },
+          { kind: 'value', expected: irrFoglio[0] },
+          { kind: 'value', expected: irrFoglio[2], at: `D${ROW_IRR}` },
+          { kind: 'mustReference', cells: [`B${ROW_MOIC}`, `B${ROW_ANNI}`] },
+          { kind: 'mustNotContainLiteral', except: [1] },
+          { kind: 'consistentRow', range: `Model!${rg}` },
+          { kind: 'noError' },
+        ],
+        skills: ['lbo.exit'],
+        minKeystrokes: 20,
+      },
+      {
+        id: 'T2',
+        prompt:
+          `In ${B_MIGLIORE} il nome dello scenario (riga ${ROW_INTEST}) con l'IRR piu' alto, trovato da una formula: ` +
+          'se cambiano le uscite, la risposta deve cambiare da sola.',
+        targetCell: `Model!${B_MIGLIORE}`,
+        check: [
+          { kind: 'mustBeFormula' },
+          { kind: 'text', expected: migliore },
+          { kind: 'mustReference', cells: [`B${ROW_IRR}`, `D${ROW_IRR}`] },
+        ],
+        skills: ['lbo.exit', 'xl.index-match'],
+        minKeystrokes: 40,
+      },
+    ];
 
     const brief = [
-      `Analizza la convenienza del timing di disinvestimento per il fondo di Private Equity su 3 scenari temporali.`,
-      ``,
-      `- **Capitale Iniziale Investito (Anno 0)**: ${eur(entryEq)}`,
-      `- **Scenario Quick Exit (3 Anni)**: Exit Equity ${eur(exitY3)} (${multiplo(moicY3)})`,
-      `- **Scenario Base (5 Anni)**: Exit Equity ${eur(exitY5)} (${multiplo(moicY5)})`,
-      `- **Scenario Long Hold (7 Anni)**: Exit Equity ${eur(exitY7)} (${multiplo(moicY7)})`,
-      ``,
-      `### I tuoi compiti:`,
-      `1. Calcola l'**IRR Annuo Composto per lo Scenario a 3 Anni** in \`${B_Y3_IRR}\`: \`=(${B_Y3_MOIC})^(1/B7)-1\` o \`=(${B_Y3_MOIC})^(1/3)-1\`.`,
-      `2. Calcola l'**IRR Annuo Composto per lo Scenario a 5 Anni** in \`${C_Y5_IRR}\`: \`=(${C_Y5_MOIC})^(1/C7)-1\` o \`=(${C_Y5_MOIC})^(1/5)-1\`.`,
-      `3. Calcola l'**IRR Annuo Composto per lo Scenario a 7 Anni** in \`${D_Y7_IRR}\`: \`=(${D_Y7_MOIC})^(1/D7)-1\` o \`=(${D_Y7_MOIC})^(1/7)-1\`.`,
+      'Il fondo deve decidere quando uscire. Tre scenari, stesso capitale iniziale:',
+      '',
+      `- **Capitale investito**: ${eur(entryEq)}`,
+      ...ANNI.map((a, i) => `- **Uscita a ${a} anni**: equity ${eur(exit[i])} (${multiplo(moic[i])})`),
+      '',
+      "Aspettare fa crescere il MoIC, ma l'IRR misura il rendimento **per anno**: un MoIC piu' alto " +
+        "ottenuto in piu' tempo puo' valere meno. Il fondo, che deve restituire il capitale agli investitori " +
+        "e raccoglierne di nuovo, guarda soprattutto l'IRR.",
+      '',
+      "Calcola l'IRR dei tre scenari e fai indicare al foglio quello migliore.",
     ].join('\n');
 
     const sheet = foglio('Model', [
       riga('A1', ['SCENARI DI EXIT TIMING (3 vs 5 vs 7 ANNI)'], { style: STILE_TITOLO }),
-      riga('A3', ['Investimento Iniziale', 'Valore (€)'], { style: STILE_TITOLO }),
-      riga('A4', ['Equity Iniziale Sponsor (Anno 0)', entryEq], { style: STILE_INPUT }),
+      riga('A3', ['Investimento iniziale', 'Valore (€)'], { style: STILE_TITOLO }),
+      colonna('A4', ['Equity iniziale sponsor (anno 0)'], { style: STILE_ETICHETTA }),
+      [{ ref: B_ENTRY, content: entryEq, style: STILE_INPUT, locked: true }],
 
-      riga('A6', ['Metrica / Scenario', '3 Anni', '5 Anni', '7 Anni'], { style: STILE_TITOLO }),
-      colonna('A7', [
-        'Holding Period (Anni)',
-        'Exit Equity Incassata (€)',
-        'MoIC Realizzato (x)',
-        'IRR Annuo Composto (%)',
-      ], { style: STILE_ETICHETTA }),
-      riga('B7', [3, 5, 7], { style: STILE_INPUT }),
-      riga('B8', [exitY3, exitY5, exitY7], { style: STILE_INPUT }),
-      riga('B9', ['=B8/$B$4', '=C8/$B$4', '=D8/$B$4'], { style: STILE_FORMULA }),
-      riga('B10', [null, null, null], { style: STILE_FORMULA_PCT, locked: false }),
+      riga(`A${ROW_INTEST}`, ['Scenario', ...ETICHETTE], { style: STILE_TITOLO }),
+      colonna(
+        `A${ROW_ANNI}`,
+        ['Durata (anni)', 'Equity incassata (€)', 'MoIC realizzato (x)', 'IRR annuo composto'],
+        { style: STILE_ETICHETTA },
+      ),
+      riga(`B${ROW_ANNI}`, [...ANNI], { style: { ...STILE_INPUT, numFmt: '0' } }),
+      riga(`B${ROW_EXIT}`, exit, { style: STILE_INPUT }),
+      riga(
+        `B${ROW_MOIC}`,
+        COLONNE.map((c) => `=${c}${ROW_EXIT}/$B$4`),
+        { style: { ...STILE_FORMULA, numFmt: '0.00x' } },
+      ),
+      riga(`B${ROW_IRR}`, [null, null, null], { style: STILE_FORMULA_PCT, locked: false }),
+
+      colonna(`A${B_MIGLIORE.slice(1)}`, ["Scenario con l'IRR piu' alto"], { style: STILE_ETICHETTA }),
+      [{ ref: B_MIGLIORE, content: null, locked: false, style: { ...STILE_FORMULA, numFmt: '@' } }],
     ]);
-
-    const tasks = [
-      taskFormula({
-        id: 'T1',
-        prompt: `Calcola l'IRR a 3 anni in ${B_Y3_IRR}: =B9^(1/B7)-1 o =B9^(1/3)-1.`,
-        target: `Model!${B_Y3_IRR}`,
-        atteso: irrY3,
-        referenzia: [B_Y3_MOIC],
-        skills: ['lbo.exit'],
-      }),
-      taskFormula({
-        id: 'T2',
-        prompt: `Calcola l'IRR a 5 anni in ${C_Y5_IRR}: =C9^(1/C7)-1 o =C9^(1/5)-1.`,
-        target: `Model!${C_Y5_IRR}`,
-        atteso: irrY5,
-        referenzia: [C_Y5_MOIC],
-        skills: ['lbo.exit'],
-      }),
-      taskFormula({
-        id: 'T3',
-        prompt: `Calcola l'IRR a 7 anni in ${D_Y7_IRR}: =D9^(1/D7)-1 o =D9^(1/7)-1.`,
-        target: `Model!${D_Y7_IRR}`,
-        atteso: irrY7,
-        referenzia: [D_Y7_MOIC],
-        skills: ['lbo.exit'],
-      }),
-    ];
 
     return {
       templateId: 'M8-10-EXITTIMING',
@@ -129,11 +156,16 @@ export default defineTemplate({
       brief,
       sheets: [sheet],
       tasks,
-      parScore: par(tasks, { letturaSecondi: 20 }),
+      parScore: par(tasks, { letturaSecondi: 50 }),
+      startAt: `Model!B${ROW_IRR}`,
       hints: [
-        hint('H1', 'In B10 fai =B9^(1/B7)-1 o =B9^(1/3)-1.', 10, 'T1'),
-        hint('H2', 'In C10 fai =C9^(1/C7)-1 o =C9^(1/5)-1.', 10, 'T2'),
-        hint('H3', 'In D10 fai =D9^(1/D7)-1 o =D9^(1/7)-1.', 10, 'T3'),
+        hint('H1', `In B${ROW_IRR}: =B${ROW_MOIC}^(1/B${ROW_ANNI})-1, poi copia a destra.`, 10, 'T1'),
+        hint(
+          'H2',
+          `=INDEX(B${ROW_INTEST}:D${ROW_INTEST},MATCH(MAX(${rg}),${rg},0)): cerca il massimo e restituisci l'intestazione.`,
+          15,
+          'T2',
+        ),
       ],
     };
   },

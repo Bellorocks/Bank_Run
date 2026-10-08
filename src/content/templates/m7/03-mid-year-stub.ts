@@ -18,16 +18,17 @@
  *    mid-year convention si applica alla META' di QUESTO periodo piu' corto,
  *    non alla meta' di un anno intero.
  *
- * TRE TASK, ognuno riferisce quanto serve senza ricalcolare da capo:
+ * TRE TASK IN CASCATA:
  *
- *   T1  Fattore di sconto per un anno pieno, mid-year  = (1+WACC)^-0,5
- *   T2  Frazione di stub period rimanente nell'anno    = (fine FY - data val.) / 365
- *   T3  Fattore di sconto per lo stub period            = (1+WACC)^-(T2/2)
+ *   T1  Frazione di stub period          s = (fine FY - data val.) / 365
+ *   T2  Fattore di sconto dello stub        = (1+WACC)^-(s/2)
+ *   T3  Fattore del primo anno pieno        = (1+WACC)^-(s+0,5)
  *
- * T3 e' la stessa identica logica di T1 (mid-year: si sconta a META' del
- * periodo), applicata pero' non a un anno intero (esponente -0,5) ma alla
- * frazione di anno calcolata in T2 (esponente -(T2/2)): ecco perche' T3 DEVE
- * riferire la cella di T2, mai un numero di giorni ricalcolato o scritto a mano.
+ * T3 e' il punto che i manuali sbrigativi sbagliano: il primo anno fiscale
+ * pieno comincia DOPO lo stub, quindi il suo flusso arriva in media a s + 0,5
+ * anni dalla data di valutazione, non a 0,5. L'esponente -0,5 vale solo se si
+ * valuta esattamente all'inizio dell'anno fiscale (stub nullo); ogni anno
+ * successivo aggiunge 1 all'esponente.
  *
  * DATE: costruite SEMPRE con DATE(anno,mese,giorno) dentro la formula (classe di
  * bug #4 del progetto). La sottrazione diretta fra le due celle-data in T2 e'
@@ -93,9 +94,9 @@ const B_WACC = 'B4'; // WACC (dato, bloccato)
 const B_DATAVAL = 'B5'; // Data di valutazione (dato, bloccato)
 const B_FINEFY = 'B6'; // Data di fine del primo anno fiscale (dato, bloccato)
 
-const B_FATTOREANNO = 'B9'; // T1
-const B_FRAZIONESTUB = 'B10'; // T2
-const B_FATTORESTUB = 'B11'; // T3
+const B_FRAZIONESTUB = 'B9'; // T1
+const B_FATTORESTUB = 'B10'; // T2
+const B_FATTOREANNO = 'B11'; // T3
 
 export default defineTemplate({
   id: 'M7-03-MIDYEARSTUB',
@@ -125,33 +126,16 @@ export default defineTemplate({
     const fineFY = dataDaSeriale(serialeFineFY);
 
     // Valori attesi, calcolati con la STESSA algebra dei tre task.
-    const attesoFattoreAnno = Math.pow(1 + wacc, -0.5);
     const attesoFrazioneStub = stubGiorni / 365;
     const attesoFattoreStub = Math.pow(1 + wacc, -(attesoFrazioneStub / 2));
+    const attesoFattoreAnno = Math.pow(1 + wacc, -(attesoFrazioneStub + 0.5));
 
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_FATTOREANNO} calcola il fattore di sconto per UN ANNO PIENO applicando la mid-year ` +
-        `convention: (1 + WACC, ${B_WACC})^-0,5. L'esponente e' -0,5 e non -1: un flusso di cassa non ` +
-        "arriva tutto il 31/12, arriva distribuito durante l'anno, quindi in media a META' anno. " +
-        "Scontare per meno tempo (6 mesi invece di 12) AUMENTA il valore attuale rispetto alla formula " +
-        "da manuale.",
-      target: `Model!${B_FATTOREANNO}`,
-      atteso: attesoFattoreAnno,
-      referenzia: [B_WACC],
-      senzaLiteral: [1, -0.5],
-      skills: ['dcf.mid-year'],
-      minKeystrokes: 14,
-    });
-
-    const t2 = taskFormula({
-      id: 'T2',
-      prompt:
-        `In ${B_FRAZIONESTUB} calcola la frazione di stub period: quanto resta del primo anno fiscale, ` +
-        `da OGGI (la data di valutazione, ${B_DATAVAL}) alla sua fine (${B_FINEFY}), espresso come ` +
-        "frazione dell'anno. Formula: (data di fine del primo anno fiscale − data di valutazione) / 365 " +
-        '— sottrazione diretta fra le due celle-data, mai un numero di giorni scritto a mano.',
+        `In ${B_FRAZIONESTUB} la frazione di stub period: quanto resta del primo anno fiscale, dalla data ` +
+        `di valutazione (${B_DATAVAL}) alla sua fine (${B_FINEFY}), espresso in anni (anno di 365 giorni). ` +
+        'Lavora sulle due celle-data, senza contare i giorni a mano.',
       target: `Model!${B_FRAZIONESTUB}`,
       atteso: attesoFrazioneStub,
       referenzia: [B_DATAVAL, B_FINEFY],
@@ -160,31 +144,13 @@ export default defineTemplate({
       minKeystrokes: 14,
     });
 
-    // NB: costruito a mano (non con taskFormula) per poter stringere la
-    // tolleranza del check 'value'. attesoFattoreStub vive sempre vicino a 1
-    // (fra ~0,95 e ~0,997 su tutto il range di WACC 8%-12% e stub 30-330
-    // giorni): la tolleranza di default di taskFormula e' `hybrid` con un
-    // PAVIMENTO ASSOLUTO di 0,01 (§4.1 tolerance), e su questo livello di
-    // scala quel pavimento e' piu' largo dell'errore prodotto da una formula
-    // strutturalmente SBAGLIATA come "dimenticare /2" — cioe' scontare lo
-    // stub SENZA applicare la mid-year convention, il punto didattico
-    // centrale del task. Verificato empiricamente: con la tolleranza di
-    // default quella formula sbagliata viene accettata per errore su circa
-    // il 16% dei seed (ogni volta che WACC e stub sono entrambi bassi, il
-    // quadrato di un numero vicino a 1 resta vicino a 1). mustReference non
-    // basta a intercettarlo, perche' quella formula referenzia comunque sia
-    // WACC sia B_FRAZIONESTUB: l'unico argine e' il check 'value' con
-    // tolleranza stretta (assoluta, ben sotto il piu' piccolo scarto
-    // possibile fra le due formule su tutto il range generabile).
-    const t3: Task = {
-      id: 'T3',
+    // Tolleranza assoluta stretta: i fattori vivono vicino a 1, e la formula
+    // che dimentica di dimezzare lo stub deve restare fuori su ogni seed.
+    const t2: Task = {
+      id: 'T2',
       prompt:
-        `In ${B_FATTORESTUB} calcola il fattore di sconto per lo STUB PERIOD: e' la STESSA logica di ` +
-        `${B_FATTOREANNO} (mid-year: si sconta a META' del periodo), ma applicata non a un anno intero, ` +
-        `bensi' alla frazione di anno appena calcolata in ${B_FRAZIONESTUB} — NON ricalcolarla da capo, ` +
-        `riferiscila. Formula: (1 + WACC, ${B_WACC})^-(${B_FRAZIONESTUB}/2). Questo fattore SOSTITUISCE ` +
-        `${B_FATTOREANNO} nel primo periodo di un DCF con stub, perche' il primo periodo che si sconta ` +
-        "davvero non e' un anno pieno.",
+        `In ${B_FATTORESTUB} il fattore di sconto del flusso dello stub period con la mid-year ` +
+        `convention: quel flusso arriva in media a meta' dello stub (${B_FRAZIONESTUB}). WACC in ${B_WACC}.`,
       targetCell: `Model!${B_FATTORESTUB}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -194,11 +160,36 @@ export default defineTemplate({
           tolerance: 0.0005,
           toleranceMode: 'absolute',
           message:
-            "Il valore non torna: controlla di aver applicato la mid-year convention ALLA FRAZIONE " +
-            `di stub (dividerla per 2), non allo stub intero — la formula e' (1+WACC)^-(${B_FRAZIONESTUB}/2).`,
+            "Il valore non torna: con la mid-year convention il flusso dello stub si sconta a META' " +
+            "della frazione di stub, non all'intero stub e non a mezzo anno.",
         },
         { kind: 'mustReference', cells: [B_WACC, B_FRAZIONESTUB] },
-        { kind: 'mustNotContainLiteral', except: [1, 2] },
+        { kind: 'mustNotContainLiteral', except: [1, 2, 0.5, -0.5] },
+      ],
+      skills: ['dcf.mid-year'],
+      minKeystrokes: 20,
+    };
+
+    const t3: Task = {
+      id: 'T3',
+      prompt:
+        `In ${B_FATTOREANNO} il fattore di sconto del primo anno fiscale PIENO, quello che comincia alla ` +
+        "fine dello stub. Con la mid-year convention il suo flusso arriva a meta' di quell'anno: quanto " +
+        "tempo e' passato, in tutto, dalla data di valutazione?",
+      targetCell: `Model!${B_FATTOREANNO}`,
+      check: [
+        { kind: 'mustBeFormula' },
+        {
+          kind: 'value',
+          expected: attesoFattoreAnno,
+          tolerance: 0.0005,
+          toleranceMode: 'absolute',
+          message:
+            "Il valore non torna: il primo anno pieno comincia dopo lo stub, quindi il suo flusso arriva " +
+            "a stub + mezzo anno dalla data di valutazione, non a mezzo anno.",
+        },
+        { kind: 'mustReference', cells: [B_WACC, B_FRAZIONESTUB] },
+        { kind: 'mustNotContainLiteral', except: [1, 2, 0.5, -0.5] },
       ],
       skills: ['dcf.mid-year'],
       minKeystrokes: 20,
@@ -225,17 +216,16 @@ export default defineTemplate({
           "dalla data di valutazione alla sua fine — piu' corto di 12 mesi. La mid-year convention si " +
           "applica alla META' di QUESTO periodo piu' corto, non alla meta' di un anno intero.",
         '',
-        '> **Fattore di sconto, anno pieno, mid-year: (1 + WACC)^-0,5**',
-        '> **Frazione di stub period: (fine primo anno fiscale − data di valutazione) / 365**',
-        '> **Fattore di sconto, stub period: (1 + WACC)^-(frazione di stub / 2)**',
+        "Il primo anno fiscale pieno comincia alla fine dello stub: il suo flusso arriva in media a " +
+          "stub + mezzo anno dalla data di valutazione. L'esponente -0,5 dei manuali vale solo quando si " +
+          "valuta esattamente all'inizio dell'anno fiscale; ogni anno successivo aggiunge 1.",
         '',
         `Dati: WACC ${pct(wacc, 1)} (dato, non e\' l'oggetto di questo livello). Data di valutazione ` +
           `${num(giornoVal)}/${num(meseVal)}/${num(annoVal)}. Fine del primo anno fiscale ` +
           `${num(fineFY.giorno)}/${num(fineFY.mese)}/${num(fineFY.anno)} — ${num(stubGiorni)} giorni dopo.`,
         '',
-        "Tre task: prima il fattore mid-year per un anno pieno (che userai su TUTTI i periodi tranne il " +
-          "primo), poi la frazione di stub, poi il fattore di sconto specifico dello stub, che SOSTITUISCE " +
-          'il primo nel primo periodo. Il terzo task riferisce il secondo — mai ricalcolarlo da zero.',
+        "Tre task: la frazione di stub, il fattore di sconto dello stub, il fattore del primo anno pieno. " +
+          'Gli ultimi due riferiscono la frazione di stub: mai ricalcolarla da zero.',
       ].join('\n'),
       sheets: [
         foglio(
@@ -257,33 +247,33 @@ export default defineTemplate({
             colonna(
               'A9',
               [
-                "Fattore di sconto, anno pieno (mid-year convention)",
                 "Frazione di stub period rimanente nell'anno corrente",
-                'Fattore di sconto, stub period',
+                'Fattore di sconto, stub period (mid-year)',
+                'Fattore di sconto, primo anno pieno (mid-year)',
               ],
               { style: STILE_ETICHETTA },
             ),
-            [{ ref: B_FATTOREANNO, content: null, locked: false, style: STILE_FORMULA_4DEC }],
             [{ ref: B_FRAZIONESTUB, content: null, locked: false, style: STILE_FORMULA_4DEC }],
             [{ ref: B_FATTORESTUB, content: null, locked: false, style: STILE_FORMULA_4DEC }],
+            [{ ref: B_FATTOREANNO, content: null, locked: false, style: STILE_FORMULA_4DEC }],
           ],
           { colWidths: { A: 440, B: 140 }, frozenRows: 1 },
         ),
       ],
       tasks,
       hints: [
-        hint('H1', `=(1+${B_WACC})^-0.5: esponente -0.5, non -1 — e' la mid-year convention.`, 10, 'T1'),
-        hint('H2', `=(${B_FINEFY}-${B_DATAVAL})/365: sottrazione diretta fra le due date, poi diviso 365.`, 10, 'T2'),
+        hint('H1', `=(${B_FINEFY}-${B_DATAVAL})/365: sottrazione diretta fra le due date, poi diviso 365.`, 10, 'T1'),
+        hint('H2', `=(1+${B_WACC})^-(${B_FRAZIONESTUB}/2): si sconta a meta' dello stub.`, 10, 'T2'),
         hint(
           'H3',
-          `=(1+${B_WACC})^-(${B_FRAZIONESTUB}/2): stessa struttura di T1, ma l'esponente e' meta' della ` +
-            'frazione di stub calcolata in T2, non -0.5.',
+          `=(1+${B_WACC})^-(${B_FRAZIONESTUB}+0.5), oppure =1/(1+${B_WACC})^(${B_FRAZIONESTUB}+0.5): ` +
+            "lo stub intero piu' mezzo anno.",
           10,
           'T3',
         ),
       ],
       parScore: par(tasks, { letturaSecondi: 110 }),
-      startAt: `Model!${B_FATTOREANNO}`,
+      startAt: `Model!${B_FRAZIONESTUB}`,
     };
   },
 });

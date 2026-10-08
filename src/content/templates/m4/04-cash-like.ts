@@ -109,7 +109,9 @@ export default defineTemplate({
     const netDebtBase = debitoFinanziarioLordo - cassaTotale;
 
     const cassaDisponibile = cassaTotale - restrictedCash - cassaMinima;
-    const netDebtRivisto = netDebtBase - (cassaTotale - cassaDisponibile);
+    // La cassa non disponibile non abbatte il debito: va RIAGGIUNTA al Net Debt
+    // di base, che l'aveva sottratta per intero.
+    const netDebtRivisto = netDebtBase + (cassaTotale - cassaDisponibile);
 
     const t1 = taskFormula({
       id: 'T1',
@@ -136,10 +138,9 @@ export default defineTemplate({
         `In ${B_T2} rivedi il Net Debt tenendo conto che meno cassa e' davvero disponibile. Il Net Debt di ` +
         `base (${B_NETDEBT_BASE}) era stato calcolato usando la cassa TOTALE di bilancio (${B_CASSA_TOT}); ` +
         `ora sai che la cassa davvero disponibile e' solo quella appena isolata (${B_T1}). La differenza fra ` +
-        "cassa totale e cassa disponibile e' esattamente la cassa che NON riduce il debito: sottraendola " +
-        "di nuovo dal Net Debt di base, il Net Debt aumenta — non perche' il debito sia cambiato, ma perche' " +
-        "una parte della cassa che sembrava disponibile non lo e'. Costruisci la formula come " +
-        `${B_NETDEBT_BASE} meno (${B_CASSA_TOT} meno ${B_T1}).`,
+        "cassa totale e cassa disponibile e' esattamente la cassa che NON riduce il debito: il Net Debt di " +
+        "base l'aveva sottratta per intero, quindi va riaggiunta. Il Net Debt aumenta — non perche' il " +
+        "debito sia cambiato, ma perche' una parte della cassa che sembrava disponibile non lo e'.",
       target: `Model!${B_T2}`,
       atteso: netDebtRivisto,
       referenzia: [B_NETDEBT_BASE, B_CASSA_TOT, B_T1],
@@ -226,7 +227,7 @@ export default defineTemplate({
         ),
         hint(
           'H2',
-          `=${B_NETDEBT_BASE}-(${B_CASSA_TOT}-${B_T1}): Net Debt di base meno la cassa che NON e' ` +
+          `=${B_NETDEBT_BASE}+(${B_CASSA_TOT}-${B_T1}): Net Debt di base PIU' la cassa che NON e' ` +
             "davvero disponibile (la differenza fra cassa totale e cassa disponibile).",
           12,
           'T2',

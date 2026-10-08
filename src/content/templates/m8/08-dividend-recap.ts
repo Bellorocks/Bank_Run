@@ -21,10 +21,12 @@ import {
   taskFormula,
   eur,
   multiplo,
+  pct,
   STILE_ETICHETTA,
   STILE_FORMULA,
   STILE_INPUT,
   STILE_INPUT_MULTIPLO,
+  STILE_INPUT_PCT,
   STILE_TITOLO,
   STILE_TOTALE,
 } from '../../authoring';
@@ -35,10 +37,11 @@ const B_EBITDA_Y3 = 'B4'; // EBITDA Anno 3 (dato)
 const B_EXIST_DEBT = 'B5'; // Debito Esistente pre-recap Anno 3 (dato)
 const B_MAX_LEV = 'B6'; // Max Leverage Ratio consentito (4.0x) (dato)
 const B_ENTRY_EQ = 'B7'; // Sponsor Equity iniziale Anno 0 (dato)
+const B_FEE_PCT = 'B8'; // Fee di rifinanziamento, % del nuovo debito (dato)
 
-const B_MAX_DEBT = 'B10'; // T1: Max Nuovo Debito = EBITDA_Y3 * Max_Lev
-const B_DIVIDEND = 'B11'; // T2: Dividendo Distribuibile = Max_Debt - Exist_Debt
-const B_CUMUL_RET = 'B12'; // T3: % Capitale Iniziale già Recuperato ad Anno 3 = Dividend / Entry_Eq
+const B_MAX_DEBT = 'B11'; // T1: Max Nuovo Debito = EBITDA_Y3 * Max_Lev
+const B_DIVIDEND = 'B12'; // T2: Dividendo = nuovo debito - debito esistente - fee
+const B_CUMUL_RET = 'B13'; // T3: % Capitale Iniziale già Recuperato ad Anno 3 = Dividend / Entry_Eq
 
 export default defineTemplate({
   id: 'M8-08-DIVIDENDRECAP',
@@ -54,12 +57,13 @@ export default defineTemplate({
     const r = rng.fork('dati');
 
     const ebitdaY3 = roundTo(triangular(r, 15_000_000, 20_000_000, 25_000_000), 500_000);
-    const existDebt = roundTo(ebitdaY3 * 1.8, 500_000); // l'azienda ha deleveraggiato fino a 1.8x
-    const maxLev = 4.0; // covenant max leverage
+    const existDebt = roundTo(ebitdaY3 * triangular(r, 1.2, 1.8, 2.5), 500_000);
+    const maxLev = roundTo(triangular(r, 3.5, 4.25, 5), 0.25);
     const entryEq = roundTo(triangular(r, 30_000_000, 40_000_000, 50_000_000), 1_000_000);
+    const feePct = roundTo(triangular(r, 0.015, 0.02, 0.03), 0.0025);
 
     const maxDebt = ebitdaY3 * maxLev;
-    const dividend = maxDebt - existDebt;
+    const dividend = maxDebt - existDebt - maxDebt * feePct;
     const cumulRecovery = dividend / entryEq;
 
     const brief = [
@@ -70,11 +74,13 @@ export default defineTemplate({
       `- **Debito Finanziario Esistente**: ${eur(existDebt)}`,
       `- **Massimo Leverage Consentito dalle Banche**: ${multiplo(maxLev)}`,
       `- **Equity Inizialmente Investita dallo Sponsor (Anno 0)**: ${eur(entryEq)}`,
+      `- **Fee di rifinanziamento**: ${pct(feePct, 2)} del nuovo debito`,
       ``,
-      `### I tuoi compiti:`,
-      `1. Calcola il **Massimo Nuovo Debito Raccoglibile** in \`${B_MAX_DEBT}\`: \`=${B_EBITDA_Y3}*${B_MAX_LEV}\`.`,
-      `2. Calcola il **Dividendo Straordinario Distribuibile** in \`${B_DIVIDEND}\` (Nuovo Debito meno Debito Esistente estinto): \`=${B_MAX_DEBT}-${B_EXIST_DEBT}\`.`,
-      `3. Calcola la quota di **Capitale Iniziale già Recuperato all'Anno 3** in \`${B_CUMUL_RET}\`: \`=${B_DIVIDEND}/${B_ENTRY_EQ}\`.`,
+      "Il nuovo finanziamento, al massimo della leva concessa, serve prima a rimborsare il debito esistente " +
+        'e a pagare le fee; quel che resta esce come dividendo straordinario allo sponsor. Lo sponsor recupera ' +
+        "parte del capitale prima dell'uscita, e l'IRR sale; in cambio l'azienda torna a essere molto indebitata.",
+      '',
+      'Calcola il nuovo debito massimo, il dividendo distribuibile e la quota di capitale iniziale gia\' recuperata.',
     ].join('\n');
 
     const sheet = foglio('Model', [
@@ -85,46 +91,54 @@ export default defineTemplate({
         'Debito Finanziario Esistente Pre-Recap',
         'Max Leverage Consentito (x)',
         'Equity Iniziale Sponsor (Anno 0)',
+        'Fee di rifinanziamento, % del nuovo debito',
       ], { style: STILE_ETICHETTA }),
       colonna('B4', [ebitdaY3, existDebt], { style: STILE_INPUT }),
       colonna(B_MAX_LEV, [maxLev], { style: STILE_INPUT_MULTIPLO }),
       colonna(B_ENTRY_EQ, [entryEq], { style: STILE_INPUT }),
+      [{ ref: B_FEE_PCT, content: feePct, style: { ...STILE_INPUT_PCT, numFmt: '0.00%' }, locked: true }],
 
-      riga('A9', ['Risultati della Recapitalization', 'Risultato'], { style: STILE_TITOLO }),
-      colonna('A10', [
+      riga('A10', ['Risultati della Recapitalization', 'Risultato'], { style: STILE_TITOLO }),
+      colonna('A11', [
         'Massimo Nuovo Debito Raccoglibile (€)',
         'Dividendo Straordinario Estratto (€)',
         'Quota Equity Iniziale Recuperata (%)',
       ], { style: STILE_ETICHETTA }),
       colonna(B_MAX_DEBT, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_DIVIDEND, [null], { style: STILE_FORMULA, locked: false }),
-      colonna(B_CUMUL_RET, [null], { style: STILE_TOTALE, locked: false }),
+      colonna(B_CUMUL_RET, [null], { style: { ...STILE_TOTALE, numFmt: '0.0%' }, locked: false }),
     ]);
 
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `Calcola il Massimo Nuovo Debito in ${B_MAX_DEBT}: =${B_EBITDA_Y3}*${B_MAX_LEV}.`,
+        prompt: `In ${B_MAX_DEBT} il nuovo debito massimo che le banche concedono.`,
         target: `Model!${B_MAX_DEBT}`,
         atteso: maxDebt,
         referenzia: [B_EBITDA_Y3, B_MAX_LEV],
+        senzaLiteral: [],
         skills: ['lbo.dividend-recap'],
+        minKeystrokes: 8,
       }),
       taskFormula({
         id: 'T2',
-        prompt: `Calcola il Dividendo Straordinario in ${B_DIVIDEND}: =${B_MAX_DEBT}-${B_EXIST_DEBT}.`,
+        prompt: `In ${B_DIVIDEND} il dividendo straordinario che resta da distribuire dopo aver rimborsato il debito esistente e pagato le fee.`,
         target: `Model!${B_DIVIDEND}`,
         atteso: dividend,
-        referenzia: [B_MAX_DEBT, B_EXIST_DEBT],
+        referenzia: [B_MAX_DEBT, B_EXIST_DEBT, B_FEE_PCT],
+        senzaLiteral: [],
         skills: ['lbo.dividend-recap'],
+        minKeystrokes: 16,
       }),
       taskFormula({
         id: 'T3',
-        prompt: `Calcola la percentuale di capitale iniziale recuperata in ${B_CUMUL_RET}: =${B_DIVIDEND}/${B_ENTRY_EQ}.`,
+        prompt: `In ${B_CUMUL_RET} quale quota dell'equity investita lo sponsor si e' gia' ripreso con il dividendo.`,
         target: `Model!${B_CUMUL_RET}`,
         atteso: cumulRecovery,
         referenzia: [B_DIVIDEND, B_ENTRY_EQ],
+        senzaLiteral: [],
         skills: ['lbo.dividend-recap'],
+        minKeystrokes: 8,
       }),
     ];
 
@@ -134,11 +148,12 @@ export default defineTemplate({
       brief,
       sheets: [sheet],
       tasks,
-      parScore: par(tasks, { letturaSecondi: 20 }),
+      parScore: par(tasks, { letturaSecondi: 50 }),
+      startAt: `Model!${B_MAX_DEBT}`,
       hints: [
-        hint('H1', 'In B10 moltiplica l\'EBITDA per il leverage massimo: =B4*B6.', 10, 'T1'),
-        hint('H2', 'In B11 sottrai il vecchio debito dal nuovo: =B10-B5.', 10, 'T2'),
-        hint('H3', 'In B12 dividi il dividendo per l\'equity investita all\'inizio: =B11-B7.', 10, 'T3'),
+        hint('H1', '=B4*B6', 10, 'T1'),
+        hint('H2', '=B11-B5-B11*B8: nuovo debito, meno quello rimborsato, meno le fee.', 10, 'T2'),
+        hint('H3', '=B12/B7', 10, 'T3'),
       ],
     };
   },

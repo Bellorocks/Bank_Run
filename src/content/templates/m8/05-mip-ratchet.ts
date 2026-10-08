@@ -1,14 +1,14 @@
 /**
- * M8 · 05 — Management Incentive Plan (MIP) e Ratchet: allineamento e sweet equity.
+ * M8 · 05 — Management Incentive Plan: sweet equity e ratchet.
  *
- * Nei deal di Private Equity il management team riceve "sweet equity" e un
- * meccanismo di Ratchet (incentivo a scaglioni legato alle performance):
+ * Il management riceve una quota dell'equity di uscita che sale (ratchet) se
+ * lo sponsor raggiunge un MoIC minimo. La quota dipende da una condizione,
+ * quindi la cella va costruita con IF: se cambia l'uscita, la quota deve
+ * aggiornarsi da sola.
  *
- *   1. Quota Base (Base Sweet Equity): es. 5.0% dell'equity finale all'uscita.
- *   2. Soglia Hurdle (Performance Target): se il MoIC complessivo raggiunge o
- *      supera 2.5x, scatta il Ratchet.
- *   3. Quota con Ratchet: la quota del management sale al 10.0%.
- *   4. Equity Netta dello Sponsor = Exit Equity Lorda × (1 - Quota Management).
+ * Il seed decide se il ratchet scatta o no (circa meta' dei casi ciascuno),
+ * e il MoIC realizzato non cade mai a meno di 0,1x dall'hurdle: nessun
+ * pareggio ambiguo, e chi scrive la quota a mano sbaglia meta' delle volte.
  */
 
 import {
@@ -26,22 +26,25 @@ import {
   STILE_FORMULA,
   STILE_FORMULA_PCT,
   STILE_INPUT,
+  STILE_INPUT_MULTIPLO,
+  STILE_INPUT_PCT,
   STILE_TITOLO,
   STILE_TOTALE,
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
+import type { Task } from '../../types';
 
 // Geometria fissa
 const B_ENTRY_EQ = 'B4'; // Equity investita all'ingresso (dato)
 const B_EXIT_EQ = 'B5'; // Equity lorda realizzata all'uscita (dato)
 
-const B_HURDLE = 'B8'; // Soglia Hurdle MoIC (es. 2.5x) (dato)
-const C_BASE_PCT = 'C8'; // Quota Base (5.0%) (dato)
-const C_RATCHET_PCT = 'C9'; // Quota Ratchet (10.0%) (dato)
+const B_HURDLE = 'B8'; // Soglia hurdle MoIC (dato)
+const C_BASE_PCT = 'C8'; // Quota base (dato)
+const C_RATCHET_PCT = 'C9'; // Quota ratchet (dato)
 
-const B_ACT_MOIC = 'B12'; // T1: MoIC Lordo = Exit Equity / Entry Equity
-const B_MGT_PCT = 'B13'; // T2: Quota % Management = IF(B12>=B8, C9, C8)
-const B_SPONSOR_NET = 'B14'; // T3: Net Equity Sponsor = B5 * (1 - B13)
+const B_ACT_MOIC = 'B12'; // T1
+const B_MGT_PCT = 'B13'; // T2
+const B_SPONSOR_NET = 'B14'; // T3
 
 export default defineTemplate({
   id: 'M8-05-MIPRATCHET',
@@ -57,81 +60,93 @@ export default defineTemplate({
     const r = rng.fork('dati');
 
     const entryEq = roundTo(triangular(r, 20_000_000, 30_000_000, 40_000_000), 1_000_000);
-    // Moltiplicatore realizzato: tra 2.6x e 3.2x (supera l'hurdle di 2.5x)
-    const realizedMoic = roundTo(triangular(r, 2.6, 2.8, 3.2), 0.05);
-    const exitEq = roundTo(entryEq * realizedMoic, 100_000);
+    const hurdleMoic = roundTo(triangular(r, 2, 2.5, 3), 0.25);
+    const basePct = roundTo(triangular(r, 0.04, 0.06, 0.08), 0.01);
+    const ratchetPct = basePct + roundTo(triangular(r, 0.03, 0.05, 0.07), 0.01);
 
-    const hurdleMoic = 2.5;
-    const basePct = 0.05;
-    const ratchetPct = 0.10;
+    // Sopra o sotto l'hurdle a caso, di 0,1x-0,8x.
+    const sopra = r.next() < 0.5;
+    const scarto = 0.1 + r.next() * 0.7;
+    const realizedMoic = hurdleMoic + (sopra ? scarto : -scarto);
+    const exitEq = roundTo(entryEq * realizedMoic, 100_000);
 
     const actualMoic = exitEq / entryEq;
     const mgtPct = actualMoic >= hurdleMoic ? ratchetPct : basePct;
     const sponsorNet = exitEq * (1 - mgtPct);
 
     const brief = [
-      `Struttura la ripartizione dell'equity di uscita con il piano di incentivazione manageriale (**MIP Ratchet**).`,
-      ``,
-      `Dati dell'investimento:`,
-      `- **Sponsor Equity Entry**: ${eur(entryEq)}`,
-      `- **Gross Equity Exit**: ${eur(exitEq)}`,
-      ``,
-      `Regole del MIP Ratchet:`,
-      `- **Hurdle MoIC Target**: ${multiplo(hurdleMoic)}`,
-      `- Se MoIC < ${multiplo(hurdleMoic)}: il Management riceve la quota base del **${pct(basePct)}** (\`${C_BASE_PCT}\`)`,
-      `- Se MoIC >= ${multiplo(hurdleMoic)}: il Management sblocca il Ratchet e riceve il **${pct(ratchetPct)}** (\`${C_RATCHET_PCT}\`)`,
-      ``,
-      `### I tuoi compiti:`,
-      `1. Calcola il **MoIC Lordo Realizzato** in \`${B_ACT_MOIC}\`: \`=${B_EXIT_EQ}/${B_ENTRY_EQ}\`.`,
-      `2. Determina la **Quota % Management** in \`${B_MGT_PCT}\` tramite funzione logica \`IF\`: \`=IF(${B_ACT_MOIC}>=${B_HURDLE}, ${C_RATCHET_PCT}, ${C_BASE_PCT})\`.`,
-      `3. Calcola l'**Equity Netta Spettante allo Sponsor (€)** in \`${B_SPONSOR_NET}\`: \`=${B_EXIT_EQ}*(1-${B_MGT_PCT})\`.`,
+      "Ripartisci l'equity di uscita fra sponsor e management secondo il **Management Incentive Plan**.",
+      '',
+      `- **Equity investita dallo sponsor**: ${eur(entryEq)}`,
+      `- **Equity lorda all'uscita**: ${eur(exitEq)}`,
+      '',
+      `Il management riceve il **${pct(basePct, 0)}** dell'equity di uscita. Se lo sponsor realizza ` +
+        `almeno **${multiplo(hurdleMoic)}** il capitale investito, scatta il **ratchet** e la quota sale al ` +
+        `**${pct(ratchetPct, 0)}**. Il resto spetta allo sponsor.`,
+      '',
+      "Il ratchet allinea il management all'obiettivo dello sponsor: guadagna di piu' solo se l'investimento " +
+        'rende davvero. Per questo la quota non si decide guardando i numeri: la decide il foglio, e se ' +
+        "l'uscita cambia deve cambiare da sola.",
     ].join('\n');
 
     const sheet = foglio('Model', [
       riga('A1', ['MANAGEMENT INCENTIVE PLAN (MIP)'], { style: STILE_TITOLO }),
-      riga('A3', ['Investimento Equity (€)', 'Valore'], { style: STILE_TITOLO }),
-      riga('A4', ['Equity Iniziale (Entry)', entryEq], { style: STILE_INPUT }),
-      riga('A5', ['Equity Lorda Finale (Exit)', exitEq], { style: STILE_INPUT }),
+      riga('A3', ['Investimento equity (€)', 'Valore'], { style: STILE_TITOLO }),
+      colonna('A4', ['Equity iniziale (entry)', 'Equity lorda finale (exit)'], { style: STILE_ETICHETTA }),
+      colonna(B_ENTRY_EQ, [entryEq, exitEq], { style: STILE_INPUT }),
 
-      riga('A7', ['Regole Ratchet', 'Soglia Hurdle', 'Quota Mgt'], { style: STILE_TITOLO }),
-      riga('A8', ['Base (sotto hurdle)', hurdleMoic, basePct]),
-      riga('A9', ['Ratchet (pari o sopra hurdle)', null, ratchetPct]),
+      riga('A7', ['Regole del ratchet', 'Hurdle MoIC', 'Quota management'], { style: STILE_TITOLO }),
+      colonna('A8', ['Base (sotto hurdle)', 'Ratchet (pari o sopra hurdle)'], { style: STILE_ETICHETTA }),
+      [{ ref: B_HURDLE, content: hurdleMoic, style: STILE_INPUT_MULTIPLO, locked: true }],
+      colonna(C_BASE_PCT, [basePct, ratchetPct], { style: STILE_INPUT_PCT }),
 
-      riga('A11', ['Ripartizione Finale', 'Risultato'], { style: STILE_TITOLO }),
-      colonna('A12', [
-        'MoIC Lordo (x)',
-        'Quota % Spettante al Management',
-        'Equity Netta Sponsor (€)',
-      ], { style: STILE_ETICHETTA }),
-      colonna(B_ACT_MOIC, [null], { style: STILE_FORMULA, locked: false }),
+      riga('A11', ['Ripartizione finale', 'Risultato'], { style: STILE_TITOLO }),
+      colonna('A12', ['MoIC lordo (x)', 'Quota spettante al management', 'Equity netta sponsor (€)'], {
+        style: STILE_ETICHETTA,
+      }),
+      colonna(B_ACT_MOIC, [null], { style: { ...STILE_FORMULA, numFmt: '0.00x' }, locked: false }),
       colonna(B_MGT_PCT, [null], { style: STILE_FORMULA_PCT, locked: false }),
       colonna(B_SPONSOR_NET, [null], { style: STILE_TOTALE, locked: false }),
     ]);
 
+    const t2: Task = {
+      id: 'T2',
+      prompt:
+        `In ${B_MGT_PCT} la quota che spetta al management: quella base o quella del ratchet, a seconda ` +
+        "che il MoIC realizzato raggiunga l'hurdle. La cella deve decidere da sola.",
+      targetCell: `Model!${B_MGT_PCT}`,
+      check: [
+        { kind: 'mustBeFormula' },
+        { kind: 'value', expected: mgtPct },
+        { kind: 'mustReference', cells: [B_ACT_MOIC, B_HURDLE, C_RATCHET_PCT, C_BASE_PCT] },
+        { kind: 'mustUseFunction', functions: ['IF'] },
+        { kind: 'mustNotContainLiteral', except: [] },
+      ],
+      skills: ['lbo.mip'],
+      minKeystrokes: 22,
+    };
+
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `Calcola il MoIC Lordo in ${B_ACT_MOIC}: =${B_EXIT_EQ}/${B_ENTRY_EQ}.`,
+        prompt: `In ${B_ACT_MOIC} il MoIC lordo realizzato dallo sponsor.`,
         target: `Model!${B_ACT_MOIC}`,
         atteso: actualMoic,
         referenzia: [B_EXIT_EQ, B_ENTRY_EQ],
+        senzaLiteral: [],
         skills: ['lbo.mip'],
+        minKeystrokes: 8,
       }),
-      taskFormula({
-        id: 'T2',
-        prompt: `Determina la quota % spettante al Management in ${B_MGT_PCT} con =IF(${B_ACT_MOIC}>=${B_HURDLE}, ${C_RATCHET_PCT}, ${C_BASE_PCT}).`,
-        target: `Model!${B_MGT_PCT}`,
-        atteso: mgtPct,
-        referenzia: [B_ACT_MOIC, B_HURDLE, C_RATCHET_PCT, C_BASE_PCT],
-        skills: ['lbo.mip'],
-      }),
+      t2,
       taskFormula({
         id: 'T3',
-        prompt: `Calcola l'Equity Netta per lo Sponsor in ${B_SPONSOR_NET}: =${B_EXIT_EQ}*(1-${B_MGT_PCT}).`,
+        prompt: `In ${B_SPONSOR_NET} l'equity che resta allo sponsor dopo la quota del management.`,
         target: `Model!${B_SPONSOR_NET}`,
         atteso: sponsorNet,
         referenzia: [B_EXIT_EQ, B_MGT_PCT],
+        senzaLiteral: [1],
         skills: ['lbo.mip'],
+        minKeystrokes: 12,
       }),
     ];
 
@@ -141,11 +156,12 @@ export default defineTemplate({
       brief,
       sheets: [sheet],
       tasks,
-      parScore: par(tasks, { letturaSecondi: 20 }),
+      parScore: par(tasks, { letturaSecondi: 50 }),
+      startAt: `Model!${B_ACT_MOIC}`,
       hints: [
-        hint('H1', 'In B12 dividi l\'equity di uscita per quella iniziale: =B5/B4.', 10, 'T1'),
-        hint('H2', 'In B13 usa la condizione: =IF(B12>=B8, C9, C8).', 15, 'T2'),
-        hint('H3', 'In B14 calcola la fetta rimanente per lo sponsor: =B5*(1-B13).', 10, 'T3'),
+        hint('H1', '=B5/B4', 10, 'T1'),
+        hint('H2', '=IF(B12>=B8,C9,C8)', 15, 'T2'),
+        hint('H3', "=B5*(1-B13): l'equity lorda meno la fetta del management.", 10, 'T3'),
       ],
     };
   },

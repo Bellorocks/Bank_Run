@@ -18,7 +18,7 @@
  * tentativo. Il debug e' l'esercizio, non un ostacolo all'esercizio.
  */
 
-import { a1ToRange, coordToA1, parseCellRef, type CellCoord, type RangeCoords } from '../engine/address';
+import { a1ToCoord, a1ToRange, coordToA1, parseCellRef, type CellCoord, type RangeCoords } from '../engine/address';
 import { parseFormula } from '../engine/formula/parser';
 import {
   collectFunctions,
@@ -234,6 +234,15 @@ function runCheck(
   switch (check.kind) {
     // ---------------------------------------------------------------- numerico
     case 'value': {
+      if (check.at !== undefined) {
+        // Valore di un'altra cella del bersaglio (tipicamente l'ultima di una
+        // riga copiata): e' li' che un ancoraggio mancante smette di nascondersi.
+        const coord = a1ToCoord(check.at);
+        if (!coord) return ko(MESSAGES.value, `cella "${check.at}" non valida nel template`);
+        const altrove: Target = { ...cell.target, coord, ref: coordToA1(coord) };
+        const { at: _at, ...resto } = check;
+        return runCheck(wb, resto, { target: altrove, formula: undefined, value: wb.getValue(cell.target.sheetId, coord), ast: undefined }, opts);
+      }
       const err = errorText(cell.value);
       if (err) return ko(`${MESSAGES.value} La cella restituisce ${err}.`, `${cell.target.ref} = ${err}`);
       if (typeof cell.value !== 'number') {

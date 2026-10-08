@@ -1,5 +1,5 @@
 /**
- * M8 · 11 — Returns Attribution: la waterfall completa dei rendimenti LBO. [COMBO]
+ * M8 · 11 — Returns Attribution: la waterfall completa dei rendimenti LBO.
  *
  * Livello conclusivo del modulo LBO. Integra l'intera cascata distributiva (Waterfall):
  *
@@ -26,6 +26,7 @@ import {
   STILE_FORMULA,
   STILE_INPUT,
   STILE_INPUT_MULTIPLO,
+  STILE_INPUT_PCT,
   STILE_TITOLO,
   STILE_TOTALE,
 } from '../../authoring';
@@ -61,13 +62,13 @@ export default defineTemplate({
     const r = rng.fork('dati');
 
     const exitEbitda = roundTo(triangular(r, 18_000_000, 22_000_000, 26_000_000), 500_000);
-    const exitMult = 10.0;
+    const exitMult = roundTo(triangular(r, 8, 9.5, 11), 0.5);
     const exitEv = exitEbitda * exitMult;
-    const endNd = roundTo(exitEbitda * 1.2, 500_000); // 1.2x net debt rimasto
+    const endNd = roundTo(exitEbitda * triangular(r, 0.8, 1.5, 2.5), 500_000);
     const grossEq = exitEv - endNd;
 
-    const mezzKickerPct = 0.03;
-    const mgtMipPct = 0.07;
+    const mezzKickerPct = roundTo(triangular(r, 0.02, 0.03, 0.05), 0.005);
+    const mgtMipPct = roundTo(triangular(r, 0.05, 0.08, 0.12), 0.01);
     const mezzVal = grossEq * mezzKickerPct;
     const mgtVal = grossEq * mgtMipPct;
 
@@ -85,14 +86,15 @@ export default defineTemplate({
       `- **Management Incentive Plan (MIP)**: ${pct(mgtMipPct)} dell'Equity lorda`,
       `- **Sponsor Entry Equity Iniziale**: ${eur(sponsorEntry)}`,
       ``,
-      `### I tuoi compiti:`,
-      `1. Calcola l'**Equity Value Lordo di Uscita** in \`${B_GROSS_EQ}\`: \`=${B_EXIT_EV}-${B_END_ND}\`.`,
-      `2. Calcola l'**Equity Netta Spettante allo Sponsor** in \`${B_SPONSOR_NET}\` deducendo il Mezzanine Kicker (\`${C_MEZZ_VAL}\`) e il Management MIP (\`${C_MGT_VAL}\`): \`=${B_GROSS_EQ}-${C_MEZZ_VAL}-${C_MGT_VAL}\`.`,
-      `3. Calcola il **Net MoIC dello Sponsor** in \`${B_SPONSOR_MOIC}\`: \`=${B_SPONSOR_NET}/${B_SPONSOR_ENTRY}\`.`,
+      "All'uscita l'equity lorda non va tutta allo sponsor: prima il mezzanine incassa il suo **equity " +
+        'kicker** (una quota del valore, compenso per il rischio subordinato), poi il management la sua quota ' +
+        'del **MIP**. Quel che resta e\' il ritorno netto dello sponsor: il numero che conta per il fondo.',
+      '',
+      "Percorri la cascata: equity lorda, le due quote, l'equity netta dello sponsor e il suo MoIC netto.",
     ].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['LBO RETURNS WATERFALL [COMBO]'], { style: STILE_TITOLO }),
+      riga('A1', ['LBO RETURNS WATERFALL'], { style: STILE_TITOLO }),
       riga('A3', ['Valutazione di Uscita', 'Valore (€)'], { style: STILE_TITOLO }),
       colonna('A4', [
         'EBITDA di Uscita',
@@ -108,8 +110,9 @@ export default defineTemplate({
       colonna(B_GROSS_EQ, [null], { style: STILE_TOTALE, locked: false }),
 
       riga('A10', ['Ripartizione Waterfall', 'Quota %', 'Valore (€)'], { style: STILE_TITOLO }),
-      riga('A11', ['Mezzanine Equity Kicker', mezzKickerPct, `=${B_GROSS_EQ}*${B_MEZZ_KICKER_PCT}`]),
-      riga('A12', ['Management MIP Pool', mgtMipPct, `=${B_GROSS_EQ}*${B_MGT_MIP_PCT}`]),
+      colonna('A11', ['Mezzanine equity kicker', 'Management MIP pool'], { style: STILE_ETICHETTA }),
+      colonna(B_MEZZ_KICKER_PCT, [mezzKickerPct, mgtMipPct], { style: { ...STILE_INPUT_PCT, numFmt: '0.0%' } }),
+      colonna(C_MEZZ_VAL, [null, null], { style: STILE_FORMULA, locked: false }),
 
       riga('A14', ['Ritorno Netto Sponsor', 'Risultato'], { style: STILE_TITOLO }),
       colonna('A15', [
@@ -119,33 +122,59 @@ export default defineTemplate({
       ], { style: STILE_ETICHETTA }),
       colonna(B_SPONSOR_ENTRY, [sponsorEntry], { style: STILE_INPUT }),
       colonna(B_SPONSOR_NET, [null], { style: STILE_FORMULA, locked: false }),
-      colonna(B_SPONSOR_MOIC, [null], { style: STILE_TOTALE, locked: false }),
+      colonna(B_SPONSOR_MOIC, [null], { style: { ...STILE_TOTALE, numFmt: '0.00x' }, locked: false }),
     ]);
 
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `Calcola il Gross Exit Equity in ${B_GROSS_EQ}: =${B_EXIT_EV}-${B_END_ND}.`,
+        prompt: `In ${B_GROSS_EQ} l'equity lorda all'uscita.`,
         target: `Model!${B_GROSS_EQ}`,
         atteso: grossEq,
         referenzia: [B_EXIT_EV, B_END_ND],
+        senzaLiteral: [],
         skills: ['lbo.attribution'],
+        minKeystrokes: 8,
       }),
       taskFormula({
         id: 'T2',
-        prompt: `Calcola l'Equity Netta dello Sponsor in ${B_SPONSOR_NET}: =${B_GROSS_EQ}-${C_MEZZ_VAL}-${C_MGT_VAL}.`,
-        target: `Model!${B_SPONSOR_NET}`,
-        atteso: sponsorNet,
-        referenzia: [B_GROSS_EQ, C_MEZZ_VAL, C_MGT_VAL],
+        prompt: `In ${C_MEZZ_VAL} quanto incassa il mezzanine col suo equity kicker.`,
+        target: `Model!${C_MEZZ_VAL}`,
+        atteso: mezzVal,
+        referenzia: [B_GROSS_EQ, B_MEZZ_KICKER_PCT],
+        senzaLiteral: [],
         skills: ['lbo.attribution'],
+        minKeystrokes: 8,
       }),
       taskFormula({
         id: 'T3',
-        prompt: `Calcola il Net MoIC dello Sponsor in ${B_SPONSOR_MOIC}: =${B_SPONSOR_NET}/${B_SPONSOR_ENTRY}.`,
+        prompt: `In ${C_MGT_VAL} quanto incassa il management col MIP.`,
+        target: `Model!${C_MGT_VAL}`,
+        atteso: mgtVal,
+        referenzia: [B_GROSS_EQ, B_MGT_MIP_PCT],
+        senzaLiteral: [],
+        skills: ['lbo.attribution'],
+        minKeystrokes: 8,
+      }),
+      taskFormula({
+        id: 'T4',
+        prompt: `In ${B_SPONSOR_NET} l'equity che resta allo sponsor in fondo alla cascata.`,
+        target: `Model!${B_SPONSOR_NET}`,
+        atteso: sponsorNet,
+        referenzia: [B_GROSS_EQ, C_MEZZ_VAL, C_MGT_VAL],
+        senzaLiteral: [],
+        skills: ['lbo.attribution'],
+        minKeystrokes: 12,
+      }),
+      taskFormula({
+        id: 'T5',
+        prompt: `In ${B_SPONSOR_MOIC} il MoIC netto dello sponsor.`,
         target: `Model!${B_SPONSOR_MOIC}`,
         atteso: sponsorMoic,
         referenzia: [B_SPONSOR_NET, B_SPONSOR_ENTRY],
+        senzaLiteral: [],
         skills: ['lbo.attribution'],
+        minKeystrokes: 8,
       }),
     ];
 
@@ -155,11 +184,14 @@ export default defineTemplate({
       brief,
       sheets: [sheet],
       tasks,
-      parScore: par(tasks, { letturaSecondi: 25 }),
+      parScore: par(tasks, { letturaSecondi: 50 }),
+      startAt: `Model!${B_GROSS_EQ}`,
       hints: [
-        hint('H1', 'In B9 sottrai il debito netto dall\'Enterprise Value: =B6-B7.', 10, 'T1'),
-        hint('H2', 'In B16 sottrai la quota del mezzanine e del management dall\'equity lorda: =B9-C11-C12.', 15, 'T2'),
-        hint('H3', 'In B17 calcola il multiplo netto dividendo l\'equity netta di uscita per quella iniziale: =B16/B15.', 10, 'T3'),
+        hint('H1', '=B6-B7: EV meno debito netto.', 10, 'T1'),
+        hint('H2', '=B9*B11', 10, 'T2'),
+        hint('H3', '=B9*B12', 10, 'T3'),
+        hint('H4', '=B9-C11-C12', 10, 'T4'),
+        hint('H5', '=B16/B15', 10, 'T5'),
       ],
     };
   },
