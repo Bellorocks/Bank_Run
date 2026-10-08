@@ -147,7 +147,7 @@ export default defineTemplate({
         `qualitativo di **${num(punteggio)}/100** (soglia minima: ${num(sogliaPunteggio)}/100) e ha`,
         `verificato un fatturato di **${eur(fatturato)}** (soglia minima: ${eur(sogliaFatturato)}).`,
         `Il margine EBITDA e\' **${pct(margine)}** (soglia minima: ${pct(sogliaMargine)}), la leva`,
-        `Debito/EBITDA e\' **${multiplo(leva)}x** (soglia massima: ${multiplo(sogliaLeva)}x).`,
+        `Debito/EBITDA e\' **${multiplo(leva)}** (soglia massima: ${multiplo(sogliaLeva)}).`,
         '',
         'Da questi otto numeri costruisci tre verdetti: idoneita\' (serve tutto), allerta (basta',
         'poco) ed esclusione (il contrario dell\'idoneita\', senza rifare i conti).',

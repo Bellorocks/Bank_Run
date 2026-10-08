@@ -125,3 +125,40 @@ export function normalizeTypedInput(
   if (repaired !== text && isValidFormula(repaired)) return repaired;
   return text;
 }
+
+/** Il formato e' una percentuale? (un % fuori dalle parti fra virgolette) */
+export function isPercentFormat(numFmt: string | undefined): boolean {
+  if (!numFmt) return false;
+  return numFmt.split('"').some((part, i) => i % 2 === 0 && part.includes('%'));
+}
+
+/**
+ * Le due regole di Excel sulle percentuali digitate, applicate al testo gia'
+ * normalizzato da `normalizeTypedInput`:
+ *
+ *  - un numero scritto col simbolo % in una cella che non e' in percentuale le
+ *    da' il formato percentuale (con tanti decimali quanti ne sono stati scritti);
+ *  - "inserimento automatico delle percentuali" (attivo di default): in una cella
+ *    GIA' in percentuale, un numero scritto senza % vale per cento se e' >= 1 in
+ *    valore assoluto (15 diventa 15%), resta com'e' se e' minore (0,15 e' 15%).
+ *
+ * La trappola del 1500% esiste quindi solo quando il formato arriva DOPO il numero.
+ */
+export function applyPercentEntry(
+  normalized: string | null,
+  cellNumFmt: string | undefined,
+): { raw: string | null; numFmt?: string } {
+  if (normalized === null || normalized.startsWith('=') || normalized.startsWith("'")) return { raw: normalized };
+  const m = /^(-?)(\d+)(?:\.(\d+))?(%?)$/.exec(normalized);
+  if (!m) return { raw: normalized };
+  const [, , , decimali = '', percento] = m;
+  if (percento) {
+    if (isPercentFormat(cellNumFmt)) return { raw: normalized };
+    const fmt = decimali.length === 0 ? '0%' : `0.${'0'.repeat(Math.min(decimali.length, 4))}%`;
+    return { raw: normalized, numFmt: fmt };
+  }
+  if (isPercentFormat(cellNumFmt) && Math.abs(Number(normalized)) >= 1) {
+    return { raw: `${normalized}%` };
+  }
+  return { raw: normalized };
+}

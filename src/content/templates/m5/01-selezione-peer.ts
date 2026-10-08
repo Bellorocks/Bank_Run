@@ -30,12 +30,8 @@
  *        AND, o viceversa) passerebbe comunque T1 ma farebbe fallire T2.
  *
  *   T2 — quanti peer sono DAVVERO comparabili: COUNTIF sulla colonna
- *        Comparabile. Verificato con un probe diretto su HyperFormula: il
- *        criterio booleano vero va scritto `TRUE()`, con le parentesi — un
- *        `TRUE` bare viene cercato come nome definito e restituisce
- *        `#NAME?`. E' una differenza reale rispetto a molte guide Excel (dove
- *        `TRUE` funziona anche senza parentesi) e va insegnata esplicitamente
- *        nel prompt, non lasciata scoprire per tentativi.
+ *        Comparabile, con criterio TRUE. Il motore accetta TRUE sia nudo sia
+ *        come TRUE(), come Excel (vedi engineExtensions.addBooleanNames).
  *
  * Geometria: tutta funzione di `nCandidati` (6-8, dal seed), mai un
  * letterale fisso — le righe della tabella e la riga di sintesi si spostano
@@ -176,9 +172,7 @@ export default defineTemplate({
         id: 'T2',
         prompt:
           `In B${SUMMARY_ROW} conta quanti peer sono DAVVERO comparabili: usa COUNTIF sul range ` +
-          `${rangeComparabile}, contando le celle che valgono VERO. Attenzione alla sintassi di ` +
-          "questo motore formule: il valore booleano vero si scrive come funzione, TRUE() con le " +
-          'parentesi — TRUE da solo non viene riconosciuto e restituisce un errore.',
+          `${rangeComparabile}, contando le celle che valgono TRUE.`,
         target: `Model!B${SUMMARY_ROW}`,
         atteso: numComparabili,
         referenzia: cellsComparabile,
@@ -287,7 +281,7 @@ export default defineTemplate({
         ),
         hint(
           'H3',
-          `=COUNTIF(${rangeComparabile},TRUE()) — nota le parentesi dopo TRUE: senza, questo motore non lo riconosce.`,
+          `=COUNTIF(${rangeComparabile},TRUE)`,
           10,
           'T2',
         ),

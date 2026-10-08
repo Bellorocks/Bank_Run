@@ -229,7 +229,7 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `Scrivi =A${RIGA_PRIMO_MULTIPLO}*$B$3-$B$4, dividi tutto per $B$5. Metti l'ancoraggio col dollaro sulle tre assunzioni, non sul multiplo.`,
+          `=(A${RIGA_PRIMO_MULTIPLO}*$B$3-$B$4)/$B$5: il dollaro sulle tre assunzioni, non sul multiplo.`,
           14,
           'T1',
         ),

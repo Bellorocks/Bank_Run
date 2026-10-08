@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeNumberText, normalizeTypedInput } from './typedInput';
+import { applyPercentEntry, normalizeNumberText, normalizeTypedInput } from './typedInput';
 import { Workbook } from './workbook';
 
 describe('numeri digitati: italiano', () => {
@@ -58,5 +58,23 @@ describe('formule digitate', () => {
 
   it('il testo forzato con l\'apice resta testo', () => {
     expect(normalizeTypedInput("'0,15", 'it', ok)).toBe("'0,15");
+  });
+});
+
+describe('applyPercentEntry (regole di Excel sulle percentuali)', () => {
+  it('un numero col % in una cella Generale prende il formato percentuale', () => {
+    expect(applyPercentEntry('12.4%', undefined)).toEqual({ raw: '12.4%', numFmt: '0.0%' });
+    expect(applyPercentEntry('15%', 'General')).toEqual({ raw: '15%', numFmt: '0%' });
+  });
+  it('in una cella gia\' in percentuale, 15 vale 15% e 0.15 resta 0.15', () => {
+    expect(applyPercentEntry('15', '0%')).toEqual({ raw: '15%' });
+    expect(applyPercentEntry('0.15', '0.0%')).toEqual({ raw: '0.15' });
+    expect(applyPercentEntry('-3', '0%')).toEqual({ raw: '-3%' });
+  });
+  it('formule, testo e celle non percentuali restano intatti', () => {
+    expect(applyPercentEntry('=B2/B3', '0%')).toEqual({ raw: '=B2/B3' });
+    expect(applyPercentEntry('15', '#,##0')).toEqual({ raw: '15' });
+    expect(applyPercentEntry('ciao', '0%')).toEqual({ raw: 'ciao' });
+    expect(applyPercentEntry(null, '0%')).toEqual({ raw: null });
   });
 });

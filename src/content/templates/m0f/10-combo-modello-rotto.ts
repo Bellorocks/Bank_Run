@@ -169,8 +169,8 @@ export default defineTemplate({
       '',
       `Una proiezione rapida a tre anni per il comitato investimenti. Ricavi base ${eur(ricaviBase)},`,
       `crescita attesa ${pct(crescita)} l'anno, margine EBITDA atteso ${pct(margine)}. All'anno 3 si`,
-      `aggiungono ${eur(costiOneOff)} di costi one-off da riclassificare (vanno tolti dal conto, non`,
-      `sommati una seconda volta), ${eur(da)} di ammortamenti, e un'aliquota fiscale complessiva del`,
+      `si registrano ${eur(costiOneOff)} di costi one-off, gia' dentro l'EBITDA riportato: normalizzare`,
+      `vuol dire riaggiungerli. Poi ${eur(da)} di ammortamenti e un'aliquota fiscale complessiva del`,
       `${pct(aliquota)}.`,
       '',
       '## Tre numeri sospetti',
@@ -228,7 +228,7 @@ export default defineTemplate({
                 'Ricavi anno 1',
                 'Ricavi anno 2',
                 'Ricavi anno 3',
-                'EBITDA anno 3 (grezzo)',
+                'EBITDA anno 3 riportato (prima della normalizzazione)',
                 'EBITDA anno 3 normalizzato',
                 'EBIT anno 3',
                 'Imposte anno 3',
@@ -273,22 +273,23 @@ export default defineTemplate({
         ),
         hint(
           'H1',
-          'Apri B10 con F2: e\' un numero battuto a mano, non una formula. Dovrebbe essere ' +
-            '"=B9*(1+B3)", esattamente come fanno B9 e B11 con la riga sopra di loro.',
+          'Apri B10 con F2: e\' un numero battuto a mano, non una formula. In D10: =B9*(1+B3), ' +
+            'come fanno B9 e B11 con la riga sopra di loro.',
           15,
           'T1',
         ),
         hint(
           'H2',
           'In B13 guarda il segno prima di B5: i costi one-off hanno GIA\' abbassato B12, quindi ' +
-            'normalizzare vuol dire sommarli indietro (+B5), non sottrarli una seconda volta (-B5).',
+            'normalizzare vuol dire sommarli indietro. Ma B12 eredita l\'errore di B10: in D13 riparti dal tuo D10, =D10*(1+B3)*B4+B5.',
           15,
           'T2',
         ),
         hint(
           'H3',
-          'Premi Ctrl+[ su B14: la selezione salta su B12 (EBITDA grezzo) invece che su B13 (EBITDA ' +
-            'normalizzato, la riga giusta, appena sopra). La formula corretta e\' "=B13-B6".',
+          'Premi Ctrl+[ su B14: la selezione salta su B12 (EBITDA riportato) invece che sull\'EBITDA ' +
+            'normalizzato. Ma anche B13 e\' sbagliato: parti dal valore corretto che hai ricostruito tu. ' +
+            'In D14: =D13-B6.',
           15,
           'T3',
         ),

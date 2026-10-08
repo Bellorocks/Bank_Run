@@ -271,7 +271,7 @@ export default defineTemplate({
         ),
         hint(
           'H2',
-          `=ABS(B${ALFA_SCARTO_ROW})<0,0001 — VERO se lo scarto e\' sotto la soglia, FALSO altrimenti.`,
+          `=ABS(B${ALFA_SCARTO_ROW})<0.0001 — VERO se lo scarto e\' sotto la soglia, FALSO altrimenti.`,
           10,
           'T2',
         ),

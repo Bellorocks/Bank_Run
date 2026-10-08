@@ -6,7 +6,7 @@
  *   2. strutturale — ispezione dell'AST della formula: e' una formula? referenzia
  *                    le celle giuste? contiene numeri magici? gli ancoraggi sono
  *                    quelli richiesti? la riga e' coerente?
- *   3. stilistico  — color coding e formati, dal rank 3 in su
+ *   3. stilistico  — color coding (dal rank 3 in su) e formati numerici (quando il task li chiede)
  *
  * Il punto politico del modulo: **un numero giusto hardcodato e' un livello
  * fallito**. Se un giorno qualcuno "semplifica" facendo passare il check
@@ -28,6 +28,7 @@ import {
   referencesCell,
   shiftFormula,
 } from '../engine/formula/refs';
+import { formatsEquivalent } from '../engine/numberFormat';
 import { iterativeKey } from '../engine/iterative';
 import type { Workbook } from '../engine/workbook';
 import { classifyFontColor } from '../styles/palette';
@@ -155,8 +156,9 @@ export function gradeTask(wb: Workbook, task: Task, opts: GradeOptions = {}): Ta
 
   const results: CheckResult[] = [];
   for (const check of task.check) {
-    const family = checkFamily(check.kind);
-    if (family === 'stilistico' && opts.enforceStyle !== true) continue;
+    // La disciplina dei colori conta dal rank 3; il formato numerico, quando un
+    // task lo chiede, e' il contenuto stesso del task e si verifica sempre.
+    if (check.kind === 'colorDiscipline' && opts.enforceStyle !== true) continue;
     results.push(runCheck(wb, check, { target, formula, value, ast }, opts));
   }
 
@@ -418,8 +420,8 @@ function runCheck(
     case 'numberFormat': {
       const style = wb.getStyle(cell.target.sheetId, cell.target.coord);
       const actual = style.numFmt ?? 'General';
-      const cmp = opts.formatComparator ?? ((a: string, b: string) => a.trim() === b.trim());
-      return cmp(actual, check.expected)
+      const cmp = opts.formatComparator ?? formatsEquivalent;
+      return [check.expected, ...(check.accept ?? [])].some((f) => cmp(actual, f))
         ? ok()
         : ko(MESSAGES.numberFormat, `${cell.target.ref} ha "${actual}", atteso "${check.expected}"`);
     }

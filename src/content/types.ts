@@ -154,6 +154,8 @@ export interface NoErrorCheck extends CheckBase {
 export interface NumberFormatCheck extends CheckBase {
   readonly kind: 'numberFormat';
   readonly expected: string;
+  /** Altri formati accettati (es. la stessa percentuale con piu' decimali). */
+  readonly accept?: readonly string[];
 }
 
 export type Check =

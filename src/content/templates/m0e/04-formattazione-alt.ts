@@ -13,9 +13,8 @@
  * scritto nella cella e il tempo impiegato — il brief lo dice chiaro invece
  * di far finta che il gioco stia guardando il colore. Il terzo gesto,
  * Ctrl+Maiusc+4 (valuta), e' l'unico dei tre che produce un `numFmt`
- * ispezionabile: qui il check `numberFormat` c'e' davvero, in coda come
- * extra non bloccante — lo stesso pattern di M0A-08-FORMATI, perche'
- * `enforceStyle` scatta solo dal rank 3 in su.
+ * ispezionabile: qui il check `numberFormat` c'e' davvero ed e' bloccante,
+ * come in M0A-08-FORMATI.
  */
 
 import {

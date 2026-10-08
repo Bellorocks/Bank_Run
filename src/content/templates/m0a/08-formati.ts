@@ -7,9 +7,9 @@
  * la valuta (due decimali, simbolo €) e il numero con separatore delle migliaia.
  *
  * Tre righe indipendenti, tre task. Ogni task e' prima di tutto un task di
- * FORMULA (mustBeFormula + value, come da contratto di rank 2): il check
- * `numberFormat` viaggia in coda come check EXTRA, silenzioso finche'
- * l'editor non alza l'asticella con `enforceStyle` dal rank 3 in su.
+ * FORMULA (mustBeFormula + value), e in piu' il check `numberFormat`: il
+ * formato e' il contenuto del livello, quindi si verifica a qualunque rank.
+ * Le celle di risposta partono in formato Generale.
  */
 
 import {
@@ -37,9 +37,9 @@ import type { Task } from '../../types';
 // costruiscono ad hoc sulla stessa convenzione (blu = input, nero = formula).
 const STILE_INPUT_VALUTA: CellStyle = { fontColor: MODEL_COLORS.input, numFmt: DEFAULT_FORMATS.valuta };
 const STILE_INPUT_NUM2: CellStyle = { fontColor: MODEL_COLORS.input, numFmt: DEFAULT_FORMATS.numero2dec };
-const STILE_LIBERA_VALUTA: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: DEFAULT_FORMATS.valuta };
-const STILE_LIBERA_PCT: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: DEFAULT_FORMATS.percentuale };
-const STILE_LIBERA_NUM2: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: DEFAULT_FORMATS.numero2dec };
+// Le celle di risposta partono SENZA formato (Generale): il formato e' proprio
+// cio' che il giocatore deve applicare, e il check lo verifica.
+const STILE_LIBERA: CellStyle = { fontColor: MODEL_COLORS.formula };
 
 export default defineTemplate({
   id: 'M0A-08-FORMATI',
@@ -194,9 +194,9 @@ export default defineTemplate({
             }),
             blocco('B11', [[lottoA], [lottoB]], { style: STILE_INPUT_NUM2 }),
             [
-              { ref: 'B5', content: null, locked: false, style: STILE_LIBERA_VALUTA },
-              { ref: 'B9', content: null, locked: false, style: STILE_LIBERA_PCT },
-              { ref: 'B13', content: null, locked: false, style: STILE_LIBERA_NUM2 },
+              { ref: 'B5', content: null, locked: false, style: STILE_LIBERA },
+              { ref: 'B9', content: null, locked: false, style: STILE_LIBERA },
+              { ref: 'B13', content: null, locked: false, style: STILE_LIBERA },
             ],
           ],
           { colWidths: { A: 220, B: 140 }, frozenRows: 1 },

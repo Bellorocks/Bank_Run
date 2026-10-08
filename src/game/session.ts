@@ -75,7 +75,7 @@ import { createAltMachine, EXCEL_ALT_TREE, type AltMachine } from '../keymap/alt
 import type { Command } from '../keymap/commands';
 import { InputRecorder } from '../input/InputRecorder';
 import { MODEL_COLORS } from '../styles/palette';
-import { normalizeTypedInput, type NumberLocale } from '../engine/typedInput';
+import { applyPercentEntry, normalizeTypedInput, type NumberLocale } from '../engine/typedInput';
 import { numberLocale } from '../i18n/language';
 
 export interface SessionOptions {
@@ -759,11 +759,19 @@ export class GridSession {
     const cell = this.edit.cell ?? this.activeCell;
     const text = this.edit.text;
     this.edit = READY_EDIT_STATE;
-    const raw =
+    const normalized =
       text === ''
         ? null
         : normalizeTypedInput(text, this.inputLocale(), (f) => this.workbook.isValidFormula(f));
-    this.workbook.setContents(this.sheet, cell, raw as CellRaw, 'digitazione');
+    const { raw, numFmt } = applyPercentEntry(normalized, this.workbook.getStyle(this.sheet, cell).numFmt);
+    if (numFmt) {
+      this.workbook.batch('digitazione', () => {
+        this.workbook.setContents(this.sheet, cell, raw as CellRaw);
+        this.workbook.setStyle(this.sheet, cell, { numFmt });
+      });
+    } else {
+      this.workbook.setContents(this.sheet, cell, raw as CellRaw, 'digitazione');
+    }
     if (move) this.enterAfterCommit(move);
   }
 

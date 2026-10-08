@@ -1,20 +1,17 @@
 /**
  * M0-A · 07 — Percentuali: la cella che moltiplica per cento due volte.
  *
- * Il punto didattico e' un fatto scomodo di Excel: una cella formattata come
- * percentuale non "legge" quello che scrivi come una percentuale. Legge un
- * numero puro e lo MOSTRA moltiplicato per cento. Se dentro c'e' gia' 0,15 e
- * il formato e' `0.0%`, sullo schermo compare 15%. Ma se scrivi tu stesso "15"
- * pensando "il margine e' 15 per cento", quello che finisce nella cella e' il
- * numero 15 — e il formato lo moltiplica ANCHE lui per cento. Risultato:
- * 1500%, visibile, ridicolo, e la ragione per cui questo errore va fatto una
- * volta sola, qui, con qualcuno che lo spiega prima che capiti.
+ * Una cella in formato percentuale MOSTRA il numero moltiplicato per cento:
+ * dentro c'e' 0,15, a schermo 15%. Excel aiuta in due casi (e il motore del
+ * gioco fa lo stesso, vedi typedInput.applyPercentEntry): "15%" scritto col
+ * simbolo salva 0,15 e mette il formato; "15" scritto in una cella GIA' in
+ * percentuale vale 15%. La trappola vera scatta quando il formato arriva
+ * DOPO il numero: 15 in una cella normale, poi Ctrl+Maiusc+5, e la cella
+ * mostra 1500% perche' dentro c'e' davvero 15.
  *
- * T1 e' la trappola tale e quale: batti la frazione (0,124), non il numero
- * che leggi nel testo (12,4). T2 e' il caso gemello e piu' comune nella
- * pratica: la percentuale non nasce da un numero battuto ma da una divisione
- * fra due celle (utile / ricavi), e li' l'errore del 1500% non puo' capitare
- * perche' e' Excel stesso a fare i conti.
+ * T1: B2 parte senza formato; il giocatore deve ottenere la frazione giusta
+ * mostrata come percentuale (valore + formato). T2: la percentuale che nasce
+ * da una divisione, dove la trappola non puo' scattare.
  */
 
 import {
@@ -28,7 +25,6 @@ import {
   STILE_ETICHETTA,
   STILE_FORMULA_PCT,
   STILE_INPUT,
-  STILE_INPUT_PCT,
   STILE_TITOLO,
   eur,
   pct,
@@ -65,18 +61,23 @@ export default defineTemplate({
       {
         id: 'T1',
         prompt:
-          `In B2 scrivi il margine obiettivo fissato dal CdA: ${pct(targetMargine)}. La cella e' gia' ` +
-          "formattata come percentuale: scrivi la FRAZIONE che quel numero rappresenta, non le cifre " +
-          "che leggi nel testo.",
+          `In B2 inserisci il margine obiettivo fissato dal CdA, ${pct(targetMargine)}: dentro la cella deve ` +
+          "esserci la frazione giusta, e a schermo deve vedersi come percentuale. B2 per ora non ha formato.",
         targetCell: 'Model!B2',
         check: [
           {
             kind: 'value' as const,
             expected: targetMargine,
             message:
-              `Se in B2 compare un numero enorme (tipo ${trappolaEsempio}) hai scritto le cifre della ` +
-              "percentuale invece della frazione: la cella e' gia' in formato percentuale e moltiplica " +
-              "per cento quello che trova. Scrivi lo zero virgola davanti.",
+              `Se in B2 compare un numero enorme (tipo ${trappolaEsempio}) hai scritto le cifre e poi ` +
+              'applicato il formato: dentro la cella c\'e\' ancora il numero intero. Riscrivilo col simbolo %, ' +
+              'oppure come frazione, oppure scrivilo di nuovo adesso che la cella e\' gia\' in percentuale.',
+          },
+          {
+            kind: 'numberFormat' as const,
+            expected: '0%',
+            accept: ['0.0%', '0.00%', '0.000%', '0.0000%'],
+            message: 'Il valore e\' giusto ma la cella non lo mostra come percentuale (Ctrl+Maiusc+5, o scrivilo col %).',
           },
         ],
         skills: ['xl.percentages'],
@@ -103,20 +104,21 @@ export default defineTemplate({
       brief: [
         '## La trappola del 1500%',
         '',
-        'Una cella formattata come percentuale non capisce "per cento": capisce solo un numero, e lo',
-        '**moltiplica per cento quando lo disegna a schermo**. Se dentro c\'e\' scritto 0,15, il formato',
-        'mostra 15%. Fin qui tutto bene.',
+        'Una cella in formato percentuale non contiene "per cento": contiene un numero, e lo',
+        '**moltiplica per cento quando lo disegna a schermo**. Dentro c\'e\' 0,15, a schermo vedi 15%.',
         '',
-        'Il problema e\' quando sei TU a battere il numero. Se pensi "il margine e\' 15 per cento" e scrivi',
-        'letteralmente `15`, in quella cella finisce il numero 15 — e il formato lo moltiplica ANCHE lui',
-        'per cento. Risultato: **1500%**, scritto a schermo, sotto i tuoi occhi. Non e\' un errore che si',
-        'nasconde: e\' un errore che si vede benissimo, ed e\' per questo che quasi tutti lo fanno una volta',
-        'e poi mai piu\'.',
+        'Excel ti aiuta in due casi:',
         '',
-        `Qui la trappola e\' impostata cosi\': il CdA ha fissato per il prossimo anno un margine EBITDA`,
-        `obiettivo del **${pct(targetMargine)}**. La cella B2 e\' gia\' formattata come percentuale. Se scrivi`,
-        `"${num100(targetMargine)}" pensando al numero che hai appena letto, Excel te lo restituisce come`,
-        `${trappolaEsempio}. Devi scrivere la **frazione**: zero virgola, poi le cifre.`,
+        '- se scrivi `15%` **col simbolo**, salva 0,15 e mette da solo il formato percentuale;',
+        '- se la cella e\' **gia\'** in percentuale e scrivi `15`, capisce 15%.',
+        '',
+        'La trappola scatta quando il formato arriva **dopo**: scrivi `15` in una cella normale, poi premi',
+        'Ctrl+Maiusc+5, e la cella mostra **1500%**, perche\' dentro c\'e\' davvero 15. E\' un errore che si',
+        'vede benissimo, ed e\' per questo che quasi tutti lo fanno una volta e poi mai piu\'.',
+        '',
+        `Il CdA ha fissato per il prossimo anno un margine EBITDA obiettivo del **${pct(targetMargine)}**.`,
+        `B2 e\' una cella normale, senza formato: se scrivi "${num100(targetMargine)}" e poi la formatti,`,
+        `vedrai ${trappolaEsempio}.`,
         '',
         '## Quando la percentuale nasce da una formula',
         '',
@@ -140,7 +142,7 @@ export default defineTemplate({
             ),
             blocco('B5', [[ricavi], [utile]], { style: STILE_INPUT }),
             [
-              { ref: 'B2', content: null, style: STILE_INPUT_PCT, locked: false },
+              { ref: 'B2', content: null, style: { fontColor: STILE_INPUT.fontColor }, locked: false },
               { ref: 'B7', content: null, style: STILE_FORMULA_PCT, locked: false },
             ],
           ],
@@ -151,8 +153,8 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          "B2 e' gia' in formato percentuale: non scrivere le cifre che leggi nel brief, scrivi la " +
-            'frazione. "Zero virgola" e poi le cifre, senza il simbolo %.',
+          `Il modo piu' corto: scrivi ${num100(targetMargine)}% col simbolo, e Excel salva la frazione e ` +
+            'mette il formato in un colpo solo.',
           6,
           'T1',
         ),
