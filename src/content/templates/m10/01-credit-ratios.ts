@@ -57,10 +57,10 @@ export default defineTemplate({
     const r = rng.fork('dati');
 
     const ebitda = roundTo(triangular(r, 15_000_000, 20_000_000, 25_000_000), 500_000);
-    const cfads = roundTo(ebitda * 0.65, 500_000);
-    const intExp = roundTo(ebitda * 0.15, 100_000);
-    const mandAmort = roundTo(ebitda * 0.25, 100_000);
-    const netDebt = roundTo(ebitda * 3.0, 500_000);
+    const cfads = roundTo(ebitda * triangular(r, 0.5, 0.62, 0.75), 100_000);
+    const netDebt = roundTo(ebitda * triangular(r, 2, 3, 4.5), 500_000);
+    const intExp = roundTo(netDebt * triangular(r, 0.045, 0.06, 0.08), 100_000);
+    const mandAmort = roundTo(netDebt * triangular(r, 0.06, 0.1, 0.15), 100_000);
 
     const dscr = cfads / (intExp + mandAmort);
     const icr = ebitda / intExp;
@@ -76,10 +76,13 @@ export default defineTemplate({
       `- **Quota Capitale Annua in Scadenza (Ammortamento)**: ${eur(mandAmort)}`,
       `- **Debito Finanziario Netto**: ${eur(netDebt)}`,
       ``,
-      `### I tuoi compiti:`,
-      `1. Calcola il **Debt Service Coverage Ratio (DSCR)** in \`${B_DSCR}\`: \`=${B_CFADS}/(${B_INT_EXP}+${B_MAND_AMORT})\`.`,
-      `2. Calcola l'**Interest Coverage Ratio (ICR)** in \`${B_ICR}\`: \`=${B_EBITDA}/${B_INT_EXP}\`.`,
-      `3. Calcola il **Net Leverage Ratio (x)** in \`${B_LEV}\`: \`=${B_NET_DEBT}/${B_EBITDA}\`.`,
+      'Tre domande, tre indicatori:',
+      '',
+      "- **DSCR**: la cassa disponibile basta a pagare tutto il servizio del debito dell'anno, interessi e quota capitale?",
+      "- **ICR**: quante volte l'EBITDA copre gli interessi?",
+      "- **Net leverage**: quanti anni di EBITDA servirebbero per ripagare il debito netto?",
+      '',
+      "Un DSCR sotto 1 vuol dire che l'azienda, da sola, non riesce a servire il debito quest'anno.",
     ].join('\n');
 
     const sheet = foglio('Model', [
@@ -108,27 +111,33 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `Calcola il DSCR in ${B_DSCR}: =${B_CFADS}/(${B_INT_EXP}+${B_MAND_AMORT}).`,
+        prompt: `In ${B_DSCR} il DSCR: cassa disponibile rapportata all'intero servizio del debito dell'anno.`,
         target: `Model!${B_DSCR}`,
         atteso: dscr,
         referenzia: [B_CFADS, B_INT_EXP, B_MAND_AMORT],
+        senzaLiteral: [],
         skills: ['cred.ratios'],
+        minKeystrokes: 12,
       }),
       taskFormula({
         id: 'T2',
-        prompt: `Calcola l'ICR in ${B_ICR}: =${B_EBITDA}/${B_INT_EXP}.`,
+        prompt: `In ${B_ICR} l'interest coverage ratio.`,
         target: `Model!${B_ICR}`,
         atteso: icr,
         referenzia: [B_EBITDA, B_INT_EXP],
+        senzaLiteral: [],
         skills: ['cred.ratios'],
+        minKeystrokes: 8,
       }),
       taskFormula({
         id: 'T3',
-        prompt: `Calcola il Net Leverage in ${B_LEV}: =${B_NET_DEBT}/${B_EBITDA}.`,
+        prompt: `In ${B_LEV} il net leverage.`,
         target: `Model!${B_LEV}`,
         atteso: lev,
         referenzia: [B_NET_DEBT, B_EBITDA],
+        senzaLiteral: [],
         skills: ['cred.ratios'],
+        minKeystrokes: 8,
       }),
     ];
 
@@ -138,11 +147,12 @@ export default defineTemplate({
       brief,
       sheets: [sheet],
       tasks,
-      parScore: par(tasks, { letturaSecondi: 20 }),
+      parScore: par(tasks, { letturaSecondi: 45 }),
+      startAt: `Model!${B_DSCR}`,
       hints: [
-        hint('H1', 'In B11 dividi la cassa operativa per la somma di interessi e quota capitale: =B5/(B6+B7).', 10, 'T1'),
-        hint('H2', 'In B12 dividi l\'EBITDA per gli interessi: =B4/B6.', 10, 'T2'),
-        hint('H3', 'In B13 dividi il debito netto per l\'EBITDA: =B8/B4.', 10, 'T3'),
+        hint('H1', '=B5/(B6+B7)', 10, 'T1'),
+        hint('H2', '=B4/B6', 10, 'T2'),
+        hint('H3', '=B8/B4', 10, 'T3'),
       ],
     };
   },

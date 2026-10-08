@@ -61,14 +61,15 @@ export default defineTemplate({
     const r = rng.fork('dati');
 
     const acqNi = roundTo(triangular(r, 40_000_000, 50_000_000, 60_000_000), 1_000_000);
-    const acqShares = 10_000_000;
+    const acqShares = roundTo(triangular(r, 8_000_000, 10_000_000, 12_000_000), 100_000);
     const acqEps = acqNi / acqShares;
 
     const tgtNi = roundTo(triangular(r, 12_000_000, 15_000_000, 18_000_000), 500_000);
     const synAt = roundTo(triangular(r, 3_000_000, 4_500_000, 6_000_000), 250_000);
     const finAt = roundTo(triangular(r, 2_000_000, 3_000_000, 4_000_000), 250_000);
     const ppaAt = roundTo(triangular(r, 1_000_000, 1_500_000, 2_000_000), 250_000);
-    const newShares = 1_500_000;
+    // Abbastanza variabile da produrre sia accrescimento sia diluizione.
+    const newShares = roundTo(acqShares * triangular(r, 0.1, 0.25, 0.45), 50_000);
 
     const pfNi = acqNi + tgtNi + synAt - finAt - ppaAt;
     const pfShares = acqShares + newShares;
@@ -86,10 +87,12 @@ export default defineTemplate({
       `- **Ammortamenti PPA Post-Tax**: -${eur(ppaAt)}`,
       `- **Nuove Azioni Emesse per il Deal**: ${newShares.toLocaleString('it-IT')}`,
       ``,
-      `### I tuoi compiti:`,
-      `1. Calcola l'**Utile Netto Pro-Forma Combinato (€)** in \`${B_PF_NI}\`: \`=${B_ACQ_NI}+${B_TGT_NI}+${B_SYN_AT}-${B_FIN_AT}-${B_PPA_AT}\`.`,
-      `2. Calcola l'**EPS Pro-Forma (€)** in \`${B_PF_EPS}\`: \`=${B_PF_NI}/${B_PF_SHARES}\`.`,
-      `3. Calcola l'**Accretion / (Dilution) %** in \`${B_ACCRETION}\`: \`=(${B_PF_EPS}/${B_ACQ_EPS})-1\`.`,
+      "L'operazione e' **accrescitiva** se l'EPS dell'acquirente dopo il deal e' piu' alto di quello " +
+        "standalone, **diluitiva** se e' piu' basso. L'utile combinato sale (utile della target e sinergie), " +
+        "ma scende per il costo del finanziamento e l'ammortamento della PPA; il denominatore cresce con le " +
+        'nuove azioni emesse.',
+      '',
+      "Calcola utile ed EPS pro-forma, e l'accretion (positiva) o dilution (negativa) in percentuale.",
     ].join('\n');
 
     const sheet = foglio('Model', [
@@ -123,33 +126,39 @@ export default defineTemplate({
       colonna(B_PF_NI, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_PF_SHARES, ['=B5+B12'], { style: STILE_FORMULA }),
       colonna(B_PF_EPS, [null], { style: STILE_FORMULA, locked: false }),
-      colonna(B_ACCRETION, [null], { style: STILE_TOTALE, locked: false }),
+      colonna(B_ACCRETION, [null], { style: { ...STILE_TOTALE, numFmt: '0.0%' }, locked: false }),
     ]);
 
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `Calcola l'Utile Netto Pro-Forma in ${B_PF_NI}: =${B_ACQ_NI}+${B_TGT_NI}+${B_SYN_AT}-${B_FIN_AT}-${B_PPA_AT}.`,
+        prompt: `In ${B_PF_NI} l'utile netto pro-forma del gruppo combinato, con tutti gli aggiustamenti del deal.`,
         target: `Model!${B_PF_NI}`,
         atteso: pfNi,
         referenzia: [B_ACQ_NI, B_TGT_NI, B_SYN_AT, B_FIN_AT, B_PPA_AT],
+        senzaLiteral: [],
         skills: ['ma.accretion'],
+        minKeystrokes: 18,
       }),
       taskFormula({
         id: 'T2',
-        prompt: `Calcola l'EPS Pro-Forma in ${B_PF_EPS}: =${B_PF_NI}/${B_PF_SHARES}.`,
+        prompt: `In ${B_PF_EPS} l'EPS pro-forma.`,
         target: `Model!${B_PF_EPS}`,
         atteso: pfEps,
         referenzia: [B_PF_NI, B_PF_SHARES],
+        senzaLiteral: [],
         skills: ['ma.accretion'],
+        minKeystrokes: 8,
       }),
       taskFormula({
         id: 'T3',
-        prompt: `Calcola l'Accretion/Dilution % in ${B_ACCRETION}: =(${B_PF_EPS}/${B_ACQ_EPS})-1.`,
+        prompt: `In ${B_ACCRETION} l'accretion (positiva) o dilution (negativa) dell'EPS, in percentuale dell'EPS standalone.`,
         target: `Model!${B_ACCRETION}`,
         atteso: accretionPct,
         referenzia: [B_PF_EPS, B_ACQ_EPS],
+        senzaLiteral: [1],
         skills: ['ma.accretion'],
+        minKeystrokes: 10,
       }),
     ];
 
@@ -159,11 +168,12 @@ export default defineTemplate({
       brief,
       sheets: [sheet],
       tasks,
-      parScore: par(tasks, { letturaSecondi: 20 }),
+      parScore: par(tasks, { letturaSecondi: 60 }),
+      startAt: `Model!${B_PF_NI}`,
       hints: [
-        hint('H1', 'In B15 somma gli utili e le sinergie e sottrai costi finanziari e PPA: =B4+B8+B9-B10-B11.', 10, 'T1'),
-        hint('H2', 'In B17 dividi l\'utile pro-forma per le azioni pro-forma: =B15/B16.', 10, 'T2'),
-        hint('H3', 'In B18 calcola la variazione percentuale dell\'EPS: =(B17/B6)-1.', 10, 'T3'),
+        hint('H1', '=B4+B8+B9-B10-B11', 10, 'T1'),
+        hint('H2', '=B15/B16', 10, 'T2'),
+        hint('H3', '=B17/B6-1', 10, 'T3'),
       ],
     };
   },

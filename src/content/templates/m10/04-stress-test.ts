@@ -1,14 +1,16 @@
 /**
  * M10 · 04 — Stress Test di Credito: shock su ricavi, margini e tassi.
  *
- * Le banche sottopongono i modelli a stress test per valutare la tenuta in scenari avversi:
+ * Le banche verificano la tenuta del debito in uno scenario avverso:
  *
- *   1. Shock sui Ricavi: contrazione del 15% (Ricavi Stressati = Ricavi Base × 85%).
- *   2. Shock sui Margini: contrazione di 300 bps (Margine EBITDA Stressato = Margine Base - 3.0%).
- *   3. EBITDA Stressato = Ricavi Stressati × Margine EBITDA Stressato.
- *   4. Shock sui Tassi: aumento di +200 bps sul costo del debito (Interessi Stressati = Debito × Tasso Stressato).
- *   5. DSCR Stressato = (EBITDA Stressato × 60% CFADS Conversion) / (Interessi Stressati + Ammortamento Capitale).
- *   6. Covenant Breach Flag: se DSCR Stressato < 1.05x -> "BREACH", altrimenti "OK".
+ *   EBITDA stressato   = ricavi × (1 + shock ricavi) × (margine + shock margine)
+ *   Interessi stressati = debito × tasso stressato
+ *   DSCR stressato     = EBITDA stressato × conversione in cassa / (interessi + quota capitale)
+ *   Esito              = "BREACH" se il DSCR stressato scende sotto il covenant, altrimenti "OK"
+ *
+ * Tutte le ipotesi stanno in cella (nessun 60% nascosto dentro una formula)
+ * e il seed decide se lo scenario rompe il covenant: circa meta' dei casi
+ * ciascuno, mai a meno di 0,05x dalla soglia.
  */
 
 import {
@@ -21,28 +23,33 @@ import {
   taskFormula,
   eur,
   pct,
+  multiplo,
   STILE_ETICHETTA,
   STILE_FORMULA,
   STILE_INPUT,
+  STILE_INPUT_MULTIPLO,
   STILE_INPUT_PCT,
   STILE_TITOLO,
   STILE_TOTALE,
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
+import type { Task } from '../../types';
 
-// Geometria fissa
-const B_REV_BASE = 'B4'; // Ricavi Base (dato)
-const B_MRG_BASE = 'B5'; // Margine EBITDA Base (dato)
-const B_DEBT = 'B6'; // Debito Totale (dato)
-const B_MAND_AMORT = 'B7'; // Ammortamento annuo capitale (dato)
+const B_REV_BASE = 'B4';
+const B_MRG_BASE = 'B5';
+const B_DEBT = 'B6';
+const B_MAND_AMORT = 'B7';
+const B_CONV = 'B8';
 
-const B_REV_SHOCK = 'B10'; // Shock Ricavi (-15%) (dato)
-const B_MRG_SHOCK = 'B11'; // Shock Margine (-3.0%) (dato)
-const B_RATE_STRESS = 'B12'; // Tasso Debito Stressato (8.0%) (dato)
+const B_REV_SHOCK = 'B11';
+const B_MRG_SHOCK = 'B12';
+const B_RATE_STRESS = 'B13';
+const B_MIN_DSCR = 'B14';
 
-const B_EBITDA_STRESS = 'B15'; // T1: EBITDA Stressato = (B4 * (1 + B10)) * (B5 + B11)
-const B_INT_STRESS = 'B16'; // T2: Interessi Stressati = B6 * B12
-const B_DSCR_STRESS = 'B17'; // T3: DSCR Stressato = (B15 * 0.60) / (B16 + B7)
+const B_EBITDA_STRESS = 'B17'; // T1
+const B_INT_STRESS = 'B18'; // T2
+const B_DSCR_STRESS = 'B19'; // T3
+const B_ESITO = 'B20'; // T4
 
 export default defineTemplate({
   id: 'M10-04-STRESSTEST',
@@ -50,103 +57,139 @@ export default defineTemplate({
   title: 'Stress test di credito: shock su ricavi, margini e tassi',
   rank: 3,
   mode: 'PRACTICE',
-  estimatedSeconds: 300,
+  estimatedSeconds: 360,
   skills: ['cred.stress'],
   prerequisites: ['M10-03-AMORTIZATION', 'M8-04-COVENANTS'],
 
   generate: (rng) => {
     const r = rng.fork('dati');
 
-    const revBase = roundTo(triangular(r, 80_000_000, 100_000_000, 120_000_000), 5_000_000);
-    const mrgBase = 0.20; // 20.0%
-    const debt = roundTo(revBase * 0.35, 1_000_000);
-    const mandAmort = roundTo(debt * 0.10, 500_000);
-
-    const revShock = -0.15; // -15%
-    const mrgShock = -0.03; // -3.0% (margine scende al 17%)
-    const rateStress = 0.08; // 8.0% tasso debito stressato
+    const revBase = roundTo(triangular(r, 80_000_000, 100_000_000, 120_000_000), 1_000_000);
+    const mrgBase = roundTo(triangular(r, 0.15, 0.2, 0.25), 0.005);
+    const conv = roundTo(triangular(r, 0.5, 0.6, 0.7), 0.05);
+    const revShock = -roundTo(triangular(r, 0.1, 0.15, 0.25), 0.01);
+    const mrgShock = -roundTo(triangular(r, 0.015, 0.03, 0.045), 0.005);
+    const rateStress = roundTo(triangular(r, 0.07, 0.085, 0.1), 0.0025);
+    const minDscr = roundTo(triangular(r, 1.05, 1.15, 1.25), 0.05);
 
     const revStress = revBase * (1 + revShock);
     const mrgStress = mrgBase + mrgShock;
     const ebitdaStress = revStress * mrgStress;
+    const cfadsStress = ebitdaStress * conv;
+
+    // Il debito si dimensiona per far cadere il DSCR stressato sopra o sotto il
+    // covenant a caso, di 0,05x-0,45x.
+    const sopra = r.next() < 0.5;
+    const target = minDscr + (sopra ? 1 : -1) * (0.05 + r.next() * 0.4);
+    const amortPct = roundTo(triangular(r, 0.08, 0.1, 0.15), 0.01);
+    // servizio = debito × (tasso + amortPct) = cfads / target
+    const debt = roundTo(cfadsStress / target / (rateStress + amortPct), 500_000);
+    const mandAmort = roundTo(debt * amortPct, 100_000);
+
     const intStress = debt * rateStress;
-    const cfadsStress = ebitdaStress * 0.60;
     const dscrStress = cfadsStress / (intStress + mandAmort);
+    const esito = dscrStress < minDscr ? 'BREACH' : 'OK';
 
     const brief = [
-      `Esegui lo **Stress Test di Credito** bancario per verificare la tenuta della società in uno scenario di recessione.`,
-      ``,
-      `Scenario Base vs Ipotesi di Shock:`,
-      `- **Ricavi Base**: ${eur(revBase)} con **Margine EBITDA Base**: ${pct(mrgBase)}`,
-      `- **Debito Totale**: ${eur(debt)} (Ammortamento Capitale Annuo: ${eur(mandAmort)})`,
-      `- **Shock sui Ricavi**: ${pct(revShock)}`,
-      `- **Shock sui Margini EBITDA**: ${pct(mrgShock)} (-300 bps)`,
-      `- **Tasso Debito Stressato**: ${pct(rateStress)}/anno`,
-      `- **Conversione EBITDA in Cassa Operativa (CFADS)**: 60%`,
-      ``,
-      `### I tuoi compiti:`,
-      `1. Calcola l'**EBITDA Stressato (€)** in \`${B_EBITDA_STRESS}\`: \`=(${B_REV_BASE}*(1+${B_REV_SHOCK}))*(${B_MRG_BASE}+${B_MRG_SHOCK})\`.`,
-      `2. Calcola gli **Interessi Passivi Stressati (€)** in \`${B_INT_STRESS}\`: \`=${B_DEBT}*${B_RATE_STRESS}\`.`,
-      `3. Calcola il **DSCR Stressato (x)** in \`${B_DSCR_STRESS}\` assumendo CFADS pari al 60% dell'EBITDA stressato: \`=(${B_EBITDA_STRESS}*0.60)/(${B_INT_STRESS}+${B_MAND_AMORT})\`.`,
+      'Le banche vogliono sapere se il debito regge una recessione. Applica lo scenario avverso.',
+      '',
+      `- **Ricavi base**: ${eur(revBase)}, margine EBITDA ${pct(mrgBase)}`,
+      `- **Debito**: ${eur(debt)}, quota capitale annua ${eur(mandAmort)}`,
+      `- **Conversione EBITDA in cassa per il servizio del debito**: ${pct(conv, 0)}`,
+      `- **Scenario**: ricavi ${pct(revShock, 0)}, margine ${pct(mrgShock)} (punti percentuali), tasso stressato ${pct(rateStress, 2)}`,
+      `- **Covenant**: DSCR minimo ${multiplo(minDscr)}`,
+      '',
+      "Attenzione allo shock sul margine: e' in **punti percentuali**, si somma al margine, non lo moltiplica.",
+      '',
+      "Calcola EBITDA, interessi e DSCR sotto stress, poi l'esito del test: \"BREACH\" se il DSCR stressato " +
+        'scende sotto il covenant, altrimenti "OK".',
     ].join('\n');
 
     const sheet = foglio('Model', [
       riga('A1', ['STRESS TEST DI CREDITO (RECESSION SCENARIO)'], { style: STILE_TITOLO }),
-      riga('A3', ['Dati di Bilancio Baseline', 'Valore'], { style: STILE_TITOLO }),
-      colonna('A4', [
-        'Ricavi Baseline (€)',
-        'Margine EBITDA Baseline (%)',
-        'Debito Totale (€)',
-        'Ammortamento Capitale Annuo (€)',
-      ], { style: STILE_ETICHETTA }),
-      colonna('B4', [revBase], { style: STILE_INPUT }),
-      colonna(B_MRG_BASE, [mrgBase], { style: STILE_INPUT_PCT }),
+      riga('A3', ['Dati baseline', 'Valore'], { style: STILE_TITOLO }),
+      colonna(
+        'A4',
+        [
+          'Ricavi baseline (€)',
+          'Margine EBITDA baseline',
+          'Debito (€)',
+          'Quota capitale annua (€)',
+          'Conversione EBITDA in cassa (CFADS / EBITDA)',
+        ],
+        { style: STILE_ETICHETTA },
+      ),
+      [{ ref: B_REV_BASE, content: revBase, style: STILE_INPUT, locked: true }],
+      [{ ref: B_MRG_BASE, content: mrgBase, style: STILE_INPUT_PCT, locked: true }],
       colonna(B_DEBT, [debt, mandAmort], { style: STILE_INPUT }),
+      [{ ref: B_CONV, content: conv, style: { ...STILE_INPUT_PCT, numFmt: '0%' }, locked: true }],
 
-      riga('A9', ['Parametri dello Stress Test', 'Valore Shock'], { style: STILE_TITOLO }),
-      colonna('A10', [
-        'Shock Ricavi (%)',
-        'Shock Margine EBITDA (p.p.)',
-        'Tasso di Interesse Stressato (%)',
-      ], { style: STILE_ETICHETTA }),
-      colonna(B_REV_SHOCK, [revShock, mrgShock, rateStress], { style: STILE_INPUT_PCT }),
+      riga('A10', ['Scenario di stress e covenant', 'Valore'], { style: STILE_TITOLO }),
+      colonna(
+        'A11',
+        ['Shock ricavi', 'Shock margine EBITDA (punti %)', "Tasso d'interesse stressato", 'DSCR minimo (covenant)'],
+        { style: STILE_ETICHETTA },
+      ),
+      colonna(B_REV_SHOCK, [revShock, mrgShock], { style: STILE_INPUT_PCT }),
+      [{ ref: B_RATE_STRESS, content: rateStress, style: { ...STILE_INPUT_PCT, numFmt: '0.00%' }, locked: true }],
+      [{ ref: B_MIN_DSCR, content: minDscr, style: STILE_INPUT_MULTIPLO, locked: true }],
 
-      riga('A14', ['Metriche Ricalcolate sotto Stress', 'Risultato'], { style: STILE_TITOLO }),
-      colonna('A15', [
-        'EBITDA Stressato (€)',
-        'Interessi Passivi Stressati (€)',
-        'DSCR Stressato (x)',
-      ], { style: STILE_ETICHETTA }),
+      riga('A16', ['Metriche sotto stress', 'Risultato'], { style: STILE_TITOLO }),
+      colonna('A17', ['EBITDA stressato (€)', 'Interessi stressati (€)', 'DSCR stressato (x)', 'Esito del test'], {
+        style: STILE_ETICHETTA,
+      }),
       colonna(B_EBITDA_STRESS, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_INT_STRESS, [null], { style: STILE_FORMULA, locked: false }),
-      colonna(B_DSCR_STRESS, [null], { style: STILE_TOTALE, locked: false }),
+      colonna(B_DSCR_STRESS, [null], { style: { ...STILE_FORMULA, numFmt: '0.00x' }, locked: false }),
+      colonna(B_ESITO, [null], { style: { ...STILE_TOTALE, numFmt: '@' }, locked: false }),
     ]);
+
+    const t4: Task = {
+      id: 'T4',
+      prompt: `In ${B_ESITO} l'esito del test, deciso da una formula: "BREACH" o "OK".`,
+      targetCell: `Model!${B_ESITO}`,
+      check: [
+        { kind: 'mustBeFormula' },
+        { kind: 'text', expected: esito },
+        { kind: 'mustReference', cells: [B_DSCR_STRESS, B_MIN_DSCR] },
+        { kind: 'mustUseFunction', functions: ['IF'] },
+      ],
+      skills: ['cred.stress', 'xl.if'],
+      minKeystrokes: 26,
+    };
 
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `Calcola l'EBITDA stressato in ${B_EBITDA_STRESS}: =(${B_REV_BASE}*(1+${B_REV_SHOCK}))*(${B_MRG_BASE}+${B_MRG_SHOCK}).`,
+        prompt: `In ${B_EBITDA_STRESS} l'EBITDA nello scenario di stress: ricavi colpiti dallo shock, margine ridotto.`,
         target: `Model!${B_EBITDA_STRESS}`,
         atteso: ebitdaStress,
         referenzia: [B_REV_BASE, B_REV_SHOCK, B_MRG_BASE, B_MRG_SHOCK],
+        senzaLiteral: [1],
         skills: ['cred.stress'],
+        minKeystrokes: 18,
       }),
       taskFormula({
         id: 'T2',
-        prompt: `Calcola gli interessi stressati in ${B_INT_STRESS}: =${B_DEBT}*${B_RATE_STRESS}.`,
+        prompt: `In ${B_INT_STRESS} gli interessi al tasso stressato.`,
         target: `Model!${B_INT_STRESS}`,
         atteso: intStress,
         referenzia: [B_DEBT, B_RATE_STRESS],
+        senzaLiteral: [],
         skills: ['cred.stress'],
+        minKeystrokes: 8,
       }),
       taskFormula({
         id: 'T3',
-        prompt: `Calcola il DSCR stressato in ${B_DSCR_STRESS}: =(${B_EBITDA_STRESS}*0.60)/(${B_INT_STRESS}+${B_MAND_AMORT}).`,
+        prompt: `In ${B_DSCR_STRESS} il DSCR sotto stress: la cassa per il servizio del debito diviso interessi e quota capitale.`,
         target: `Model!${B_DSCR_STRESS}`,
         atteso: dscrStress,
-        referenzia: [B_EBITDA_STRESS, B_INT_STRESS, B_MAND_AMORT],
+        referenzia: [B_EBITDA_STRESS, B_CONV, B_INT_STRESS, B_MAND_AMORT],
+        senzaLiteral: [],
         skills: ['cred.stress'],
+        minKeystrokes: 16,
       }),
+      t4,
     ];
 
     return {
@@ -155,11 +198,13 @@ export default defineTemplate({
       brief,
       sheets: [sheet],
       tasks,
-      parScore: par(tasks, { letturaSecondi: 20 }),
+      parScore: par(tasks, { letturaSecondi: 70 }),
+      startAt: `Model!${B_EBITDA_STRESS}`,
       hints: [
-        hint('H1', 'In B15 moltiplica i ricavi ridotti per il nuovo margine: =(B4*(1+B10))*(B5+B11).', 15, 'T1'),
-        hint('H2', 'In B16 moltiplica il debito per il tasso stressato: =B6*B12.', 10, 'T2'),
-        hint('H3', 'In B17 calcola il rapporto tra il 60% dell\'EBITDA stressato e il servizio del debito: =(B15*0.6)/(B16+B7).', 15, 'T3'),
+        hint('H1', '=B4*(1+B11)*(B5+B12)', 15, 'T1'),
+        hint('H2', '=B6*B13', 10, 'T2'),
+        hint('H3', '=B17*B8/(B18+B7)', 15, 'T3'),
+        hint('H4', '=IF(B19<B14,"BREACH","OK")', 10, 'T4'),
       ],
     };
   },

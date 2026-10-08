@@ -1,14 +1,16 @@
 /**
- * M9 · 02 — Sinergie: phasing curve, costi di integrazione e impatto after-tax.
+ * M9 · 02 — Sinergie M&A: curva di phasing, costi di integrazione e impatto netto.
  *
- * Le sinergie in un deal M&A non arrivano istantaneamente:
+ * Le sinergie non arrivano il giorno dopo il closing: si realizzano per gradi
+ * (phasing) e costano, soprattutto all'inizio (costi di integrazione one-off).
+ * Su tre anni:
  *
- *   1. Sinergie a Regime (Run-Rate Synergies): es. € 10,0m/anno (costi e ricavi).
- *   2. Curva di Rilascio (Phasing Curve): es. Anno 1 (30%), Anno 2 (70%), Anno 3 (100%).
- *   3. Sinergie Lorde Realizzate = Run-Rate Synergies × Phasing %.
- *   4. Costi di Integrazione One-Off: spese una tantum di ristrutturazione/IT sostenute all'inizio.
- *   5. Sinergie Nette Pre-Tax = Sinergie Lorde - Costi di Integrazione.
- *   6. Sinergie Nette After-Tax = Sinergie Nette Pre-Tax × (1 - Aliquota Fiscale 24%).
+ *   Sinergie realizzate  = run-rate × phasing dell'anno
+ *   Netto ante imposte   = realizzate − costi di integrazione dell'anno
+ *   Netto dopo imposte   = netto ante imposte × (1 − aliquota)
+ *
+ * Il primo anno e' spesso negativo: e' il punto didattico. Ogni riga e' una
+ * formula sola copiata sui tre anni.
  */
 
 import {
@@ -18,7 +20,6 @@ import {
   hint,
   par,
   riga,
-  taskFormula,
   eur,
   pct,
   STILE_ETICHETTA,
@@ -29,17 +30,17 @@ import {
   STILE_TOTALE,
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
+import type { Task } from '../../types';
 
-// Geometria fissa
-const B_RUNRATE = 'B4'; // Sinergie Run-Rate (dato)
-const B_TAX = 'B5'; // Aliquota fiscale 24% (dato)
+const COLONNE = ['B', 'C', 'D'] as const;
+const B_RUNRATE = 'B4';
+const B_TAX = 'B5';
 
-const B_PHASE_Y1 = 'B8'; // Phasing Y1 (30%) (dato)
-const B_INTEG_Y1 = 'B9'; // Costi integrazione Y1 (dato)
-
-const B_GROSS_Y1 = 'B12'; // T1: Sinergie Lorde Y1 = B4 * B8
-const B_NET_PRE_Y1 = 'B13'; // T2: Sinergie Nette Pre-Tax Y1 = B12 - B9
-const B_NET_POST_Y1 = 'B14'; // T3: Sinergie Nette Post-Tax Y1 = B13 * (1 - B5)
+const ROW_PHASE = 8;
+const ROW_INTEG = 9;
+const ROW_GROSS = 10;
+const ROW_PRE = 11;
+const ROW_POST = 12;
 
 export default defineTemplate({
   id: 'M9-02-SYNERGIES',
@@ -47,85 +48,83 @@ export default defineTemplate({
   title: 'Sinergie M&A: curva di phasing, costi di integrazione e impatto netto',
   rank: 3,
   mode: 'PRACTICE',
-  estimatedSeconds: 300,
+  estimatedSeconds: 330,
   skills: ['ma.synergies'],
   prerequisites: ['M9-01-CONSIDERATION'],
 
   generate: (rng) => {
     const r = rng.fork('dati');
 
-    const runRate = roundTo(triangular(r, 8_000_000, 10_000_000, 14_000_000), 1_000_000);
+    const runRate = roundTo(triangular(r, 8_000_000, 10_000_000, 14_000_000), 500_000);
     const taxRate = 0.24;
+    const phase = [
+      roundTo(triangular(r, 0.2, 0.3, 0.4), 0.05),
+      roundTo(triangular(r, 0.55, 0.7, 0.85), 0.05),
+      1,
+    ];
+    // Costi di integrazione: concentrati all'inizio, in totale fra 0,8x e 1,5x il run-rate.
+    const totInteg = runRate * triangular(r, 0.8, 1.1, 1.5);
+    const quoteInteg = [0.6, 0.3, 0.1];
+    const integ = quoteInteg.map((q) => roundTo(totInteg * q, 100_000));
 
-    const phaseY1 = 0.30;
-    const integY1 = roundTo(triangular(r, 3_000_000, 4_000_000, 5_000_000), 500_000);
+    const gross = phase.map((p) => runRate * p);
+    const pre = gross.map((g, i) => g - integ[i]);
+    const post = pre.map((p) => p * (1 - taxRate));
 
-    const grossY1 = runRate * phaseY1;
-    const netPreY1 = grossY1 - integY1;
-    const netPostY1 = netPreY1 * (1 - taxRate);
+    const tasks: Task[] = [
+      rigaTask('T1', ROW_GROSS, 'le sinergie realizzate in ciascun anno', gross, ['B' + ROW_PHASE, B_RUNRATE]),
+      rigaTask('T2', ROW_PRE, "l'impatto netto ante imposte, dopo i costi di integrazione dell'anno", pre, [
+        'B' + ROW_GROSS,
+        'B' + ROW_INTEG,
+      ]),
+      rigaTask('T3', ROW_POST, "l'impatto netto sull'utile, dopo le imposte", post, ['B' + ROW_PRE, B_TAX], [1]),
+    ];
 
     const brief = [
-      `Modella l'impatto economico delle sinergie e dei costi di integrazione per l'**Anno 1** post-closing.`,
-      ``,
-      `Parametri delle sinergie:`,
-      `- **Sinergie a Regime (Run-Rate)**: ${eur(runRate)}/anno`,
-      `- **Aliquota Fiscale (IRES)**: ${pct(taxRate)}`,
-      `- **Rilascio Anno 1 (Phasing)**: ${pct(phaseY1)} del run-rate`,
-      `- **Costi di Integrazione One-Off Anno 1**: ${eur(integY1)}`,
-      ``,
-      `### I tuoi compiti:`,
-      `1. Calcola le **Sinergie Lorde Realizzate nell'Anno 1** in \`${B_GROSS_Y1}\`: \`=${B_RUNRATE}*${B_PHASE_Y1}\`.`,
-      `2. Calcola le **Sinergie Nette Pre-Tax nell'Anno 1** in \`${B_NET_PRE_Y1}\` deducendo i costi di integrazione: \`=${B_GROSS_Y1}-${B_INTEG_Y1}\`.`,
-      `3. Calcola l'**Impatto Netto Post-Tax sull'Utile (Anno 1)** in \`${B_NET_POST_Y1}\`: \`=${B_NET_PRE_Y1}*(1-${B_TAX})\`.`,
+      "Modella l'impatto delle sinergie sui primi tre anni dopo il closing.",
+      '',
+      `- **Sinergie di costo a regime (run-rate)**: ${eur(runRate)} l'anno`,
+      `- **Phasing**: ${phase.map((p) => pct(p, 0)).join(' / ')} del run-rate negli anni 1, 2 e 3`,
+      `- **Costi di integrazione one-off**: ${integ.map((x) => eur(x)).join(' / ')}`,
+      `- **Aliquota fiscale**: ${pct(taxRate, 0)}`,
+      '',
+      'Le sinergie annunciate al mercato sono quelle a regime; nei primi anni arriva solo una parte, mentre ' +
+        "i costi per ottenerle (uscite di personale, chiusura di sedi, sistemi) si pagano subito. E' normale " +
+        "che il primo anno l'impatto netto sia negativo: il comitato deve vederlo.",
+      '',
+      'Costruisci le tre righe, una formula per riga copiata sui tre anni.',
     ].join('\n');
 
     const sheet = foglio('Model', [
       riga('A1', ['MODELLIZZAZIONE SINERGIE M&A'], { style: STILE_TITOLO }),
-      riga('A3', ['Parametri Generali', 'Valore'], { style: STILE_TITOLO }),
-      riga('A4', ['Sinergie Run-Rate Annue a Regime (€)', runRate], { style: STILE_INPUT }),
-      riga('A5', ['Aliquota Fiscale (IRES)', taxRate], { style: STILE_INPUT_PCT }),
+      riga('A3', ['Parametri generali', 'Valore'], { style: STILE_TITOLO }),
+      colonna('A4', ['Sinergie run-rate annue a regime (€)', 'Aliquota fiscale'], { style: STILE_ETICHETTA }),
+      [{ ref: B_RUNRATE, content: runRate, style: STILE_INPUT, locked: true }],
+      [{ ref: B_TAX, content: taxRate, style: STILE_INPUT_PCT, locked: true }],
 
-      riga('A7', ['Dati Operativi Anno 1', 'Valore'], { style: STILE_TITOLO }),
-      riga('A8', ['Phasing Realizzazione (%)', phaseY1], { style: STILE_INPUT_PCT }),
-      riga('A9', ['Costi One-off di Integrazione (€)', integY1], { style: STILE_INPUT }),
-
-      riga('A11', ['Risultati Economici Anno 1', 'Importo (€)'], { style: STILE_TITOLO }),
-      colonna('A12', [
-        'Sinergie Lorde Realizzate (€)',
-        'Sinergie Nette Pre-Tax (€)',
-        'Impatto Netto Post-Tax sull\'Utile (€)',
-      ], { style: STILE_ETICHETTA }),
-      colonna(B_GROSS_Y1, [null], { style: STILE_FORMULA, locked: false }),
-      colonna(B_NET_PRE_Y1, [null], { style: STILE_FORMULA, locked: false }),
-      colonna(B_NET_POST_Y1, [null], { style: STILE_TOTALE, locked: false }),
+      riga('A7', ['Piano (€)', 'Anno 1', 'Anno 2', 'Anno 3'], { style: STILE_TITOLO }),
+      colonna(
+        `A${ROW_PHASE}`,
+        [
+          'Phasing (% del run-rate)',
+          'Costi di integrazione one-off',
+          'Sinergie realizzate',
+          'Impatto netto ante imposte',
+          "Impatto netto sull'utile",
+        ],
+        { style: STILE_ETICHETTA },
+      ),
+      riga(`B${ROW_PHASE}`, phase, { style: { ...STILE_INPUT_PCT, numFmt: '0%' } }),
+      riga(`B${ROW_INTEG}`, integ, { style: STILE_INPUT }),
+      ...[ROW_GROSS, ROW_PRE, ROW_POST].map((row) =>
+        COLONNE.map((c) => ({
+          ref: `${c}${row}`,
+          content: null,
+          locked: false,
+          style: row === ROW_POST ? STILE_TOTALE : STILE_FORMULA,
+        })),
+      ),
     ]);
-
-    const tasks = [
-      taskFormula({
-        id: 'T1',
-        prompt: `Calcola le Sinergie Lorde in ${B_GROSS_Y1}: =${B_RUNRATE}*${B_PHASE_Y1}.`,
-        target: `Model!${B_GROSS_Y1}`,
-        atteso: grossY1,
-        referenzia: [B_RUNRATE, B_PHASE_Y1],
-        skills: ['ma.synergies'],
-      }),
-      taskFormula({
-        id: 'T2',
-        prompt: `Calcola le Sinergie Nette Pre-Tax in ${B_NET_PRE_Y1}: =${B_GROSS_Y1}-${B_INTEG_Y1}.`,
-        target: `Model!${B_NET_PRE_Y1}`,
-        atteso: netPreY1,
-        referenzia: [B_GROSS_Y1, B_INTEG_Y1],
-        skills: ['ma.synergies'],
-      }),
-      taskFormula({
-        id: 'T3',
-        prompt: `Calcola l'Impatto Netto Post-Tax in ${B_NET_POST_Y1}: =${B_NET_PRE_Y1}*(1-${B_TAX}).`,
-        target: `Model!${B_NET_POST_Y1}`,
-        atteso: netPostY1,
-        referenzia: [B_NET_PRE_Y1, B_TAX],
-        skills: ['ma.synergies'],
-      }),
-    ];
 
     return {
       templateId: 'M9-02-SYNERGIES',
@@ -133,12 +132,40 @@ export default defineTemplate({
       brief,
       sheets: [sheet],
       tasks,
-      parScore: par(tasks, { letturaSecondi: 20 }),
+      parScore: par(tasks, { letturaSecondi: 60 }),
+      startAt: `Model!B${ROW_GROSS}`,
       hints: [
-        hint('H1', 'In B12 moltiplica le sinergie a regime per la percentuale di phasing: =B4*B8.', 10, 'T1'),
-        hint('H2', 'In B13 sottrai i costi di integrazione: =B12-B9.', 10, 'T2'),
-        hint('H3', 'In B14 applica l\'aliquota fiscale post-tax: =B13*(1-B5).', 10, 'T3'),
+        hint('H1', `In B${ROW_GROSS}: =$B$4*B${ROW_PHASE}, poi copia a destra.`, 10, 'T1'),
+        hint('H2', `In B${ROW_PRE}: =B${ROW_GROSS}-B${ROW_INTEG}.`, 10, 'T2'),
+        hint('H3', `In B${ROW_POST}: =B${ROW_PRE}*(1-$B$5).`, 10, 'T3'),
       ],
     };
   },
 });
+
+function rigaTask(
+  id: string,
+  row: number,
+  cosa: string,
+  attesi: readonly number[],
+  referenzia: readonly string[],
+  ammessi: readonly number[] = [],
+): Task {
+  const rg = `B${row}:D${row}`;
+  return {
+    id,
+    prompt: `Riga ${row}: ${cosa}. Una formula in B${row}, copiata fino a D${row}.`,
+    targetCell: `Model!${rg}`,
+    check: [
+      { kind: 'mustBeFormula' },
+      { kind: 'value', expected: attesi[0] },
+      { kind: 'value', expected: attesi[2], at: `D${row}` },
+      { kind: 'mustReference', cells: referenzia },
+      { kind: 'mustNotContainLiteral', except: ammessi },
+      { kind: 'consistentRow', range: `Model!${rg}` },
+      { kind: 'noError' },
+    ],
+    skills: ['ma.synergies'],
+    minKeystrokes: 16,
+  };
+}

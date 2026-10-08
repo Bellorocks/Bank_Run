@@ -57,9 +57,9 @@ export default defineTemplate({
     const r = rng.fork('dati');
 
     const purchasePrice = roundTo(triangular(r, 80_000_000, 100_000_000, 120_000_000), 1_000_000);
-    const nbv = roundTo(purchasePrice * 0.40, 1_000_000); // 40% patrimonio netto contabile
-    const stepUp = roundTo(purchasePrice * 0.20, 1_000_000); // 20% write-up intangibili
-    const usefulLife = 10;
+    const nbv = roundTo(purchasePrice * triangular(r, 0.3, 0.4, 0.55), 1_000_000);
+    const stepUp = roundTo(purchasePrice * triangular(r, 0.1, 0.2, 0.3), 1_000_000);
+    const usefulLife = r.int(5, 15);
     const taxRate = 0.24;
 
     const dtl = stepUp * taxRate;
@@ -76,10 +76,13 @@ export default defineTemplate({
       `- **Vita Utile Intangibili**: ${usefulLife} anni`,
       `- **Aliquota Fiscale (IRES)**: ${pct(taxRate)}`,
       ``,
-      `### I tuoi compiti:`,
-      `1. Calcola la **Passività per Imposte Differite (DTL)** generata dallo step-up in \`${B_DTL}\`: \`=${B_STEPUP}*${B_TAX}\`.`,
-      `2. Calcola l'**Avviamento Residuo (Goodwill)** in \`${B_GOODWILL}\`: \`=${B_PURCHASE}-(${B_NBV}+${B_STEPUP}-${B_DTL})\`.`,
-      `3. Calcola l'**Ammortamento Annuo Addizionale Post-Tax** in \`${B_ADD_AMORT_POST}\` (l'onere che ridurrà l'utile pro-forma): \`=(${B_STEPUP}/${B_USEFUL_LIFE})*(1-${B_TAX})\`.`,
+      "Il prezzo pagato si alloca sulle attivita' e passivita' della target al fair value. La rivalutazione " +
+        "degli intangibili (step-up) non ha valore fiscale: l'ammortamento in piu' non sara' deducibile, " +
+        "quindi nasce una **passivita' per imposte differite** (DTL). Quello che il patrimonio netto " +
+        'rivalutato, al netto della DTL, non spiega e\' **goodwill**.',
+      '',
+      "Calcola la DTL, il goodwill residuo e quanto l'ammortamento dello step-up ridurra' l'utile netto " +
+        "dell'acquirente ogni anno.",
     ].join('\n');
 
     const sheet = foglio('Model', [
@@ -109,27 +112,33 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `Calcola la DTL in ${B_DTL}: =${B_STEPUP}*${B_TAX}.`,
+        prompt: `In ${B_DTL} la passivita' per imposte differite generata dallo step-up.`,
         target: `Model!${B_DTL}`,
         atteso: dtl,
         referenzia: [B_STEPUP, B_TAX],
+        senzaLiteral: [],
         skills: ['ma.ppa'],
+        minKeystrokes: 8,
       }),
       taskFormula({
         id: 'T2',
-        prompt: `Calcola il Goodwill in ${B_GOODWILL}: =${B_PURCHASE}-(${B_NBV}+${B_STEPUP}-${B_DTL}).`,
+        prompt: `In ${B_GOODWILL} il goodwill: la parte del prezzo che il patrimonio netto rivalutato (al netto della DTL) non spiega.`,
         target: `Model!${B_GOODWILL}`,
         atteso: goodwill,
         referenzia: [B_PURCHASE, B_NBV, B_STEPUP, B_DTL],
+        senzaLiteral: [],
         skills: ['ma.ppa'],
+        minKeystrokes: 18,
       }),
       taskFormula({
         id: 'T3',
-        prompt: `Calcola l'Ammortamento Addizionale Post-Tax in ${B_ADD_AMORT_POST}: =(${B_STEPUP}/${B_USEFUL_LIFE})*(1-${B_TAX}).`,
+        prompt: `In ${B_ADD_AMORT_POST} l'effetto annuo sull'utile netto dell'ammortamento dello step-up, dopo il rilascio della DTL.`,
         target: `Model!${B_ADD_AMORT_POST}`,
         atteso: addAmortPost,
         referenzia: [B_STEPUP, B_USEFUL_LIFE, B_TAX],
+        senzaLiteral: [1],
         skills: ['ma.ppa'],
+        minKeystrokes: 16,
       }),
     ];
 
@@ -139,11 +148,12 @@ export default defineTemplate({
       brief,
       sheets: [sheet],
       tasks,
-      parScore: par(tasks, { letturaSecondi: 20 }),
+      parScore: par(tasks, { letturaSecondi: 60 }),
+      startAt: `Model!${B_DTL}`,
       hints: [
-        hint('H1', 'In B11 moltiplica lo step-up per l\'aliquota fiscale: =B6*B8.', 10, 'T1'),
-        hint('H2', 'In B12 sottrai il valore contabile netto rettificato dal prezzo di acquisto: =B4-(B5+B6-B11).', 15, 'T2'),
-        hint('H3', 'In B13 dividi lo step-up per la vita utile e moltiplica per (1-B8): =(B6/B7)*(1-B8).', 10, 'T3'),
+        hint('H1', '=B6*B8', 10, 'T1'),
+        hint('H2', '=B4-(B5+B6-B11): prezzo meno patrimonio netto rivalutato al netto della DTL.', 15, 'T2'),
+        hint('H3', "=(B6/B7)*(1-B8): ammortamento annuo dello step-up, al netto dell'effetto fiscale.", 10, 'T3'),
       ],
     };
   },

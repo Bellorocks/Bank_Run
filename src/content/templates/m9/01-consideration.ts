@@ -41,6 +41,7 @@ const B_PCT_STOCK = 'B10'; // % Stock (40%) (dato)
 const B_TOT_PURCHASE = 'B13'; // T1: Equity Purchase Price = B4 * B5
 const B_CASH_REQ = 'B14'; // T2: Cassa Necessaria = B13 * B9
 const B_NEW_SHARES = 'B15'; // T3: Nuove Azioni Emesse = (B13 * B10) / B6
+const B_EXCH_RATIO = 'B16'; // T4: Exchange ratio = B15 / B4
 
 export default defineTemplate({
   id: 'M9-01-CONSIDERATION',
@@ -56,15 +57,16 @@ export default defineTemplate({
     const r = rng.fork('dati');
 
     const tgtShares = roundTo(triangular(r, 4_000_000, 5_000_000, 6_000_000), 500_000);
-    const offerPx = 25.0; // €25 per azione target
-    const acqPx = 50.0; // €50 per azione acquirer
+    const offerPx = roundTo(triangular(r, 15, 25, 40), 0.25);
+    const acqPx = roundTo(triangular(r, 30, 50, 80), 0.5);
 
-    const pctCash = 0.60;
-    const pctStock = 0.40;
+    const pctCash = roundTo(triangular(r, 0.3, 0.6, 0.8), 0.05);
+    const pctStock = 1 - pctCash;
 
     const totPurchase = tgtShares * offerPx;
     const cashReq = totPurchase * pctCash;
     const newShares = (totPurchase * pctStock) / acqPx;
+    const exchRatio = newShares / tgtShares;
 
     const brief = [
       `Struttura il corrispettivo di acquisizione (Consideration) per l'OPA amichevole su **Target Spa**.`,
@@ -73,12 +75,13 @@ export default defineTemplate({
       `- **Numero Azioni Target**: ${tgtShares.toLocaleString('it-IT')}`,
       `- **Prezzo di Offerta Target**: ${eur(offerPx, 2)}`,
       `- **Prezzo Corrente Azione Acquirer**: ${eur(acqPx, 2)}`,
-      `- **Struttura Corrispettivo**: ${pct(pctCash)} Cash / ${pct(pctStock)} Stock`,
+      `- **Struttura Corrispettivo**: ${pct(pctCash, 0)} Cash / ${pct(pctStock, 0)} Stock`,
       ``,
-      `### I tuoi compiti:`,
-      `1. Calcola il **Controvalore Totale di Acquisto (Equity Purchase Price)** in \`${B_TOT_PURCHASE}\`: \`=${B_TGT_SHARES}*${B_OFFER_PX}\`.`,
-      `2. Calcola la **Cassa Necessaria (Cash Consideration)** in \`${B_CASH_REQ}\`: \`=${B_TOT_PURCHASE}*${B_PCT_CASH}\`.`,
-      `3. Calcola il **Numero di Nuove Azioni Acquirer da Emettere** in \`${B_NEW_SHARES}\`: \`=(${B_TOT_PURCHASE}*${B_PCT_STOCK})/${B_ACQ_PX}\`.`,
+      "La parte cash va finanziata (cassa in bilancio o nuovo debito); la parte stock si paga emettendo " +
+        "nuove azioni dell'acquirente al suo prezzo corrente, e diluisce i suoi azionisti. L'**exchange " +
+        "ratio** dice quante azioni dell'acquirente riceve ogni azionista della target per ciascuna azione.",
+      '',
+      "Calcola controvalore, cassa necessaria, nuove azioni da emettere ed exchange ratio della parte in azioni.",
     ].join('\n');
 
     const sheet = foglio('Model', [
@@ -93,43 +96,62 @@ export default defineTemplate({
 
       riga('A8', ['Mix di Finanziamento', 'Quota %'], { style: STILE_TITOLO }),
       colonna('A9', ['Quota Cash (%)', 'Quota Stock (%)'], { style: STILE_ETICHETTA }),
-      colonna('B9', [pctCash, pctStock], { style: STILE_INPUT_PCT }),
+      colonna('B9', [pctCash], { style: { ...STILE_INPUT_PCT, numFmt: '0%' } }),
+      [{ ref: B_PCT_STOCK, content: `=1-${B_PCT_CASH}`, style: { ...STILE_FORMULA, numFmt: '0%' }, locked: true }],
 
       riga('A12', ['Esito della Strutturazione', 'Risultato'], { style: STILE_TITOLO }),
       colonna('A13', [
         'Equity Purchase Price Totale (€)',
         'Cassa Necessaria (Cash Consideration, €)',
         'Nuove Azioni Acquirer da Emettere (Numero)',
+        'Exchange ratio (azioni acquirer per azione target)',
       ], { style: STILE_ETICHETTA }),
       colonna(B_TOT_PURCHASE, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_CASH_REQ, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_NEW_SHARES, [null], { style: STILE_TOTALE, locked: false }),
+      colonna(B_EXCH_RATIO, [null], { style: { ...STILE_FORMULA, numFmt: '0.0000' }, locked: false }),
     ]);
 
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `Calcola il Purchase Price Totale in ${B_TOT_PURCHASE}: =${B_TGT_SHARES}*${B_OFFER_PX}.`,
+        prompt: `In ${B_TOT_PURCHASE} il controvalore totale dell'offerta sull'equity della target.`,
         target: `Model!${B_TOT_PURCHASE}`,
         atteso: totPurchase,
         referenzia: [B_TGT_SHARES, B_OFFER_PX],
+        senzaLiteral: [],
         skills: ['ma.consideration'],
+        minKeystrokes: 8,
       }),
       taskFormula({
         id: 'T2',
-        prompt: `Calcola la Cassa Necessaria in ${B_CASH_REQ}: =${B_TOT_PURCHASE}*${B_PCT_CASH}.`,
+        prompt: `In ${B_CASH_REQ} la cassa da trovare per la parte in contanti.`,
         target: `Model!${B_CASH_REQ}`,
         atteso: cashReq,
         referenzia: [B_TOT_PURCHASE, B_PCT_CASH],
+        senzaLiteral: [],
         skills: ['ma.consideration'],
+        minKeystrokes: 8,
       }),
       taskFormula({
         id: 'T3',
-        prompt: `Calcola le Nuove Azioni da Emettere in ${B_NEW_SHARES}: =(${B_TOT_PURCHASE}*${B_PCT_STOCK})/${B_ACQ_PX}.`,
+        prompt: `In ${B_NEW_SHARES} quante nuove azioni l'acquirente deve emettere per pagare la parte in azioni.`,
         target: `Model!${B_NEW_SHARES}`,
         atteso: newShares,
         referenzia: [B_TOT_PURCHASE, B_PCT_STOCK, B_ACQ_PX],
+        senzaLiteral: [],
         skills: ['ma.consideration'],
+        minKeystrokes: 14,
+      }),
+      taskFormula({
+        id: 'T4',
+        prompt: `In ${B_EXCH_RATIO} l'exchange ratio: azioni dell'acquirente ricevute per ogni azione della target.`,
+        target: `Model!${B_EXCH_RATIO}`,
+        atteso: exchRatio,
+        referenzia: [B_TGT_SHARES],
+        senzaLiteral: [],
+        skills: ['ma.consideration'],
+        minKeystrokes: 8,
       }),
     ];
 
@@ -139,11 +161,13 @@ export default defineTemplate({
       brief,
       sheets: [sheet],
       tasks,
-      parScore: par(tasks, { letturaSecondi: 20 }),
+      parScore: par(tasks, { letturaSecondi: 50 }),
+      startAt: `Model!${B_TOT_PURCHASE}`,
       hints: [
-        hint('H1', 'In B13 moltiplica le azioni per il prezzo di offerta: =B4*B5.', 10, 'T1'),
-        hint('H2', 'In B14 calcola la parte in contanti: =B13*B9.', 10, 'T2'),
-        hint('H3', 'In B15 calcola il valore della parte azionaria e dividilo per il prezzo azione dell\'acquirente: =(B13*B10)/B6.', 15, 'T3'),
+        hint('H1', '=B4*B5', 10, 'T1'),
+        hint('H2', '=B13*B9', 10, 'T2'),
+        hint('H3', "=B13*B10/B6: valore della parte in azioni diviso il prezzo dell'azione acquirer.", 15, 'T3'),
+        hint('H4', '=B15/B4, oppure =B5*B10/B6.', 10, 'T4'),
       ],
     };
   },

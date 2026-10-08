@@ -1,5 +1,5 @@
 /**
- * M9 · 07 — Leverage Pro-Forma: sostenibilità finanziaria post-fusione. [COMBO]
+ * M9 · 07 — Leverage Pro-Forma: sostenibilità finanziaria post-fusione.
  *
  * Livello conclusivo del modulo M&A. Integra la valutazione industriale
  * con la sostenibilità della nuova struttura di capitale (Capital Structure):
@@ -42,11 +42,12 @@ const B_MAX_LEV = 'B12'; // Max Leverage Investment Grade (3.50x) (dato)
 const B_COMB_EBITDA = 'B15'; // T1: Combined EBITDA = B4+B5+B6
 const B_COMB_ND = 'B16'; // T2: Combined Net Debt = B9+B10+B11
 const B_PF_LEV = 'B17'; // T3: Pro-Forma Leverage = B16 / B15
+const B_CAPACITA = 'B18'; // T4: debito aggiuntivo sostenibile = B12*B15 - B16
 
 export default defineTemplate({
   id: 'M9-07-PROFORMALEVERAGE',
   module: 'M9',
-  title: 'Leverage pro-forma: sostenibilità della struttura di capitale [COMBO]',
+  title: 'Leverage pro-forma: sostenibilità della struttura di capitale',
   rank: 4,
   mode: 'PRACTICE',
   estimatedSeconds: 360,
@@ -60,14 +61,15 @@ export default defineTemplate({
     const tgtEbitda = roundTo(triangular(r, 15_000_000, 20_000_000, 25_000_000), 1_000_000);
     const synergies = roundTo(triangular(r, 5_000_000, 7_000_000, 9_000_000), 500_000);
 
-    const acqNd = roundTo(acqEbitda * 1.5, 1_000_000);
-    const tgtNd = roundTo(tgtEbitda * 2.0, 1_000_000);
+    const acqNd = roundTo(acqEbitda * triangular(r, 0.8, 1.5, 2.2), 1_000_000);
+    const tgtNd = roundTo(tgtEbitda * triangular(r, 1, 2, 3), 1_000_000);
     const newDebt = roundTo(triangular(r, 40_000_000, 55_000_000, 70_000_000), 1_000_000);
-    const maxLev = 3.50;
+    const maxLev = roundTo(triangular(r, 3, 3.5, 4), 0.25);
 
     const combEbitda = acqEbitda + tgtEbitda + synergies;
     const combNd = acqNd + tgtNd + newDebt;
     const pfLev = combNd / combEbitda;
+    const capacita = maxLev * combEbitda - combNd;
 
     const brief = [
       `Analizza la sostenibilità finanziaria e il grado di indebitamento (Leverage) della combined entity post-fusione.`,
@@ -79,14 +81,16 @@ export default defineTemplate({
       `- **Nuovo Debito Bancario Emesso per il Deal**: ${eur(newDebt)}`,
       `- **Massimo Leverage per Mantenere il Rating Investment Grade**: ${multiplo(maxLev)}`,
       ``,
-      `### I tuoi compiti:`,
-      `1. Calcola l'**EBITDA Combinato Pro-Forma (€)** in \`${B_COMB_EBITDA}\`: \`=${B_ACQ_EBITDA}+${B_TGT_EBITDA}+${B_SYNERGIES}\`.`,
-      `2. Calcola il **Debito Netto Totale Combinato (€)** in \`${B_COMB_ND}\`: \`=${B_ACQ_ND}+${B_TGT_ND}+${B_NEW_DEBT}\`.`,
-      `3. Calcola il **Leverage Ratio Pro-Forma (x)** in \`${B_PF_LEV}\`: \`=${B_COMB_ND}/${B_COMB_EBITDA}\`.`,
+      "Dopo il closing il gruppo porta con se' il debito di entrambe le societa' piu' quello acceso per " +
+        "pagare l'acquisizione. Le agenzie guardano il leverage combinato: sopra la soglia il rating " +
+        "scende e il costo del debito sale. Quanto spazio resta, in euro, prima di toccarla?",
+      '',
+      'Calcola EBITDA e debito netto combinati, il leverage pro-forma e il debito aggiuntivo ancora ' +
+        "sostenibile alla soglia (negativo se la soglia e' gia' superata).",
     ].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['SOSTENIBILITÀ & LEVERAGE PRO-FORMA M&A [COMBO]'], { style: STILE_TITOLO }),
+      riga('A1', ['SOSTENIBILITÀ & LEVERAGE PRO-FORMA M&A'], { style: STILE_TITOLO }),
       riga('A3', ['EBITDA & Sinergie', 'Importo (€)'], { style: STILE_TITOLO }),
       colonna('A4', [
         'EBITDA Acquirer Standalone',
@@ -110,36 +114,54 @@ export default defineTemplate({
         'EBITDA Combinato Pro-Forma (€)',
         'Debito Netto Totale Combinato (€)',
         'Leverage Ratio Pro-Forma (Net Debt / EBITDA)',
+        'Debito aggiuntivo sostenibile alla soglia (€)',
       ], { style: STILE_ETICHETTA }),
       colonna(B_COMB_EBITDA, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_COMB_ND, [null], { style: STILE_FORMULA, locked: false }),
-      colonna(B_PF_LEV, [null], { style: STILE_TOTALE, locked: false }),
+      colonna(B_PF_LEV, [null], { style: { ...STILE_FORMULA, numFmt: '0.00x' }, locked: false }),
+      colonna(B_CAPACITA, [null], { style: STILE_TOTALE, locked: false }),
     ]);
 
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `Calcola l'EBITDA Combinato in ${B_COMB_EBITDA}: =${B_ACQ_EBITDA}+${B_TGT_EBITDA}+${B_SYNERGIES} o =SUM(B4:B6).`,
+        prompt: `In ${B_COMB_EBITDA} l'EBITDA pro-forma del gruppo combinato, sinergie a regime incluse.`,
         target: `Model!${B_COMB_EBITDA}`,
         atteso: combEbitda,
         referenzia: [B_ACQ_EBITDA, B_TGT_EBITDA, B_SYNERGIES],
+        senzaLiteral: [],
         skills: ['ma.proforma-leverage'],
+        minKeystrokes: 12,
       }),
       taskFormula({
         id: 'T2',
-        prompt: `Calcola il Debito Netto Combinato in ${B_COMB_ND}: =${B_ACQ_ND}+${B_TGT_ND}+${B_NEW_DEBT} o =SUM(B9:B11).`,
+        prompt: `In ${B_COMB_ND} il debito netto del gruppo dopo il closing.`,
         target: `Model!${B_COMB_ND}`,
         atteso: combNd,
         referenzia: [B_ACQ_ND, B_TGT_ND, B_NEW_DEBT],
+        senzaLiteral: [],
         skills: ['ma.proforma-leverage'],
+        minKeystrokes: 12,
       }),
       taskFormula({
         id: 'T3',
-        prompt: `Calcola il Leverage Pro-Forma in ${B_PF_LEV}: =${B_COMB_ND}/${B_COMB_EBITDA}.`,
+        prompt: `In ${B_PF_LEV} il leverage pro-forma.`,
         target: `Model!${B_PF_LEV}`,
         atteso: pfLev,
         referenzia: [B_COMB_ND, B_COMB_EBITDA],
+        senzaLiteral: [],
         skills: ['ma.proforma-leverage'],
+        minKeystrokes: 8,
+      }),
+      taskFormula({
+        id: 'T4',
+        prompt: `In ${B_CAPACITA} quanto debito in piu' il gruppo potrebbe portare restando esattamente alla soglia massima.`,
+        target: `Model!${B_CAPACITA}`,
+        atteso: capacita,
+        referenzia: [B_MAX_LEV, B_COMB_EBITDA, B_COMB_ND],
+        senzaLiteral: [],
+        skills: ['ma.proforma-leverage'],
+        minKeystrokes: 12,
       }),
     ];
 
@@ -149,11 +171,13 @@ export default defineTemplate({
       brief,
       sheets: [sheet],
       tasks,
-      parScore: par(tasks, { letturaSecondi: 25 }),
+      parScore: par(tasks, { letturaSecondi: 50 }),
+      startAt: `Model!${B_COMB_EBITDA}`,
       hints: [
-        hint('H1', 'In B15 somma i due EBITDA e le sinergie: =SUM(B4:B6).', 10, 'T1'),
-        hint('H2', 'In B16 somma tutti i debiti: =SUM(B9:B11).', 10, 'T2'),
-        hint('H3', 'In B17 dividi il debito netto per l\'EBITDA combinato: =B16/B15.', 10, 'T3'),
+        hint('H1', '=SUM(B4:B6)', 10, 'T1'),
+        hint('H2', '=SUM(B9:B11)', 10, 'T2'),
+        hint('H3', '=B16/B15', 10, 'T3'),
+        hint('H4', '=B12*B15-B16: debito massimo alla soglia meno debito attuale.', 10, 'T4'),
       ],
     };
   },

@@ -54,12 +54,12 @@ export default defineTemplate({
   generate: (rng) => {
     const r = rng.fork('dati');
 
-    const acqEps = 4.50;
-    const pfShares = 12_000_000;
-    const reqNi = acqEps * pfShares; // 54.0M €
+    const acqEps = roundTo(triangular(r, 2.5, 4.5, 6.5), 0.05);
+    const pfShares = roundTo(triangular(r, 9_000_000, 12_000_000, 15_000_000), 100_000);
+    const reqNi = acqEps * pfShares;
 
-    // Utile base senza sinergie: 48M - 51M (quindi c'è un gap diluitivo di 3M-6M)
-    const basePfNi = roundTo(triangular(r, 48_000_000, 50_000_000, 51_500_000), 500_000);
+    // Utile base senza sinergie: fra il 85% e il 96% di quello richiesto (operazione diluitiva).
+    const basePfNi = roundTo(reqNi * triangular(r, 0.85, 0.91, 0.96), 100_000);
     const taxRate = 0.24;
 
     const gapNi = reqNi - basePfNi;
@@ -75,10 +75,12 @@ export default defineTemplate({
       `- **Utile Netto Pro-Forma Base (Senza Sinergie)**: ${eur(basePfNi)}`,
       `- **Aliquota Fiscale (IRES)**: ${pct(taxRate)}`,
       ``,
-      `### I tuoi compiti:`,
-      `1. Calcola l'**Utile Netto Pro-Forma Richiesto** in \`${B_REQ_NI}\` per mantenere l'EPS invariato: \`=${B_ACQ_EPS}*${B_PF_SHARES}\`.`,
-      `2. Calcola il **Gap di Utile Netto Post-Tax** in \`${B_GAP_NI}\`: \`=${B_REQ_NI}-${B_BASE_PF_NI}\`.`,
-      `3. Calcola le **Sinergie Pre-Tax di Breakeven (€)** in \`${B_BE_SYN}\`: \`=${B_GAP_NI}/(1-${B_TAX})\`.`,
+      "Ragiona a ritroso: quale utile netto servirebbe, con le azioni pro-forma, per avere lo stesso EPS " +
+        "di oggi? La differenza con l'utile base e' un numero **dopo le imposte**; le sinergie che il " +
+        "management promette sono invece **prima delle imposte**, e ogni euro di sinergia porta a casa " +
+        'solo la sua parte netta.',
+      '',
+      'Calcola utile richiesto, gap da colmare e sinergie ante imposte di breakeven.',
     ].join('\n');
 
     const sheet = foglio('Model', [
@@ -107,27 +109,33 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `Calcola l'Utile Netto Richiesto in ${B_REQ_NI}: =${B_ACQ_EPS}*${B_PF_SHARES}.`,
+        prompt: `In ${B_REQ_NI} l'utile netto pro-forma che lascerebbe l'EPS esattamente invariato.`,
         target: `Model!${B_REQ_NI}`,
         atteso: reqNi,
         referenzia: [B_ACQ_EPS, B_PF_SHARES],
+        senzaLiteral: [],
         skills: ['ma.breakeven'],
+        minKeystrokes: 8,
       }),
       taskFormula({
         id: 'T2',
-        prompt: `Calcola il Gap di Utile Netto in ${B_GAP_NI}: =${B_REQ_NI}-${B_BASE_PF_NI}.`,
+        prompt: `In ${B_GAP_NI} quanto utile netto manca.`,
         target: `Model!${B_GAP_NI}`,
         atteso: gapNi,
         referenzia: [B_REQ_NI, B_BASE_PF_NI],
+        senzaLiteral: [],
         skills: ['ma.breakeven'],
+        minKeystrokes: 8,
       }),
       taskFormula({
         id: 'T3',
-        prompt: `Calcola le Sinergie Pre-Tax di Breakeven in ${B_BE_SYN}: =${B_GAP_NI}/(1-${B_TAX}).`,
+        prompt: `In ${B_BE_SYN} le sinergie ante imposte necessarie per colmarlo.`,
         target: `Model!${B_BE_SYN}`,
         atteso: beSyn,
         referenzia: [B_GAP_NI, B_TAX],
+        senzaLiteral: [1],
         skills: ['ma.breakeven'],
+        minKeystrokes: 12,
       }),
     ];
 
@@ -137,11 +145,12 @@ export default defineTemplate({
       brief,
       sheets: [sheet],
       tasks,
-      parScore: par(tasks, { letturaSecondi: 20 }),
+      parScore: par(tasks, { letturaSecondi: 50 }),
+      startAt: `Model!${B_REQ_NI}`,
       hints: [
-        hint('H1', 'In B10 moltiplica il target EPS per il numero di azioni: =B4*B5.', 10, 'T1'),
-        hint('H2', 'In B11 calcola la differenza: =B10-B6.', 10, 'T2'),
-        hint('H3', 'In B12 gross-up del gap dividendolo per (1-B7): =B11/(1-B7).', 15, 'T3'),
+        hint('H1', '=B4*B5', 10, 'T1'),
+        hint('H2', '=B10-B6', 10, 'T2'),
+        hint('H3', "=B11/(1-B7): si 'lorda' il gap delle imposte.", 15, 'T3'),
       ],
     };
   },
