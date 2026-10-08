@@ -2,12 +2,15 @@
  * Shell dell'applicazione DEAL DESK.
  */
 
-import { useState } from 'react';
-import { PlayScreen } from './game/PlayScreen';
+import { lazy, Suspense, useState } from 'react';
 import { WorldMap } from './ui/WorldMap';
 import { TitleScreen } from './ui/TitleScreen';
 import { PALETTE } from './styles/palette';
 import { SpriteDebug } from './ui/sprites/SpriteDebug';
+
+// Il livello porta con se' il motore di calcolo (HyperFormula), il pezzo piu'
+// pesante del bundle: si scarica quando si entra nel primo livello, non prima.
+const PlayScreen = lazy(() => import('./game/PlayScreen').then((m) => ({ default: m.PlayScreen })));
 
 type ScreenMode = 'title' | 'map';
 
@@ -74,6 +77,7 @@ export default function App() {
         </div>
 
         <div style={{ flex: 1, minHeight: 0 }}>
+          <Suspense fallback={<div style={caricamentoStyle}>Caricamento del livello...</div>}>
           <PlayScreen
             key={`${scelta.id}:${scelta.seed}:${scelta.run}`}
             templateId={scelta.id}
@@ -82,6 +86,7 @@ export default function App() {
             onNuovoSeed={() => setScelta({ id: scelta.id, seed: nuovoSeed(), run: 0 })}
             onEsci={() => setScelta(null)}
           />
+          </Suspense>
         </div>
       </div>
     );
@@ -108,4 +113,15 @@ const barraStyle: React.CSSProperties = {
   borderTop: `2px solid ${PALETTE.ambra}`,
   boxShadow: `0 2px 0 ${PALETTE.rubino}`,
   zIndex: 20,
+};
+
+const caricamentoStyle: React.CSSProperties = {
+  height: '100%',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontFamily: 'var(--font-titolo)',
+  fontSize: 18,
+  color: PALETTE.ambra,
+  background: PALETTE.inchiostro,
 };

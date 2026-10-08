@@ -163,7 +163,7 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
 
         {/* 5. TAVOLA INFERIORE: FOOTER & TOGGLE AUDIO LITTLEROOT TOWN */}
         <div style={footerPlankStyle}>
-          <span style={footerTextStyle}>v1.0 · BGM: Littleroot Town (Pokémon R/S/E)</span>
+          <span style={footerTextStyle}>v1.0 · Musica originale</span>
           <button type="button" onClick={handleToggleAudio} style={woodSmallButtonStyle}>
             {sound.isMuted() ? 'AUDIO: OFF' : 'AUDIO: ON'}
           </button>

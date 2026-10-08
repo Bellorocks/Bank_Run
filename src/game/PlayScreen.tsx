@@ -26,7 +26,6 @@ import { gradeLevel, type GradeReport } from '../grader/grade';
 import { detectCycleCells } from '../engine/iterative';
 import { applyReplayPenalty, computeMetrics, computeXp, type RunMetrics, type XpResult } from '../input/metrics';
 import { workbookToExport } from '../export/fromWorkbook';
-import { exportToXlsx } from '../export/toXlsx';
 import { loadProgress, recordProgress } from '../persistence/progress';
 import { rankForXp, xpWithinRank, XP_PER_RANK } from '../persistence/progression';
 import type { Command } from '../keymap/commands';
@@ -265,7 +264,9 @@ export function PlayScreen({ templateId, seed, onRiprovaStessoSeed, onNuovoSeed,
     setEsito({ metrics, xp, xpTotalePrima, xpTotaleDopo });
   };
 
-  const esportaXlsx = useCallback((): void => {
+  const esportaXlsx = useCallback(async (): Promise<void> => {
+    // SheetJS pesa: si carica solo quando qualcuno esporta davvero.
+    const { exportToXlsx } = await import('../export/toXlsx');
     const buf = exportToXlsx(workbookToExport(caricato.workbook, template?.title));
     const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = URL.createObjectURL(blob);

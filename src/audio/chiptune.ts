@@ -3,7 +3,7 @@
  *
  * Genera musica retro JRPG ed effetti sonori procedurali tramite oscillatori:
  * - Nessun asset mp3/wav esterno richiesto: funziona offline al 100%.
- * - BGM: Traccia Fantasy Overworld a 8-bit con arpeggi, lead e linea di basso.
+ * - BGM: tema originale a 8-bit (lead, arpeggio, basso), composto per il gioco.
  * - SFX: Beep di selezione, conferma, errore e fanfara di vittoria.
  */
 
@@ -191,8 +191,12 @@ class SoundEngine {
   }
 
   // -------------------------------------------------------------------------
-  // MUSICA DI SOTTOFONDO CHIPTUNE: LITTLEROOT TOWN (POKEMON R/S/E)
+  // MUSICA DI SOTTOFONDO: "Deal Desk Theme", composizione originale
   // -------------------------------------------------------------------------
+  //
+  // Loop di 16 battute in Re maggiore, otto passi (crome) per battuta.
+  // Giro armonico: D Bm G A | D F#m G A | Bm G D A | G A D D.
+  // Le note sono numeri MIDI (69 = La4 = 440 Hz), 0 e' pausa.
 
   public startBgm() {
     if (this.muted || this.bgmPlaying) return;
@@ -201,70 +205,37 @@ class SoundEngine {
 
     this.bgmPlaying = true;
 
-    // Frequenze note (Scala di Sol Maggiore / G Major)
-    const REST = 0;
-    const G2 = 98.00;
-    const A2 = 110.00;
-    const B2 = 123.47;
-    const C3 = 130.81;
-    const D3 = 146.83;
-    const E2 = 82.41;
-    const FS2 = 92.50; // F#2
+    const hz = (midi: number) => (midi === 0 ? 0 : 440 * Math.pow(2, (midi - 69) / 12));
 
-    const D4 = 293.66;
-    const E4 = 329.63;
-    const FS4 = 369.99; // F#4
-    const G4 = 392.00;
-    const A4 = 440.00;
-    const B4 = 493.88;
-    const C5 = 523.25;
-    const D5 = 587.33;
-    const E5 = 659.25;
-    const FS5 = 739.99; // F#5
-    const G5 = 783.99;
-
-    // Traccia Melodia Principale: Littleroot Town Theme (Go Ichinose)
-    const melodyTrack = [
-      // Battuta 1-2 (Intro & Inizio Tema)
-      D4, G4, B4, A4, G4, D5, B4, REST,
-      G4, A4, B4, A4, G4, E4, D4, REST,
-      // Battuta 3-4 (Variazione acuta con E5)
-      D4, G4, B4, A4, G4, E5, D5, B4,
-      G4, A4, B4, A4, G4, G4, REST, REST,
-      // Battuta 5-6 (Bridge nostalgico: C5 -> D5 -> E5)
-      B4, C5, D5, E5, D5, B4, G4, REST,
-      A4, B4, C5, B4, A4, FS4, D4, REST,
-      // Battuta 7-8 (Risoluzione dolce)
-      D4, G4, B4, A4, G4, D5, B4, G4,
-      A4, B4, A4, G4, G4, REST, REST, REST,
+    // prettier-ignore
+    const melody = [
+      69, 0, 74, 0, 78, 76, 74, 0,   73, 0, 71, 73, 74, 0, 71, 0,
+      67, 71, 74, 0, 76, 74, 71, 0,  69, 0, 73, 0, 76, 0, 0, 0,
+      78, 0, 76, 74, 76, 0, 81, 0,   78, 0, 73, 0, 69, 73, 76, 0,
+      74, 0, 71, 74, 79, 0, 78, 76,  76, 0, 0, 73, 69, 0, 0, 0,
+      71, 0, 74, 78, 76, 0, 74, 0,   71, 0, 67, 71, 74, 0, 0, 0,
+      69, 0, 74, 76, 78, 0, 76, 74,  73, 0, 69, 0, 76, 0, 0, 0,
+      79, 0, 78, 76, 74, 0, 71, 0,   73, 0, 74, 76, 73, 0, 69, 0,
+      74, 0, 78, 0, 81, 0, 78, 0,    74, 0, 0, 0, 0, 0, 0, 0,
     ];
 
-    // Traccia Arpeggio / Accompagnamento dolce (Pulse Wave)
-    const arpeggioTrack = [
-      B4, D5, G5, D5, B4, D5, G5, D5,
-      C5, E5, G5, E5, C5, E5, G5, E5,
-      B4, D5, G5, D5, B4, D5, G5, D5,
-      A4, D5, FS5, D5, A4, D5, FS5, D5,
-      C5, E5, G5, E5, B4, D5, G5, D5,
-      A4, C5, E5, C5, A4, D5, FS5, D5,
-      B4, D5, G5, D5, C5, E5, G5, E5,
-      B4, D5, G5, D5, B4, REST, REST, REST,
-    ];
+    // Accordi delle 16 battute: [fondamentale, terza, quinta] (ottava 5) e basso [fondamentale, quinta].
+    const D = { chord: [74, 78, 81], bass: [38, 45] };
+    const Bm = { chord: [71, 74, 78], bass: [47, 42] };
+    const G = { chord: [67, 71, 74], bass: [43, 50] };
+    const A = { chord: [69, 73, 76], bass: [45, 40] };
+    const Fsm = { chord: [66, 69, 73], bass: [42, 49] };
+    const progression = [D, Bm, G, A, D, Fsm, G, A, Bm, G, D, A, G, A, D, D];
 
-    // Traccia Basso Acustico (Triangle Wave)
-    const bassTrack = [
-      G2, REST, D3, REST, G2, REST, D3, REST,
-      C3, REST, G2, REST, C3, REST, G2, REST,
-      E2, REST, B2, REST, E2, REST, B2, REST,
-      D3, REST, A2, REST, D3, REST, FS2, REST,
-      C3, REST, G2, REST, B2, REST, G2, REST,
-      A2, REST, E2, REST, D3, REST, A2, REST,
-      G2, REST, D3, REST, C3, REST, G2, REST,
-      G2, REST, D3, REST, G2, REST, REST, REST,
-    ];
+    const arpeggio = progression.flatMap(({ chord: [r, t, f] }) => [r, t, f, t, r, t, f, t]);
+    const bass = progression.flatMap(({ bass: [r, f] }) => [r, 0, f, 0, r, 0, f, 0]);
+
+    const melodyTrack = melody.map(hz);
+    const arpeggioTrack = arpeggio.map(hz);
+    const bassTrack = bass.map(hz);
 
     let step = 0;
-    const stepDuration = 0.17; // ~88 BPM
+    const stepDuration = 0.18; // crome a ~83 BPM
 
     const playStep = () => {
       if (!this.bgmPlaying || this.muted || !this.ctx) return;
