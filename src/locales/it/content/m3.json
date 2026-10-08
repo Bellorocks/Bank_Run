@@ -146,5 +146,6 @@
   "M3-06-FACTORING.17": "Rimanenze, €",
   "M3-08-LEAKAGE.26": "Movimento",
   "M3-08-LEAKAGE.27": "Tipo",
-  "M3-08-LEAKAGE.tok.permesso": "permesso"
+  "M3-08-LEAKAGE.tok.permesso": "permesso",
+  "M3-02-DSODIODPO.h4": "={B_DSO}+{B_DIO}-{B_DPO}: DSO più DIO, meno DPO. Il DPO si sottrae, non si somma."
 }

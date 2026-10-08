@@ -235,7 +235,7 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', `=${B_EBITDA}*${B_MULT_MKT}: EBITDA per il multiplo di uscita di mercato.`, 10, 'T1'),
+        hint('H1', tx('M7-10-EXITMULTIPLE.h1', { B_EBITDA, B_MULT_MKT }), 10, 'T1'),
         hint('H2', tx('M7-10-EXITMULTIPLE.15', { B_TV_GORDON, B_EBITDA }), 10, 'T2'),
         hint(
           'H3',

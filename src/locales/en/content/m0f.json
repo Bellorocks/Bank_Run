@@ -195,5 +195,8 @@
   "M0F-03-GOALSEEK.20": "Channel",
   "M0F-04-ITERATIVO.24": "Taxes",
   "M0F-05-CONDFORMAT.21": "Quarter",
-  "M0F-07-RAGGRUPPAMENTO.15": "Item"
+  "M0F-07-RAGGRUPPAMENTO.15": "Item",
+  "M0F-06-FORMATIAVANZATI.h1": "=B4-B3 in B5. Then Ctrl+C on E3, go back to B5, Ctrl+Alt+V and press T: you copy the format, not the number.",
+  "M0F-06-FORMATIAVANZATI.h2": "=B7/B4 in B8 (the multiple is {p0}). Then Ctrl+C on E7, select B8, Ctrl+Alt+V and T.",
+  "M0F-08-SANITYCHECK.h2": "=ABS(B{ALFA_SCARTO_ROW})<0.0001 — TRUE if the gap is below the threshold, FALSE otherwise."
 }

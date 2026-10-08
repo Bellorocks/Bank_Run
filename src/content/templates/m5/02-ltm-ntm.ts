@@ -167,7 +167,7 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_EV}/${B_EBITDA_LTM}: EV su EBITDA LTM (qui vale ${multiplo(multiploLtm)}).`,
+          tx('M5-02-LTMNTM.h1', { B_EV, B_EBITDA_LTM, p0: multiplo(multiploLtm) }),
           10,
           'T1',
         ),

@@ -152,7 +152,7 @@ export default defineTemplate({
         hint('H1', tx('M8-10-EXITTIMING.16', { ROW_IRR, ROW_MOIC, ROW_ANNI }), 10, 'T1'),
         hint(
           'H2',
-          `=INDEX(B${ROW_INTEST}:D${ROW_INTEST},MATCH(MAX(${rg}),${rg},0)): cerca il massimo e restituisci l'intestazione.`,
+          tx('M8-10-EXITTIMING.h2', { ROW_INTEST, rg }),
           15,
           'T2',
         ),

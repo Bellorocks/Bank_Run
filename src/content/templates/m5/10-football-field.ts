@@ -321,7 +321,7 @@ export default defineTemplate({
         ),
         hint(
           'H2',
-          `=MEDIAN(${rangeMultipli}) — qui vale ${multiplo(multiploMediano)}.`,
+          tx('M5-10-FOOTBALLFIELD.h2', { rangeMultipli, p0: multiplo(multiploMediano) }),
           10,
           'T2',
         ),

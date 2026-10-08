@@ -235,7 +235,7 @@ export default defineTemplate({
         ),
         hint(
           'H2',
-          `=ABS(B${ALFA_SCARTO_ROW})<0.0001 — VERO se lo scarto e\' sotto la soglia, FALSO altrimenti.`,
+          tx('M0F-08-SANITYCHECK.h2', { ALFA_SCARTO_ROW }),
           10,
           'T2',
         ),

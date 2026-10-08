@@ -237,5 +237,6 @@
   "M8-09-BUYANDBUILD.21": "Risultato",
   "M8-10-EXITTIMING.17": "Scenario",
   "M8-11-RETURNSATTRIBUTION.26": "Risultato",
-  "M8-10-EXITTIMING.anni": "{n} anni"
+  "M8-10-EXITTIMING.anni": "{n} anni",
+  "M8-10-EXITTIMING.h2": "=INDEX(B{ROW_INTEST}:D{ROW_INTEST},MATCH(MAX({rg}),{rg},0)): cerca il massimo e restituisci l'intestazione."
 }

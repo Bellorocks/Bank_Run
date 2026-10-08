@@ -216,13 +216,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          '=B4-B3 in B5. Poi Ctrl+C su E3, torna su B5, Ctrl+Alt+V e premi T: copi il formato, non il numero.',
+          tx('M0F-06-FORMATIAVANZATI.h1'),
           12,
           'T1',
         ),
         hint(
           'H2',
-          `=B7/B4 in B8 (il multiplo e' ${multiplo(multiploAtteso)}). Poi Ctrl+C su E7, seleziona B8, Ctrl+Alt+V e T.`,
+          tx('M0F-06-FORMATIAVANZATI.h2', { p0: multiplo(multiploAtteso) }),
           12,
           'T2',
         ),

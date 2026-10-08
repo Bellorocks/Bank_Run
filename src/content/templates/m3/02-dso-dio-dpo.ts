@@ -226,7 +226,7 @@ export default defineTemplate({
         hint('H3', tx('M3-02-DSODIODPO.22', { B_DEBITI, B_ACQUISTI }), 8, 'T3'),
         hint(
           'H4',
-          `=${B_DSO}+${B_DIO}-${B_DPO}: DSO piu' DIO, meno DPO. Il DPO si sottrae, non si somma.`,
+          tx('M3-02-DSODIODPO.h4', { B_DSO, B_DIO, B_DPO }),
           8,
           'T4',
         ),

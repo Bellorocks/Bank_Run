@@ -169,5 +169,9 @@
   "M5-10-FOOTBALLFIELD.19": "EBITDA, €",
   "M5-10-FOOTBALLFIELD.20": "EV/EBITDA, x",
   "M5-10-FOOTBALLFIELD.21": "Target",
-  "M5-05-MULTIPLI2.h1": "={B_EV}/({B_EBITDA}-{B_CAPEX}): EV su EBITDA meno Capex (qui vale {p0}) — più alto di EV/EBITDA perché il denominatore è più piccolo."
+  "M5-05-MULTIPLI2.h1": "={B_EV}/({B_EBITDA}-{B_CAPEX}): EV su EBITDA meno Capex (qui vale {p0}) — più alto di EV/EBITDA perché il denominatore è più piccolo.",
+  "M5-06-MEDIANAMEDIA.h1": "=AVERAGE({rangeMultipli}) — qui vale {p0}.",
+  "M5-02-LTMNTM.h1": "={B_EV}/{B_EBITDA_LTM}: EV su EBITDA LTM (qui vale {p0}).",
+  "M5-04-MULTIPLI1.h1": "={B_EV}/{B_EBITDA}: EV su EBITDA (qui vale {p0}).",
+  "M5-10-FOOTBALLFIELD.h2": "=MEDIAN({rangeMultipli}) — qui vale {p0}."
 }

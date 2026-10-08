@@ -146,5 +146,6 @@
   "M3-06-FACTORING.17": "Inventory, €",
   "M3-08-LEAKAGE.26": "Movement",
   "M3-08-LEAKAGE.27": "Type",
-  "M3-08-LEAKAGE.tok.permesso": "permitted"
+  "M3-08-LEAKAGE.tok.permesso": "permitted",
+  "M3-02-DSODIODPO.h4": "={B_DSO}+{B_DIO}-{B_DPO}: DSO plus DIO, minus DPO. DPO is subtracted, not added."
 }

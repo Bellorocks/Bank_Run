@@ -178,7 +178,7 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', `=PV(${B_IBR},${B_DURATA},-${B_CANONE}), oppure =${B_CANONE}*(1-(1+${B_IBR})^-${B_DURATA})/${B_IBR}.`, 12, 'T1'),
+        hint('H1', tx('M1-10-IFRS16.h1', { B_IBR, B_DURATA, B_CANONE }), 12, 'T1'),
         hint('H2', `=${B_PASSIVITA}/${B_DURATA}`, 8, 'T2'),
         hint('H3', `=${B_PASSIVITA}*${B_IBR}`, 8, 'T3'),
         hint('H4', tx('M1-10-IFRS16.18', { B_CANONE }), 8, 'T4'),

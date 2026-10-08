@@ -186,7 +186,7 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=SUM(C${ROW_A1}:C${ROW_A5})-SUM(C${ROW_B6}:C${ROW_B9})-C${ROW_B11}-C${ROW_B14}: tutto A, meno le voci B tranne B10 e B12.`,
+          tx('M11-01-READCEE.h1', { ROW_A1, ROW_A5, ROW_B6, ROW_B9, ROW_B11, ROW_B14 }),
           15,
           'T1',
         ),

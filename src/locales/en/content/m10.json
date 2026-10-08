@@ -116,5 +116,6 @@
   "M10-03-AMORTIZATION.30": "Comparison",
   "M10-04-STRESSTEST.24": "Value",
   "M10-04-STRESSTEST.25": "Value",
-  "M10-04-STRESSTEST.26": "Result"
+  "M10-04-STRESSTEST.26": "Result",
+  "M10-03-AMORTIZATION.h4": "=B4*B6*B5; then =B21-SUM(C{ROW_L_INT}:G{ROW_L_INT})."
 }

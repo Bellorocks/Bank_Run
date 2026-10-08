@@ -150,5 +150,6 @@
   "M11-02-DIRTYTABLES.nord": "NORTH",
   "M11-02-DIRTYTABLES.centro": "CENTRE",
   "M11-02-DIRTYTABLES.sud": "SOUTH",
-  "M11-02-DIRTYTABLES.subtotale": "SUBTOTAL-{regione}"
+  "M11-02-DIRTYTABLES.subtotale": "SUBTOTAL-{regione}",
+  "M11-01-READCEE.h1": "=SUM(C{ROW_A1}:C{ROW_A5})-SUM(C{ROW_B6}:C{ROW_B9})-C{ROW_B11}-C{ROW_B14}: all of A, minus the B items except B10 and B12."
 }

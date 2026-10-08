@@ -238,5 +238,7 @@
   "M7-14-DCFCOMPLETO.30": "Valuation",
   "M7-14-DCFCOMPLETO.31": "Value",
   "M7-01-FCFFFCFE.h1": "={B_EBIT}*(1-{B_ALIQ})+{B_DA}-{B_CAPEX}-{B_DNWC}: taxed EBIT, plus D&A, minus Capex, minus ΔNWC (with its sign).",
-  "M7-02-COSTRUZIONEFCF.h3": "={B_NOPAT}+{B_DA}-{B_CAPEX}-{B_DNWC}: NOPAT, plus D&A added back, minus Capex, minus ΔNWC (with its sign)."
+  "M7-02-COSTRUZIONEFCF.h3": "={B_NOPAT}+{B_DA}-{B_CAPEX}-{B_DNWC}: NOPAT, plus D&A added back, minus Capex, minus ΔNWC (with its sign).",
+  "M7-10-EXITMULTIPLE.h1": "={B_EBITDA}*{B_MULT_MKT}: EBITDA times the market exit multiple.",
+  "M7-14-DCFCOMPLETO.h4": "=B17*{ULTIMA}{ROW_DF}; then =B16+B18; then =B18/B19."
 }

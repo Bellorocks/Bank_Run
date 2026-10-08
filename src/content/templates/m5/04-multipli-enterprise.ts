@@ -195,7 +195,7 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_EV}/${B_EBITDA}: EV su EBITDA (qui vale ${multiplo(multEvEbitda)}).`,
+          tx('M5-04-MULTIPLI1.h1', { B_EV, B_EBITDA, p0: multiplo(multEvEbitda) }),
           10,
           'T1',
         ),

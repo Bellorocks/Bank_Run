@@ -60,13 +60,13 @@ export function contentText(lang: Language, key: string): string | undefined {
   return dicts[lang][key];
 }
 
-/** Nome di un settore (rng/finance) nella lingua dei testi. */
 /** Nome del mese `n` (1-12) nella lingua dei contenuti; `capitalize` per le etichette di colonna. */
 export function monthName(n: number, capitalize = false): string {
   const name = tx(`common.nomeMese.${n}`);
   return capitalize ? name.charAt(0).toUpperCase() + name.slice(1) : name;
 }
 
+/** Nome di un settore (rng/finance) nella lingua dei testi. */
 export function sectorName(sector: string): string {
   return tx(`common.settore.${sector}`);
 }

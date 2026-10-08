@@ -156,7 +156,7 @@ export default defineTemplate({
         hint('H1', '=B4*B5', 10, 'T1'),
         hint('H2', '=B13*B9', 10, 'T2'),
         hint('H3', tx('M9-01-CONSIDERATION.21'), 15, 'T3'),
-        hint('H4', '=B15/B4, oppure =B5*B10/B6.', 10, 'T4'),
+        hint('H4', tx('M9-01-CONSIDERATION.h4'), 10, 'T4'),
       ],
     };
   },

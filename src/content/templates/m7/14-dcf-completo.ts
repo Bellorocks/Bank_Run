@@ -212,7 +212,7 @@ export default defineTemplate({
         hint('H1', tx('M7-14-DCFCOMPLETO.26', { c1, ROW_DF, ROW_T }), 15, 'T1'),
         hint('H2', `In ${c1}${ROW_PV}: =${c1}${ROW_FCF}*${c1}${ROW_DF}.`, 10, 'T2'),
         hint('H3', `=${ULTIMA}${ROW_FCF}*(1+B5)/(B4-B5)`, 15, 'T4'),
-        hint('H4', `=B17*${ULTIMA}${ROW_DF}; poi =B16+B18; poi =B18/B19.`, 10, 'T5'),
+        hint('H4', tx('M7-14-DCFCOMPLETO.h4', { ULTIMA, ROW_DF }), 10, 'T5'),
         hint('H5', '=(B6-B19)/B19', 10, 'T8'),
       ],
     };

@@ -196,7 +196,7 @@ export default defineTemplate({
         hint('H1', tx('M10-03-AMORTIZATION.24', { ROW_L_QUOTA }), 10, 'T1'),
         hint('H2', `In C${ROW_L_INT}: =C${ROW_L_INIZ}*$B$6.`, 10, 'T2'),
         hint('H3', tx('M10-03-AMORTIZATION.25', { ROW_B_QUOTA, ROW_B_INIZ }), 10, 'T3'),
-        hint('H4', `=B4*B6*B5; poi =B21-SUM(C${ROW_L_INT}:G${ROW_L_INT}).`, 10, 'T6'),
+        hint('H4', tx('M10-03-AMORTIZATION.h4', { ROW_L_INT }), 10, 'T6'),
       ],
     };
   },

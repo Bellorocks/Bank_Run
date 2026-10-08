@@ -261,5 +261,6 @@
   "M1-08-DASCHEDULE.impianti": "Impianti",
   "M1-08-DASCHEDULE.attrezzature": "Attrezzature",
   "M1-08-DASCHEDULE.macchinari": "Macchinari",
-  "M1-08-DASCHEDULE.automezzi": "Automezzi"
+  "M1-08-DASCHEDULE.automezzi": "Automezzi",
+  "M1-10-IFRS16.h1": "=PV({B_IBR},{B_DURATA},-{B_CANONE}), oppure ={B_CANONE}*(1-(1+{B_IBR})^-{B_DURATA})/{B_IBR}."
 }

@@ -211,7 +211,7 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', `=AVERAGE(${rangeMultipli}) — qui vale ${multiplo(media)}.`, 8, 'T1'),
+        hint('H1', tx('M5-06-MEDIANAMEDIA.h1', { rangeMultipli, p0: multiplo(media) }), 8, 'T1'),
         hint(
           'H2',
           tx('M5-06-MEDIANAMEDIA.14', { rangeMultipli, p1: multiplo(med) }),
