@@ -4,5 +4,8 @@
  * I test della versione inglese la impostano esplicitamente.
  */
 import { setLanguage } from './i18n/language';
+import { loadContent } from './i18n/content';
 
 setLanguage('it');
+await loadContent('it');
+await loadContent('en');

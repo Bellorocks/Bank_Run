@@ -11,12 +11,20 @@ import { getLanguage, type Language } from './language';
 
 type Dict = Record<string, string>;
 
-const files = import.meta.glob<{ default: Dict }>('../locales/*/content/*.json', { eager: true });
+// Caricati su richiesta: il gioco carica solo la lingua attiva (cambiarla ricarica
+// la pagina), cosi' i testi dell'altra lingua non pesano sul bundle iniziale.
+const files = import.meta.glob<{ default: Dict }>('../locales/*/content/*.json');
 
 const dicts: Record<Language, Dict> = { en: {}, it: {} };
-for (const [file, mod] of Object.entries(files)) {
-  const lang = /locales\/(en|it)\//.exec(file)?.[1] as Language | undefined;
-  if (lang) Object.assign(dicts[lang], mod.default);
+const caricate = new Set<Language>();
+
+/** Carica i testi dei livelli di `lang`. Va attesa prima di generare qualunque livello. */
+export async function loadContent(lang: Language): Promise<void> {
+  if (caricate.has(lang)) return;
+  const daCaricare = Object.entries(files).filter(([file]) => file.includes(`/locales/${lang}/`));
+  const moduli = await Promise.all(daCaricare.map(([, load]) => load()));
+  for (const m of moduli) Object.assign(dicts[lang], m.default);
+  caricate.add(lang);
 }
 
 let override: Language | null = null;
@@ -44,7 +52,7 @@ export function interpolate(text: string, params: Readonly<Record<string, unknow
   );
 }
 
-/** Testo di un livello nella lingua corrente (ripiega sull'italiano, poi sulla chiave). */
+/** Testo di un livello nella lingua corrente (ripiega sull'italiano se caricato, poi sulla chiave). */
 export function tx(key: string, params?: Readonly<Record<string, unknown>>): string {
   const text = dicts[contentLanguage()][key] ?? dicts.it[key];
   if (text === undefined) return key;
