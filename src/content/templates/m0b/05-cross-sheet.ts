@@ -33,7 +33,7 @@ import { revenue } from '../../../rng/finance';
 
 import { tx } from '../../../i18n/content';
 const FOGLIO_DATI = () => (tx('M0B-05-CROSSSHEET.1'));
-const RIF_ONERI = `'${FOGLIO_DATI()}'!B2`;
+const RIF_ONERI = () => `'${FOGLIO_DATI()}'!B2`;
 
 export default defineTemplate({
   id: 'M0B-05-CROSSSHEET',
@@ -78,9 +78,9 @@ export default defineTemplate({
         prompt:
           tx('M0B-05-CROSSSHEET.4', { FOGLIO_DATI: FOGLIO_DATI() }),
         targetCell: 'Model!B7',
-        check: [{ kind: 'text' as const, expected: RIF_ONERI }],
+        check: [{ kind: 'text' as const, expected: RIF_ONERI() }],
         skills: ['xl.cross-sheet'],
-        minKeystrokes: RIF_ONERI.length,
+        minKeystrokes: RIF_ONERI().length,
       },
       taskFormula({
         id: 'T3',
@@ -88,9 +88,9 @@ export default defineTemplate({
           tx('M0B-05-CROSSSHEET.5'),
         target: 'Model!B9',
         atteso: utileNetto,
-        referenzia: ['B5', RIF_ONERI],
+        referenzia: ['B5', RIF_ONERI()],
         skills: ['xl.cross-sheet'],
-        minKeystrokes: 4 + RIF_ONERI.length,
+        minKeystrokes: 4 + RIF_ONERI().length,
       }),
     ];
 
@@ -129,7 +129,7 @@ export default defineTemplate({
         hint('H1', tx('M0B-05-CROSSSHEET.14'), 8, 'T1'),
         hint(
           'H2',
-          tx('M0B-05-CROSSSHEET.15', { FOGLIO_DATI: FOGLIO_DATI(), RIF_ONERI }),
+          tx('M0B-05-CROSSSHEET.15', { FOGLIO_DATI: FOGLIO_DATI(), RIF_ONERI: RIF_ONERI() }),
           12,
           'T2',
         ),

@@ -1,0 +1,22 @@
+{
+  "common.anno": "Year {n}",
+  "common.mese": "Month {n}",
+  "common.trimestre": "Quarter {n}",
+  "common.trim": "Q{n}",
+  "common.lotto": "Lot {n}",
+  "common.gennaio": "January",
+  "common.febbraio": "February",
+  "common.marzo": "March",
+  "common.prudente": "Conservative",
+  "common.base": "Base",
+  "common.ambizioso": "Ambitious",
+  "common.tok.si": "YES",
+  "common.tok.no": "NO",
+  "common.tok.nd": "n/a",
+  "common.tok.investi": "INVEST",
+  "common.tok.passa": "PASS",
+  "common.settore.manifattura": "manufacturing",
+  "common.settore.software": "software",
+  "common.settore.distribuzione": "distribution",
+  "common.settore.servizi": "services"
+}
