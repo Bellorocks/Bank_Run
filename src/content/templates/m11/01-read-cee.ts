@@ -35,6 +35,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // Conto economico (colonna C = importi)
 const ROW_A1 = 4;
 const ROW_A5 = 6;
@@ -57,7 +58,9 @@ const c = (row: number) => `C${row}`;
 export default defineTemplate({
   id: 'M11-01-READCEE',
   module: 'M11',
-  title: 'Leggere un bilancio CEE: riclassificazione e nota integrativa',
+  get title() {
+    return tx('M11-01-READCEE.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 360,
@@ -90,60 +93,48 @@ export default defineTemplate({
     const ebitdaGest = ebitdaCiv + leasingCore;
     const ccn = credEntro + rimanenze - fornitori;
 
-    const brief = [
-      "Hai il conto economico depositato in formato CEE e due estratti della nota integrativa. Non c'e' " +
-        "una riga EBITDA: costruiscila tu.",
-      '',
-      "- L'EBITDA e' il risultato operativo **prima** di ammortamenti e svalutazioni (B10) e degli " +
-        'accantonamenti (B12): tutte le altre voci B si sottraggono al valore della produzione, ' +
-        'ciascuna col suo segno (B11 puo\' essere negativa).',
-      "- La nota integrativa rivela che in B8 (godimento beni di terzi) ci sono " +
-        `${eur(leasingCore)} di canoni di leasing operativo su macchinari core. I peer quotati applicano ` +
-        "IFRS 16 e quei canoni non li hanno nell'EBITDA: per confrontarli serve un EBITDA gestionale che li riaggiunga.",
-      '- Il capitale circolante commerciale usa i crediti verso clienti **esigibili entro** 12 mesi; quelli ' +
-        'oltre sono un finanziamento al cliente, non circolante.',
-    ].join('\n');
+    const brief = [tx('M11-01-READCEE.2', { p0: eur(leasingCore) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['CONTO ECONOMICO CEE (art. 2425 c.c.) E NOTA INTEGRATIVA'], { style: STILE_TITOLO }),
-      riga('A3', ['Voce', 'Descrizione', 'Importo (€)'], { style: STILE_TITOLO }),
+      riga('A1', [tx('M11-01-READCEE.3')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M11-01-READCEE.28'), tx('M11-01-READCEE.29'), tx('M11-01-READCEE.4')], { style: STILE_TITOLO }),
       ...[
-        ['A1', 'Ricavi delle vendite e delle prestazioni', ricavi],
-        ['A2', 'Variazione rimanenze prodotti finiti', varProdotti],
-        ['A5', 'Altri ricavi e proventi', altriRicavi],
-        ['B6', 'Materie prime, sussidiarie e merci', materie],
-        ['B7', 'Servizi', servizi],
-        ['B8', 'Godimento beni di terzi', godimento],
-        ['B9', 'Personale', personale],
-        ['B10', 'Ammortamenti e svalutazioni', ammortamenti],
-        ['B11', 'Variazione rimanenze materie prime', varMaterie],
-        ['B12', 'Accantonamenti per rischi', accantonamenti],
-        ['B14', 'Oneri diversi di gestione', oneriDiversi],
+        ['A1', tx('M11-01-READCEE.5'), ricavi],
+        ['A2', tx('M11-01-READCEE.6'), varProdotti],
+        ['A5', tx('M11-01-READCEE.7'), altriRicavi],
+        ['B6', tx('M11-01-READCEE.8'), materie],
+        ['B7', tx('M11-01-READCEE.servizi'), servizi],
+        ['B8', tx('M11-01-READCEE.9'), godimento],
+        ['B9', tx('M11-01-READCEE.personale'), personale],
+        ['B10', tx('M11-01-READCEE.10'), ammortamenti],
+        ['B11', tx('M11-01-READCEE.11'), varMaterie],
+        ['B12', tx('M11-01-READCEE.12'), accantonamenti],
+        ['B14', tx('M11-01-READCEE.13'), oneriDiversi],
       ].map(([voce, descr, importo], i) => [
         { ref: `A${ROW_A1 + i}`, content: voce as string, locked: true },
         { ref: `B${ROW_A1 + i}`, content: descr as string, locked: true },
         { ref: `C${ROW_A1 + i}`, content: importo as number, style: STILE_INPUT, locked: true },
       ]),
 
-      riga('A16', ['Nota integrativa'], { style: STILE_TITOLO }),
-      riga('B17', ['di cui in B8: canoni leasing operativo macchinari core'], { style: STILE_ETICHETTA }),
+      riga('A16', [tx('M11-01-READCEE.14')], { style: STILE_TITOLO }),
+      riga('B17', [tx('M11-01-READCEE.15')], { style: STILE_ETICHETTA }),
       [{ ref: C_LEASING, content: leasingCore, style: STILE_INPUT, locked: true }],
 
-      riga('A19', ['Stato patrimoniale (estratto)'], { style: STILE_TITOLO }),
+      riga('A19', [tx('M11-01-READCEE.16')], { style: STILE_TITOLO }),
       colonna(
         'B20',
         [
-          'C.II.1 Crediti verso clienti, esigibili entro 12 mesi',
-          'C.II.1 Crediti verso clienti, esigibili oltre 12 mesi',
-          'C.I Rimanenze',
-          'D.7 Debiti verso fornitori',
+          tx('M11-01-READCEE.17'),
+          tx('M11-01-READCEE.18'),
+          tx('M11-01-READCEE.30'),
+          tx('M11-01-READCEE.19'),
         ],
         { style: STILE_ETICHETTA },
       ),
       colonna(C_CRED_ENTRO, [credEntro, credOltre, rimanenze, fornitori], { style: STILE_INPUT }),
 
-      riga('A25', ['Riclassificazione gestionale', '', '€'], { style: STILE_TITOLO }),
-      colonna('B26', ['EBITDA civilistico', 'EBITDA gestionale (canoni core riaggiunti)', 'CCN commerciale'], {
+      riga('A25', [tx('M11-01-READCEE.20'), '', '€'], { style: STILE_TITOLO }),
+      colonna('B26', [tx('M11-01-READCEE.21'), tx('M11-01-READCEE.22'), tx('M11-01-READCEE.23')], {
         style: STILE_ETICHETTA,
       }),
       [{ ref: C_EBITDA_CIV, content: null, locked: false, style: STILE_FORMULA }],
@@ -154,7 +145,7 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `In ${C_EBITDA_CIV} l'EBITDA civilistico, costruito dalle voci del conto economico.`,
+        prompt: tx('M11-01-READCEE.24', { C_EBITDA_CIV }),
         target: `Model!${C_EBITDA_CIV}`,
         atteso: ebitdaCiv,
         referenzia: [c(ROW_A1), c(ROW_A5), c(ROW_B6), c(ROW_B9), c(ROW_B11), c(ROW_B14)],
@@ -164,7 +155,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T2',
-        prompt: `In ${C_EBITDA_GEST} l'EBITDA gestionale, confrontabile con i peer IFRS 16.`,
+        prompt: tx('M11-01-READCEE.25', { C_EBITDA_GEST }),
         target: `Model!${C_EBITDA_GEST}`,
         atteso: ebitdaGest,
         referenzia: [C_EBITDA_CIV, C_LEASING],
@@ -174,7 +165,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T3',
-        prompt: `In ${C_CCN} il capitale circolante netto commerciale.`,
+        prompt: tx('M11-01-READCEE.26', { C_CCN }),
         target: `Model!${C_CCN}`,
         atteso: ccn,
         referenzia: [C_CRED_ENTRO, C_RIMANENZE, C_FORNITORI],
@@ -200,7 +191,7 @@ export default defineTemplate({
           'T1',
         ),
         hint('H2', `=${C_EBITDA_CIV}+${C_LEASING}`, 10, 'T2'),
-        hint('H3', `=${C_CRED_ENTRO}+${C_RIMANENZE}-${C_FORNITORI}: i crediti oltre 12 mesi restano fuori.`, 10, 'T3'),
+        hint('H3', tx('M11-01-READCEE.27', { C_CRED_ENTRO, C_RIMANENZE, C_FORNITORI }), 10, 'T3'),
       ],
     };
   },

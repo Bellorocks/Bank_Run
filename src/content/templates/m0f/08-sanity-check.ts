@@ -40,14 +40,15 @@ import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 import type { Task } from '../../types';
 
-const SOCI = [
-  'Fondo di private equity (sponsor)',
-  'Management team',
-  'Co-investitore istituzionale',
-  'Family office di minoranza',
-] as const;
+import { tx } from '../../../i18n/content';
+const SOCI = () => ([
+  tx('M0F-08-SANITYCHECK.1'),
+  tx('M0F-08-SANITYCHECK.2'),
+  tx('M0F-08-SANITYCHECK.3'),
+  tx('M0F-08-SANITYCHECK.4'),
+] as const);
 
-const N_SOCI = SOCI.length;
+const N_SOCI = SOCI().length;
 
 // SPV Alfa: quote corrette.
 const ALFA_TITLE_ROW = 3;
@@ -100,7 +101,9 @@ function quotePermille(r: import('../../../rng/SeededRandom').SeededRandom): num
 export default defineTemplate({
   id: 'M0F-08-SANITYCHECK',
   module: 'M0-F',
-  title: 'Il sanity check: il modello che si controlla da solo',
+  get title() {
+    return tx('M0F-08-SANITYCHECK.title');
+  },
   rank: 3,
   mode: 'AUDIT',
   estimatedSeconds: 360,
@@ -133,9 +136,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In B${ALFA_SCARTO_ROW} scrivi il sanity check dell'SPV Alfa: la somma delle quote dei ${num(N_SOCI)} soci, ` +
-        'meno 100%. Non e\' il totale che ti interessa, e\' lo SCARTO da quello che il totale deve essere: ' +
-        'se le quote quadrano, questo numero deve venire (quasi) zero.',
+        tx('M0F-08-SANITYCHECK.6', { ALFA_SCARTO_ROW, p1: num(N_SOCI) }),
       target: `Model!B${ALFA_SCARTO_ROW}`,
       atteso: scartoAlfa,
       referenzia: [rangeAlfa.first, rangeAlfa.last],
@@ -147,9 +148,7 @@ export default defineTemplate({
     const t2: Task = {
       id: 'T2',
       prompt:
-        `In B${ALFA_FLAG_ROW} trasforma lo scarto in un flag leggibile: una formula che restituisca VERO se ` +
-        `il modello quadra e FALSO altrimenti. Usa una soglia piccola (per esempio 0,0001) e la funzione ` +
-        `ABS su B${ALFA_SCARTO_ROW}, cosi' un errore per difetto e uno per eccesso vengono trattati allo stesso modo.`,
+        tx('M0F-08-SANITYCHECK.7', { ALFA_FLAG_ROW, ALFA_SCARTO_ROW }),
       targetCell: `Model!B${ALFA_FLAG_ROW}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -163,8 +162,7 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        `Stessa identica formula sull'SPV Beta: in B${BETA_SCARTO_ROW} lo scarto delle sue quote da 100%. ` +
-        'Nessuno ti dice se i dati di Beta sono giusti — e\' esattamente cio\' che questo controllo deve dirti.',
+        tx('M0F-08-SANITYCHECK.8', { BETA_SCARTO_ROW }),
       target: `Model!B${BETA_SCARTO_ROW}`,
       atteso: scartoBeta,
       referenzia: [rangeBeta.first, rangeBeta.last],
@@ -176,8 +174,7 @@ export default defineTemplate({
     const t4: Task = {
       id: 'T4',
       prompt:
-        `In B${BETA_FLAG_ROW} lo stesso flag, sullo scarto di Beta. Se il controllo e\' scritto bene, qui deve ` +
-        'venire FALSO: e\' la prova che il sanity check funziona, non solo che sai scriverlo.',
+        tx('M0F-08-SANITYCHECK.9', { BETA_FLAG_ROW }),
       targetCell: `Model!B${BETA_FLAG_ROW}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -193,65 +190,32 @@ export default defineTemplate({
     return {
       templateId: 'M0F-08-SANITYCHECK',
       seed: rng.seed,
-      brief: [
-        '## Il modello che si controlla da solo',
-        '',
-        'Ogni modello serio nasconde una domanda che dovrebbe essere ovvia: "come faccio a sapere se',
-        'questo foglio e\' giusto?" La risposta di mestiere non e\' "lo rileggo con attenzione" — un',
-        'foglio con centinaia di celle non si rilegge, si controlla. Un **sanity check** e\' una',
-        'formula che verifica automaticamente una proprieta\' che il modello DEVE rispettare: attivo',
-        'uguale a passivo piu\' patrimonio netto, fonti uguali a impieghi in un LBO, le percentuali di',
-        'un\'allocazione che sommano al 100%. Se non e\' vera, il foglio te lo dice da solo, subito,',
-        'invece che in una riunione con il cliente.',
-        '',
-        'Due regole di mestiere, non opzionali:',
-        '',
-        '1. **Il check misura lo scarto, non il totale.** `=SUM(range)-100%` e\' piu\' utile di',
-        '   `=SUM(range)`: un totale di 99,97% richiede comunque un calcolo a mente per capire se e\'',
-        '   un problema; uno scarto di -0,03% lo dice da solo, e uno scarto vicino a zero e\' quasi',
-        '   sempre solo arrotondamento — ben oltre e\' un errore vero.',
-        '2. **Il check si vede, sempre.** Va accanto ai dati che controlla, MAI nascosto in fondo al',
-        '   foglio o su un\'altra scheda dove nessuno lo guarda: un controllo che non e\' visibile',
-        '   equivale a non averlo scritto. Nei modelli veri diventa spesso un flag rosso/verde con la',
-        '   formattazione condizionale (§xl.cond-format) — qui lo costruisci come VERO/FALSO,',
-        '   la stessa logica prima della vernice.',
-        '',
-        '## Il caso',
-        '',
-        `Due SPV, stessa struttura: ${num(N_SOCI)} soci, le loro quote di partecipazione devono sommare`,
-        'al 100%. Per ciascuna scrivi lo stesso controllo — lo scarto da 100%, poi un flag VERO/FALSO',
-        'che lo legge — direttamente sotto la tabella delle quote.',
-        '',
-        `**SPV Alfa**: ${SOCI.map((s, i) => `${s} ${pct(quoteAlfa[i])}`).join(', ')}.`,
-        '',
-        `**SPV Beta**: stessa lista di soci, stessa struttura. Non sai se i dati sono corretti — e\'`,
-        'proprio quello che il tuo controllo deve stabilire.',
-      ].join('\n'),
+      brief: [tx('M0F-08-SANITYCHECK.10', { p0: num(N_SOCI), p1: SOCI().map((s, i) => `${s} ${pct(quoteAlfa[i])}`).join(', ') })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Sanity check: le quote devono sommare al 100%'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M0F-08-SANITYCHECK.11')], { style: STILE_TITOLO }),
 
-            riga(`A${ALFA_TITLE_ROW}`, ['SPV Alfa — quote di partecipazione'], { style: STILE_TITOLO }),
-            blocco(`A${ALFA_FIRST_ROW}`, SOCI.map((s) => [s]), { style: STILE_ETICHETTA }),
+            riga(`A${ALFA_TITLE_ROW}`, [tx('M0F-08-SANITYCHECK.12')], { style: STILE_TITOLO }),
+            blocco(`A${ALFA_FIRST_ROW}`, SOCI().map((s) => [s]), { style: STILE_ETICHETTA }),
             blocco(
               `B${ALFA_FIRST_ROW}`,
               quoteAlfa.map((q) => [q]),
               { style: STILE_INPUT_PCT },
             ),
-            blocco(`A${ALFA_SCARTO_ROW}`, [['Sanity check — scarto da 100%']], { style: STILE_LABEL_CHECK }),
-            blocco(`A${ALFA_FLAG_ROW}`, [['Il totale quadra?']], { style: STILE_ETICHETTA }),
+            blocco(`A${ALFA_SCARTO_ROW}`, [[tx('M0F-08-SANITYCHECK.13')]], { style: STILE_LABEL_CHECK }),
+            blocco(`A${ALFA_FLAG_ROW}`, [[tx('M0F-08-SANITYCHECK.14')]], { style: STILE_ETICHETTA }),
 
-            riga(`A${BETA_TITLE_ROW}`, ['SPV Beta — quote di partecipazione'], { style: STILE_TITOLO }),
-            blocco(`A${BETA_FIRST_ROW}`, SOCI.map((s) => [s]), { style: STILE_ETICHETTA }),
+            riga(`A${BETA_TITLE_ROW}`, [tx('M0F-08-SANITYCHECK.15')], { style: STILE_TITOLO }),
+            blocco(`A${BETA_FIRST_ROW}`, SOCI().map((s) => [s]), { style: STILE_ETICHETTA }),
             blocco(
               `B${BETA_FIRST_ROW}`,
               quoteBeta.map((q) => [q]),
               { style: STILE_INPUT_PCT },
             ),
-            blocco(`A${BETA_SCARTO_ROW}`, [['Sanity check — scarto da 100%']], { style: STILE_LABEL_CHECK }),
-            blocco(`A${BETA_FLAG_ROW}`, [['Il totale quadra?']], { style: STILE_ETICHETTA }),
+            blocco(`A${BETA_SCARTO_ROW}`, [[tx('M0F-08-SANITYCHECK.16')]], { style: STILE_LABEL_CHECK }),
+            blocco(`A${BETA_FLAG_ROW}`, [[tx('M0F-08-SANITYCHECK.17')]], { style: STILE_ETICHETTA }),
 
             [{ ref: `B${ALFA_SCARTO_ROW}`, content: null, locked: false, style: STILE_SCARTO }],
             [{ ref: `B${ALFA_FLAG_ROW}`, content: null, locked: false, style: STILE_FLAG }],
@@ -265,7 +229,7 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=SUM(B${ALFA_FIRST_ROW}:B${ALFA_LAST_ROW})-1 — la somma delle quote meno 100% (che in Excel e\' il numero 1).`,
+          tx('M0F-08-SANITYCHECK.18', { ALFA_FIRST_ROW, ALFA_LAST_ROW }),
           10,
           'T1',
         ),
@@ -277,13 +241,13 @@ export default defineTemplate({
         ),
         hint(
           'H3',
-          `Stessa formula di T1, cambia solo il range: =SUM(B${BETA_FIRST_ROW}:B${BETA_LAST_ROW})-1.`,
+          tx('M0F-08-SANITYCHECK.19', { BETA_FIRST_ROW, BETA_LAST_ROW }),
           10,
           'T3',
         ),
         hint(
           'H4',
-          `Stessa formula di T2, referenziando B${BETA_SCARTO_ROW} invece di B${ALFA_SCARTO_ROW}. Se le prime tre formule sono giuste, questa viene FALSO da sola.`,
+          tx('M0F-08-SANITYCHECK.20', { BETA_SCARTO_ROW, ALFA_SCARTO_ROW }),
           10,
           'T4',
         ),

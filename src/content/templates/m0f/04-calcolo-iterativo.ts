@@ -60,6 +60,7 @@ import { MODEL_COLORS } from '../../../styles/palette';
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { CellStyle } from '../../../engine/types';
 
+import { tx } from '../../../i18n/content';
 /** Assumption in milioni di euro, un decimale: EBITDA, capex, debito. */
 const STILE_INPUT_1DEC: CellStyle = { fontColor: MODEL_COLORS.input, numFmt: '#,##0.0' };
 /** Righe dello schedule, in milioni di euro con due decimali: qui vive la circolarita'. */
@@ -68,7 +69,9 @@ const STILE_FORMULA_2DEC: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt:
 export default defineTemplate({
   id: 'M0F-04-ITERATIVO',
   module: 'M0-F',
-  title: 'Il cerchio che si chiude da solo',
+  get title() {
+    return tx('M0F-04-ITERATIVO.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 480,
@@ -118,10 +121,7 @@ export default defineTemplate({
       {
         id: 'T1',
         prompt:
-          'In B9 scrivi gli interessi: il tasso di interesse (B5) per il debito MEDIO del periodo, ' +
-          "che sta in B16, otto righe piu' in basso. Si': quando scrivi questa formula B16 e' ancora " +
-          "una cella che dipende da questa stessa B9 — leggi il riquadro sopra la tabella prima di " +
-          "scriverla, e' voluto.",
+          tx('M0F-04-ITERATIVO.2'),
         targetCell: 'Model!B9',
         check: [
           { kind: 'mustBeFormula' as const },
@@ -132,8 +132,7 @@ export default defineTemplate({
             kind: 'value' as const,
             expected: interessi,
             message:
-              'Gli interessi non tornano. Ricontrolla che B9 legga B5 (tasso) e B16 (debito medio), ' +
-              'e che tu abbia gia premuto F9 da cella ferma per far girare il calcolo iterativo.',
+              tx('M0F-04-ITERATIVO.3'),
           },
         ],
         skills: ['xl.iterative'],
@@ -142,10 +141,7 @@ export default defineTemplate({
       {
         id: 'T2',
         prompt:
-          "In B15 chiudi lo schedule: il debito di fine periodo e' il debito iniziale (B6) meno il " +
-          "rimborso di cassa gia' calcolato in B14. Questa e' la cella che chiude davvero l'anello: da " +
-          "qui parte B16 (debito medio), che alimenta di nuovo gli interessi in B9. Il valore che vedrai " +
-          "dopo aver ricalcolato e' quello STABILE, dopo che il motore ha smesso di correggerlo.",
+          tx('M0F-04-ITERATIVO.4'),
         targetCell: 'Model!B15',
         check: [
           { kind: 'mustBeFormula' as const },
@@ -156,8 +152,7 @@ export default defineTemplate({
             kind: 'value' as const,
             expected: debitoFinePeriodo,
             message:
-              'Il debito di fine periodo non torna. Deve essere B6 meno B14, e deve essere gia ' +
-              'convergente: premi F9 da cella ferma (non in modifica) prima di controllare il numero.',
+              tx('M0F-04-ITERATIVO.5'),
           },
         ],
         skills: ['xl.iterative'],
@@ -168,61 +163,20 @@ export default defineTemplate({
     return {
       templateId: 'M0F-04-ITERATIVO',
       seed: rng.seed,
-      brief: [
-        '## Il cerchio che si chiude da solo',
-        '',
-        'Un debt schedule di un solo periodo, ridotto ai suoi ingredienti minimi: EBITDA, un debito, un',
-        `tasso. EBITDA ${num(ebitda, 1)} milioni, capex fissi ${num(capex, 1)} milioni, aliquota fiscale`,
-        `${pct(taxRate)}, tasso di interesse ${pct(tasso)}, debito iniziale ${num(debito, 1)} milioni.`,
-        '',
-        'La catena e\':',
-        '',
-        '**interessi -> EBT -> utile netto -> cassa disponibile -> rimborso -> debito di fine periodo ->',
-        'debito medio -> interessi**',
-        '',
-        "Nota l'ultima freccia: torna al punto di partenza. Gli interessi si calcolano sul debito MEDIO",
-        "del periodo (media fra inizio e fine), ma il debito di fine periodo dipende dal rimborso, che",
-        "dipende dalla cassa rimasta DOPO aver pagato gli interessi. Per sapere quanto debito rimane devi",
-        'gia\' sapere gli interessi; per sapere gli interessi devi gia\' sapere quanto debito rimane.',
-        '',
-        "Non e' un errore di progettazione del foglio: e' cosi' che funziona un vero debt schedule con",
-        'interessi sul debito medio, in ogni banca di investimento. E non esiste NESSUN ordine in cui',
-        "calcolare le celle una alla volta che risolva questo anello: qualunque cella tu scelga di",
-        'calcolare per prima, ti servirebbe gia\' il risultato di un\'altra cella che viene dopo di lei.',
-        "E' esattamente per questo che Excel, di fronte a un ciclo A -> B -> A, normalmente si rifiuta e",
-        'segnala `#CYCLE!` (o, nella versione vera del programma, un errore di riferimento circolare).',
-        '',
-        'La soluzione e\' il **calcolo iterativo**: invece di pretendere un ordine che non esiste, si parte',
-        'da un valore provvisorio (zero, a freddo) su tutte le celle del ciclo e si ricalcola l\'intera',
-        'catena piu\' e piu\' volte, ogni giro un po\' piu\' vicino al punto in cui i numeri smettono di',
-        'cambiare. In Excel vero si attiva da **File > Opzioni > Formule > Abilita calcolo iterativo**,',
-        'con **Numero massimo di iterazioni = 100** e **Variazione massima = 0,001**: sono esattamente i',
-        'due numeri che questo motore usa di default. In questo livello il calcolo iterativo e\' gia\'',
-        'attivo: non devi cercarlo in nessun menu.',
-        '',
-        "Quello che NON e' automatico e' il ricalcolo: qui gira quando lo chiedi tu, con **F9** premuto",
-        "da una cella ferma (non mentre stai scrivendo una formula — quell'F9 fa un'altra cosa, vista in",
-        "un altro livello). Scrivi le due formule che chiudono l'anello, poi premi F9: il motore esegue",
-        "gli sweep e i numeri si stabilizzano. Se il valore ti sembra ancora sbagliato, ricontrolla di",
-        "aver ricalcolato PRIMA di leggerlo.",
-        '',
-        'La tabella sotto ha gia\' scritte, bloccate, tutte le celle della catena tranne due: gli',
-        '**interessi** (B9) e il **debito di fine periodo** (B15). Sono proprio le due celle che chiudono',
-        "il cerchio — il resto e' gia' pronto, per tenere l'attenzione sul punto vero del livello.",
-      ].join('\n'),
+      brief: [tx('M0F-04-ITERATIVO.6', { p0: num(ebitda, 1), p1: num(capex, 1), p2: pct(taxRate), p3: pct(tasso), p4: num(debito, 1) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Debt schedule con interessi circolari'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M0F-04-ITERATIVO.7')], { style: STILE_TITOLO }),
             colonna(
               'A2',
               [
-                'EBITDA (€m)',
-                'Capex fissi (€m)',
-                'Aliquota fiscale',
-                'Tasso di interesse annuo',
-                'Debito iniziale (€m)',
+                tx('M0F-04-ITERATIVO.8'),
+                tx('M0F-04-ITERATIVO.9'),
+                tx('M0F-04-ITERATIVO.10'),
+                tx('M0F-04-ITERATIVO.11'),
+                tx('M0F-04-ITERATIVO.12'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -232,18 +186,18 @@ export default defineTemplate({
             blocco('B5', [[tasso]], { style: STILE_INPUT_PCT }),
             blocco('B6', [[debito]], { style: STILE_INPUT_1DEC }),
 
-            riga('A8', ['Conto economico e cassa disponibile (€m)'], { style: STILE_TITOLO }),
+            riga('A8', [tx('M0F-04-ITERATIVO.13')], { style: STILE_TITOLO }),
             colonna(
               'A9',
               [
-                'Interessi sul debito medio',
-                'Utile ante imposte (EBITDA - interessi; niente ammortamenti in questo modello)',
-                'Imposte',
-                'Utile netto',
-                'Cassa disponibile per il rimborso',
-                'Rimborso (cash sweep)',
-                'Debito di fine periodo',
-                'Debito medio del periodo',
+                tx('M0F-04-ITERATIVO.14'),
+                tx('M0F-04-ITERATIVO.15'),
+                tx('M0F-04-ITERATIVO.24'),
+                tx('M0F-04-ITERATIVO.16'),
+                tx('M0F-04-ITERATIVO.17'),
+                tx('M0F-04-ITERATIVO.18'),
+                tx('M0F-04-ITERATIVO.19'),
+                tx('M0F-04-ITERATIVO.20'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -267,18 +221,18 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          'Interessi = tasso per debito medio: `=B5*B16`. B16 e\' piu\' in basso e dipende da B9 — e\' normale, e\' il ciclo di cui parla il brief.',
+          tx('M0F-04-ITERATIVO.21'),
           10,
           'T1',
         ),
         hint(
           'H2',
-          'Se dopo aver scritto la formula vedi ancora #CYCLE! (o un numero che non torna), non hai ancora ricalcolato: premi F9 da cella ferma, non in modifica.',
+          tx('M0F-04-ITERATIVO.22'),
           8,
         ),
         hint(
           'H3',
-          'Debito di fine periodo = debito iniziale meno rimborso: `=B6-B14`. Poi F9 di nuovo per vedere il valore convergente.',
+          tx('M0F-04-ITERATIVO.23'),
           10,
           'T2',
         ),

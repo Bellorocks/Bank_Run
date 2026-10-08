@@ -44,10 +44,13 @@ import {
 } from '../../authoring';
 import { triangular, roundTo } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 export default defineTemplate({
   id: 'M0D-05-TRACEF9',
   module: 'M0-D',
-  title: 'Risalire la catena senza ricalcolare',
+  get title() {
+    return tx('M0D-05-TRACEF9.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 240,
@@ -76,9 +79,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T1',
         prompt:
-          "In B9 chiudi la catena: l'equity value e' l'enterprise value (EBITDA proiettato per il " +
-          'multiplo di riferimento) meno la posizione debitoria netta. B4 e B6 sono gia\' formule: ' +
-          "non ricalcolare ricavi o EBITDA a mano, referenziale e basta.",
+          tx('M0D-05-TRACEF9.2'),
         target: 'Model!B9',
         atteso: equityValue,
         referenzia: ['B6', 'B7', 'B8'],
@@ -89,19 +90,14 @@ export default defineTemplate({
       {
         id: 'T2',
         prompt:
-          "In B11 scrivi l'enterprise value implicito nella formula di B9: la parte EBITDA × multiplo, " +
-          "prima che tolga il debito. Non serve una nuova formula da zero e non serve rifare la " +
-          "moltiplicazione sulla calcolatrice: apri B9 in modifica (F2), seleziona il pezzo B6*B8 " +
-          'dentro la barra della formula e premi F9. Poi esci con ESC — se premi Invio quel numero ' +
-          "sostituisce la formula per sempre.",
+          tx('M0D-05-TRACEF9.3'),
         targetCell: 'Model!B11',
         check: [
           {
             kind: 'value' as const,
             expected: enterpriseValue,
             message:
-              "Non torna l'enterprise value implicito. E' EBITDA proiettato (B6) per il multiplo (B8): " +
-              'il frammento che vedi evidenziato in B9 quando selezioni B6*B8 e premi F9.',
+              tx('M0D-05-TRACEF9.4'),
           },
         ],
         skills: ['xl.f9'],
@@ -116,49 +112,23 @@ export default defineTemplate({
     return {
       templateId: 'M0D-05-TRACEF9',
       seed: rng.seed,
-      brief: [
-        '## Risalire la catena senza ricalcolare',
-        '',
-        `Un modello di valutazione rapida, gia' costruito da qualcun altro. Ricavi ${eurM(ricavi)},`,
-        `crescita attesa ${pct(crescita)}, margine EBITDA ${pct(margine)}: da questi tre numeri`,
-        "il foglio deriva gia' i ricavi proiettati (B4) e l'EBITDA proiettato (B6). Sono formule",
-        "vere, bloccate: il tuo compito non e' riscriverle, e' capire cosa contengono senza",
-        'ricalcolare tutto a mente.',
-        '',
-        '**Ctrl+[** (Trace precedents), premuto su una cella, sposta la selezione sulle celle da',
-        'cui quella formula dipende DIRETTAMENTE. Sali su B6 e premi Ctrl+[: la selezione salta su',
-        'B4 e B5, i due ingredienti dell\'EBITDA. Premilo di nuovo su B4 e salti su B2 e B3. E\' cosi\'',
-        "che si risale una catena in pochi secondi invece di indovinare. **Ctrl+]** (Trace dependents)",
-        'fa il percorso inverso: da un input, mostra tutto cio\' che lo usa.',
-        '',
-        `La posizione debitoria netta e' ${eur(debito)} (B7), il multiplo di riferimento e' ${multiplo(mult)}`,
-        '(B8). In B9 costruisci il numero finale: enterprise value meno debito.',
-        '',
-        "Poi arriva la parte utile davvero: in B11 ti chiediamo l'enterprise value da solo, cioe'",
-        "un pezzo DENTRO la formula di B9 che non ha una cella tutta sua. Rifare la moltiplicazione",
-        "e' un modo per trovarlo. Il modo da professionista e' un altro: entra in modifica su B9 con",
-        '**F2**, seleziona con il mouse (o Shift+frecce) il pezzo `B6*B8` dentro la barra della',
-        'formula, e premi **F9**. Excel lo sostituisce li\', al posto della selezione, con il suo',
-        "valore calcolato — senza uscire dalla cella, senza toccare nient'altro. Leggi il numero e",
-        'premi **ESC**, non Invio: Invio incollerebbe quel valore al posto del frammento e la',
-        "formula smetterebbe di essere una formula.",
-      ].join('\n'),
+      brief: [tx('M0D-05-TRACEF9.5', { p0: eurM(ricavi), p1: pct(crescita), p2: pct(margine), p3: eur(debito), p4: multiplo(mult) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Valutazione rapida'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M0D-05-TRACEF9.6')], { style: STILE_TITOLO }),
             blocco(
               'A2',
               [
-                ['Ricavi base (anno corrente)'],
-                ["Crescita di ricavi prevista"],
-                ["Ricavi proiettati (anno + 1)"],
-                ['Margine EBITDA atteso'],
-                ['EBITDA proiettato'],
-                ['Posizione debitoria netta'],
-                ['Multiplo EV/EBITDA di riferimento'],
-                ['Equity value stimato'],
+                [tx('M0D-05-TRACEF9.7')],
+                [tx('M0D-05-TRACEF9.8')],
+                [tx('M0D-05-TRACEF9.9')],
+                [tx('M0D-05-TRACEF9.10')],
+                [tx('M0D-05-TRACEF9.11')],
+                [tx('M0D-05-TRACEF9.12')],
+                [tx('M0D-05-TRACEF9.13')],
+                [tx('M0D-05-TRACEF9.14')],
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -170,7 +140,7 @@ export default defineTemplate({
             blocco('B6', [['=B4*B5']], { style: STILE_FORMULA }),
             blocco('B7', [[debito]], { style: STILE_INPUT }),
             blocco('B8', [[mult]], { style: STILE_INPUT_MULTIPLO }),
-            blocco('A11', [['Enterprise value implicito (EBITDA × multiplo)']], { style: STILE_ETICHETTA }),
+            blocco('A11', [[tx('M0D-05-TRACEF9.15')]], { style: STILE_ETICHETTA }),
             areaLibera(['B9', 'B11']),
           ],
           { colWidths: { A: 300, B: 150 }, frozenRows: 1 },
@@ -180,19 +150,19 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          "B9 = B6*B8-B7: EBITDA proiettato per il multiplo, meno il debito. Non serve toccare B2:B6, sono gia' pronte.",
+          tx('M0D-05-TRACEF9.16'),
           10,
           'T1',
         ),
         hint(
           'H2',
-          "Su B6 premi Ctrl+[ per vedere da cosa dipende (B4, B5); su B4 premilo ancora per arrivare a B2, B3.",
+          tx('M0D-05-TRACEF9.17'),
           6,
           'T1',
         ),
         hint(
           'H3',
-          "F2 su B9, seleziona il testo B6*B8 nella barra della formula, premi F9: il valore appare al posto della selezione. ESC per uscire senza modificare nulla.",
+          tx('M0D-05-TRACEF9.18'),
           10,
           'T2',
         ),

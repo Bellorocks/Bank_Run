@@ -48,6 +48,7 @@ import { roundTo, triangular } from '../../../rng/distributions';
 import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 
+import { tx } from '../../../i18n/content';
 /** Output di una formula che restituisce un multiplo: nero, "x" a una cifra. */
 const STILE_FORMULA_MULTIPLO: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: '0.0x' };
 /** Output di una formula che restituisce un rapporto/fattore: nero, "x" a due cifre
@@ -65,7 +66,9 @@ const B_MULTIPLO_AGGIUSTATO = 'B10'; // T2
 export default defineTemplate({
   id: 'M6-05-CICLODIMERCATO',
   module: 'M6',
-  title: 'Ciclo di mercato: un multiplo di transazione invecchia col mercato',
+  get title() {
+    return tx('M6-05-CICLODIMERCATO.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 260,
@@ -102,12 +105,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_RAPPORTO} calcola il rapporto di aggiustamento per il ciclo di mercato: indice di ` +
-        `mercato del settore OGGI (${B_INDICE_OGGI}) diviso l'indice dello stesso settore NEL PERIODO ` +
-        `del deal passato (${B_INDICE_ALLORA}). Un rapporto sopra 1,00x dice che i multipli del settore ` +
-        "sono saliti da allora a oggi (il mercato si e' \"scaldato\"); sotto 1,00x dice che sono scesi " +
-        "(il mercato si e' compresso). E' il fattore che serve per riportare un multiplo osservato in " +
-        "quel periodo alle condizioni di mercato attuali.",
+        tx('M6-05-CICLODIMERCATO.2', { B_RAPPORTO, B_INDICE_OGGI, B_INDICE_ALLORA }),
       target: `Model!${B_RAPPORTO}`,
       atteso: rapporto,
       referenzia: [B_INDICE_OGGI, B_INDICE_ALLORA],
@@ -119,14 +117,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_MULTIPLO_AGGIUSTATO} calcola il multiplo del deal passato AGGIUSTATO per il ciclo di ` +
-        `mercato: multiplo osservato nel deal (${B_MULTIPLO_OSSERVATO}) moltiplicato per il rapporto di ` +
-        `aggiustamento calcolato al task precedente (${B_RAPPORTO}). Attenzione: questo aggiustamento NON ` +
-        "cambia i fatti del deal — il prezzo che il compratore ha effettivamente pagato allora resta " +
-        "quello, punto. Cio' che cambia e' come quel multiplo va LETTO oggi: il multiplo aggiustato non " +
-        "rappresenta \"quanto e' stato pagato\", ma \"quanto varrebbe un multiplo equivalente alle " +
-        "condizioni di mercato di oggi\" — il numero che va confrontato con comps e altri precedenti, " +
-        "non il multiplo storico grezzo.",
+        tx('M6-05-CICLODIMERCATO.3', { B_MULTIPLO_AGGIUSTATO, B_MULTIPLO_OSSERVATO, B_RAPPORTO }),
       target: `Model!${B_MULTIPLO_AGGIUSTATO}`,
       atteso: multiploAggiustato,
       referenzia: [B_MULTIPLO_OSSERVATO, B_RAPPORTO],
@@ -140,43 +131,21 @@ export default defineTemplate({
     return {
       templateId: 'M6-05-CICLODIMERCATO',
       seed: rng.seed,
-      brief: [
-        '## Ciclo di mercato: un multiplo di transazione invecchia col mercato',
-        '',
-        "Un multiplo osservato in un deal passato non e' solo \"vecchio\" nel senso del calendario " +
-          "(quello e' il problema di announced vs completed). E' vecchio anche nel senso del CICLO DI " +
-          "MERCATO in cui e' stato pagato. Se quel deal si e' chiuso in un periodo di mercato \"caldo\" " +
-          "(molta liquidita', molta concorrenza fra compratori, multipli generalmente alti) o al " +
-          "contrario in un periodo di crisi (avversione al rischio, multipli compressi), il multiplo " +
-          "osservato porta con se' quella condizione di mercato. Confrontarlo direttamente con un " +
-          "multiplo di oggi, senza aggiustarlo, rischia di confrontare mele con pere: la differenza che " +
-          "vedi potrebbe riflettere solo il ciclo, non le caratteristiche del target.",
-        '',
-        "La correzione standard: si prende un indicatore del livello medio dei multipli dello stesso " +
-          "settore nel periodo del deal passato, e lo stesso indicatore misurato oggi. Il loro rapporto " +
-          "dice quanto il mercato si e' mosso nel frattempo. Moltiplicando il multiplo osservato per " +
-          "questo rapporto si ottiene un multiplo \"aggiustato per il ciclo\", comparabile alle " +
-          "condizioni di mercato di oggi.",
-        '',
-        `**Il deal.** Un deal passato in questo settore e' stato chiuso a un multiplo di ` +
-          `${multiplo(multiploOsservato)}. Nel periodo in cui quel deal si e' chiuso, l'indice di ` +
-          `mercato del settore (multiplo EV/EBITDA medio delle transazioni comparabili di allora) era ` +
-          `${multiplo(indiceAllora)}. Lo stesso indice, misurato oggi, e' ${multiplo(indiceOggi)}.`,
-      ].join('\n'),
+      brief: [tx('M6-05-CICLODIMERCATO.4', { p0: multiplo(multiploOsservato), p1: multiplo(indiceAllora), p2: multiplo(indiceOggi) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Ciclo di mercato: un multiplo di transazione invecchia col mercato'], {
+            riga('A1', [tx('M6-05-CICLODIMERCATO.5')], {
               style: STILE_TITOLO,
             }),
-            riga('A3', ['Dati del deal e del ciclo di mercato'], { style: STILE_TITOLO }),
+            riga('A3', [tx('M6-05-CICLODIMERCATO.6')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'Multiplo di transazione osservato nel deal passato, x',
-                'Indice di mercato del settore, nel periodo del deal passato, x',
-                'Indice di mercato del settore, oggi, x',
+                tx('M6-05-CICLODIMERCATO.7'),
+                tx('M6-05-CICLODIMERCATO.8'),
+                tx('M6-05-CICLODIMERCATO.9'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -184,12 +153,12 @@ export default defineTemplate({
             [{ ref: B_INDICE_ALLORA, content: indiceAllora, style: STILE_INPUT_MULTIPLO, locked: true }],
             [{ ref: B_INDICE_OGGI, content: indiceOggi, style: STILE_INPUT_MULTIPLO, locked: true }],
 
-            riga('A8', ['Aggiustamento per il ciclo di mercato'], { style: STILE_TITOLO }),
+            riga('A8', [tx('M6-05-CICLODIMERCATO.10')], { style: STILE_TITOLO }),
             colonna(
               'A9',
               [
-                'Rapporto di aggiustamento (indice oggi / indice allora), x',
-                'Multiplo del deal, aggiustato per il ciclo di mercato, comparabile a oggi, x',
+                tx('M6-05-CICLODIMERCATO.11'),
+                tx('M6-05-CICLODIMERCATO.12'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -203,15 +172,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_INDICE_OGGI}/${B_INDICE_ALLORA}: indice di oggi diviso indice di allora (qui vale ` +
-            `${num(rapporto, 2)}x).`,
+          tx('M6-05-CICLODIMERCATO.13', { B_INDICE_OGGI, B_INDICE_ALLORA, p2: num(rapporto, 2) }),
           10,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_MULTIPLO_OSSERVATO}*${B_RAPPORTO}: multiplo osservato moltiplicato per il rapporto di ` +
-            `aggiustamento (qui vale ${multiplo(multiploAggiustato)}).`,
+          tx('M6-05-CICLODIMERCATO.14', { B_MULTIPLO_OSSERVATO, B_RAPPORTO, p2: multiplo(multiploAggiustato) }),
           10,
           'T2',
         ),

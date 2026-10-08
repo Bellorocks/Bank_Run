@@ -38,6 +38,7 @@ import { MODEL_COLORS } from '../../../styles/palette';
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { CellStyle } from '../../../engine/types';
 
+import { tx } from '../../../i18n/content';
 /** Prezzo per azione: due decimali, e un bordo tutto intorno — la casella che "farebbe" da nome. */
 const STILE_ASSUNZIONE_PREZZO: CellStyle = {
   fontColor: MODEL_COLORS.input,
@@ -69,7 +70,9 @@ interface Socio {
 export default defineTemplate({
   id: 'M0B-06-NAMEDRANGES',
   module: 'M0-B',
-  title: 'Il nome al posto dell\'indirizzo',
+  get title() {
+    return tx('M0B-06-NAMEDRANGES.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 330,
@@ -83,11 +86,11 @@ export default defineTemplate({
     const commissionePct = roundTo(triangular(r, 0.006, 0.014, 0.028), 0.001);
 
     const soci: readonly Socio[] = [
-      { nome: 'Fondatore e CEO', azioni: r.int(420_000, 680_000) },
-      { nome: 'Family office storico', azioni: r.int(180_000, 340_000) },
-      { nome: 'Fondo di co-investimento', azioni: r.int(90_000, 220_000) },
-      { nome: 'Manager operativo', azioni: r.int(60_000, 140_000) },
-      { nome: 'Soci di minoranza (aggregato)', azioni: r.int(15_000, 55_000) },
+      { nome: tx('M0B-06-NAMEDRANGES.2'), azioni: r.int(420_000, 680_000) },
+      { nome: tx('M0B-06-NAMEDRANGES.3'), azioni: r.int(180_000, 340_000) },
+      { nome: tx('M0B-06-NAMEDRANGES.4'), azioni: r.int(90_000, 220_000) },
+      { nome: tx('M0B-06-NAMEDRANGES.5'), azioni: r.int(60_000, 140_000) },
+      { nome: tx('M0B-06-NAMEDRANGES.6'), azioni: r.int(15_000, 55_000) },
     ];
 
     const lordo = soci.map((s) => s.azioni * prezzoAzione);
@@ -105,8 +108,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T1',
         prompt:
-          `In C${RIGA_PRIMO_SOCIO} calcola il corrispettivo lordo del primo socio: azioni per il prezzo per azione. ` +
-          'Il prezzo sta nella casella riquadrata in C2 — non e\' una cella come le altre: e\' quella che TUTTE le righe della tabella devono guardare. Bloccala con il dollaro, cosi\' resta ferma quando la copi in basso.',
+          tx('M0B-06-NAMEDRANGES.7', { RIGA_PRIMO_SOCIO }),
         target: `Model!C${RIGA_PRIMO_SOCIO}`,
         atteso: lordo[0],
         referenzia: [`B${RIGA_PRIMO_SOCIO}`, 'C2'],
@@ -118,7 +120,7 @@ export default defineTemplate({
       {
         id: 'T2',
         prompt:
-          `Riempi C${RIGA_PRIMO_SOCIO}:C${RIGA_ULTIMO_SOCIO} copiando quella formula su tutti i soci. Stessa formula, stesso ancoraggio, nessun ritocco riga per riga.`,
+          tx('M0B-06-NAMEDRANGES.8', { RIGA_PRIMO_SOCIO, RIGA_ULTIMO_SOCIO }),
         targetCell: rangeLordo,
         check: [
           { kind: 'consistentRow' as const, range: rangeLordo },
@@ -130,7 +132,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T3',
         prompt:
-          `In D${RIGA_PRIMO_SOCIO} calcola il corrispettivo netto del primo socio: il lordo meno la commissione bancaria sul lordo. La commissione sta nell'altra casella riquadrata, C3 — stessa logica del prezzo: un punto solo, referenziato da ogni riga.`,
+          tx('M0B-06-NAMEDRANGES.9', { RIGA_PRIMO_SOCIO }),
         target: `Model!D${RIGA_PRIMO_SOCIO}`,
         atteso: netto[0],
         referenzia: [`C${RIGA_PRIMO_SOCIO}`, 'C3'],
@@ -141,7 +143,7 @@ export default defineTemplate({
       }),
       {
         id: 'T4',
-        prompt: `Riempi anche D${RIGA_PRIMO_SOCIO}:D${RIGA_ULTIMO_SOCIO} allo stesso modo.`,
+        prompt: tx('M0B-06-NAMEDRANGES.10', { RIGA_PRIMO_SOCIO, RIGA_ULTIMO_SOCIO }),
         targetCell: rangeNetto,
         check: [
           { kind: 'consistentRow' as const, range: rangeNetto },
@@ -152,7 +154,7 @@ export default defineTemplate({
       },
       taskFormula({
         id: 'T5',
-        prompt: `In D${RIGA_TOTALE} il totale del corrispettivo netto pagato a tutti i soci.`,
+        prompt: tx('M0B-06-NAMEDRANGES.11', { RIGA_TOTALE }),
         target: `Model!D${RIGA_TOTALE}`,
         atteso: totaleNetto,
         referenzia: [`D${RIGA_PRIMO_SOCIO}`, `D${RIGA_ULTIMO_SOCIO}`],
@@ -170,48 +172,21 @@ export default defineTemplate({
     return {
       templateId: 'M0B-06-NAMEDRANGES',
       seed: rng.seed,
-      brief: [
-        '## Un nome al posto di un indirizzo',
-        '',
-        'Quando scrivi `$C$2` dentro una formula stai dicendo "questa cella, sempre quella, non spostarti',
-        'mai". Funziona — l\'hai gia\' allenato. Ma chi rilegge la formula fra sei mesi deve andare fisicamente',
-        'su C2 per capire cosa contiene.',
-        '',
-        'In Excel vero esiste un modo piu\' leggibile: dai **un nome** a quella cella, con **Formule >',
-        'Definisci nome**, oppure scrivendo il nome direttamente nella **Name box** — il campo a sinistra',
-        'della barra della formula, dove di solito leggi l\'indirizzo tipo "C2" — e premendo Invio. Da quel',
-        'momento `=B6*$C$2` si scrive `=B6*PrezzoAzione`: la formula si legge da sola senza bisogno di andare',
-        'a controllare cosa c\'e\' dentro, e se un giorno sposti la cella il nome la segue.',
-        '',
-        '*(Questo trainer non genera ancora named range veri dentro il foglio — e\' un lavoro futuro sul',
-        'motore di gioco. L\'esercizio comunque allena esattamente la disciplina che li rende utili:',
-        'individuare la cella unica che tutte le formule devono condividere, e bloccarla con `$` cosi\'',
-        'non scivola quando la copi.)*',
-        '',
-        '## Il caso',
-        '',
-        `E' stata accettata un'offerta di acquisizione a **${eur(prezzoAzione, 2)}** per azione. La banca`,
-        `che gestisce il closing trattiene una commissione del **${pct(commissionePct)}** sul lordo di ogni`,
-        'socio prima di girare il netto.',
-        '',
-        'Prezzo e commissione stanno in **due caselle sole**, riquadrate in alto: sono i due numeri che',
-        `ogni riga della tabella dei ${num(soci.length)} soci deve guardare — mai un altro punto del foglio,`,
-        'mai un valore ribattuto a mano riga per riga.',
-      ].join('\n'),
+      brief: [tx('M0B-06-NAMEDRANGES.12', { p0: eur(prezzoAzione, 2), p1: pct(commissionePct), p2: num(soci.length) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Riparto del corrispettivo di cessione'], { style: STILE_TITOLO }),
-            colonna('A2', ['Prezzo per azione offerto', 'Commissione bancaria sul lordo'], { style: STILE_ETICHETTA }),
+            riga('A1', [tx('M0B-06-NAMEDRANGES.13')], { style: STILE_TITOLO }),
+            colonna('A2', [tx('M0B-06-NAMEDRANGES.14'), tx('M0B-06-NAMEDRANGES.15')], { style: STILE_ETICHETTA }),
             [{ ref: 'C2', content: prezzoAzione, style: STILE_ASSUNZIONE_PREZZO, locked: true }],
             [{ ref: 'C3', content: commissionePct, style: STILE_ASSUNZIONE_PCT, locked: true }],
 
-            riga('A5', ['Socio', 'Azioni', 'Corrispettivo lordo', 'Corrispettivo netto'], { style: STILE_TITOLO }),
+            riga('A5', [tx('M0B-06-NAMEDRANGES.24'), tx('M0B-06-NAMEDRANGES.25'), tx('M0B-06-NAMEDRANGES.16'), tx('M0B-06-NAMEDRANGES.17')], { style: STILE_TITOLO }),
             colonna(`A${RIGA_PRIMO_SOCIO}`, soci.map((s) => s.nome), { style: STILE_ETICHETTA }),
             colonna(`B${RIGA_PRIMO_SOCIO}`, soci.map((s) => s.azioni), { style: STILE_INPUT }),
 
-            colonna(`A${RIGA_TOTALE}`, ['Totale netto ai soci'], { style: STILE_ETICHETTA }),
+            colonna(`A${RIGA_TOTALE}`, [tx('M0B-06-NAMEDRANGES.18')], { style: STILE_ETICHETTA }),
 
             areaLibera(areaLavoro),
           ],
@@ -226,19 +201,19 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          'Scrivi `=B6*C2`, poi torna sul riferimento a C2 con F2 e premi F4 finche\' non diventa `$C$2`.',
+          tx('M0B-06-NAMEDRANGES.19'),
           10,
           'T1',
         ),
-        hint('H2', `Copia C${RIGA_PRIMO_SOCIO}, seleziona ${rangeLordo.replace('Model!', '')}, incolla (o Ctrl+D).`, 8, 'T2'),
+        hint('H2', tx('M0B-06-NAMEDRANGES.20', { RIGA_PRIMO_SOCIO, p1: rangeLordo.replace('Model!', '') }), 8, 'T2'),
         hint(
           'H3',
-          `Il netto e' il lordo meno la commissione sul lordo: =C${RIGA_PRIMO_SOCIO}-C${RIGA_PRIMO_SOCIO}*C3, con C3 bloccato allo stesso modo di C2.`,
+          tx('M0B-06-NAMEDRANGES.21', { RIGA_PRIMO_SOCIO }),
           10,
           'T3',
         ),
-        hint('H4', `Copia D${RIGA_PRIMO_SOCIO}, seleziona ${rangeNetto.replace('Model!', '')}, incolla (o Ctrl+D).`, 8, 'T4'),
-        hint('H5', 'SUM sulla colonna del netto, dal primo all\'ultimo socio.', 8, 'T5'),
+        hint('H4', tx('M0B-06-NAMEDRANGES.22', { RIGA_PRIMO_SOCIO, p1: rangeNetto.replace('Model!', '') }), 8, 'T4'),
+        hint('H5', tx('M0B-06-NAMEDRANGES.23'), 8, 'T5'),
       ],
       parScore: par(tasks, { letturaSecondi: 70 }),
       startAt: `Model!C${RIGA_PRIMO_SOCIO}`,

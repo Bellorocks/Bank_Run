@@ -50,14 +50,15 @@ import { roundTo, triangular } from '../../../rng/distributions';
 import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 
+import { tx } from '../../../i18n/content';
 /** Output di una formula che restituisce un multiplo: nero, "x". */
 const STILE_FORMULA_MULTIPLO: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: '0.0x' };
 
 /** Le due storie plausibili dietro un multiplo fuori scala in un comp set reale. */
-const OUTLIER_REASONS = [
-  "peer acquisito di recente a un multiplo di premio, non ancora digerito dal mercato",
-  "peer con EBITDA temporaneamente compresso da un evento straordinario, che gonfia artificialmente il multiplo",
-] as const;
+const OUTLIER_REASONS = () => ([
+  tx('M5-06-MEDIANAMEDIA.1'),
+  tx('M5-06-MEDIANAMEDIA.2'),
+] as const);
 
 /** Mediana aritmetica: valore centrale se n dispari, media dei due centrali se pari. */
 function mediana(valori: readonly number[]): number {
@@ -69,7 +70,9 @@ function mediana(valori: readonly number[]): number {
 export default defineTemplate({
   id: 'M5-06-MEDIANAMEDIA',
   module: 'M5',
-  title: 'Mediana vs media: come si sintetizza un comp set',
+  get title() {
+    return tx('M5-06-MEDIANAMEDIA.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 290,
@@ -97,7 +100,7 @@ export default defineTemplate({
     const fattoreOutlier = triangular(rOutlier, 2.0, 2.4, 3.0);
     const multiploOutlier = roundTo(mediaNormali * fattoreOutlier, 0.1);
     const insertIdx = rOutlier.int(0, n - 1);
-    const motivoOutlier = rOutlier.pick(OUTLIER_REASONS);
+    const motivoOutlier = rOutlier.pick(OUTLIER_REASONS());
 
     const multipli: number[] = [];
     let ni = 0;
@@ -131,8 +134,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T1',
         prompt:
-          `In B${R_MEDIA} calcola la MEDIA dei ${num(n)} multipli EV/EBITDA del comp set (${rangeMultipli}). ` +
-          'Una sola funzione: AVERAGE.',
+          tx('M5-06-MEDIANAMEDIA.4', { R_MEDIA, p1: num(n), rangeMultipli }),
         target: `Model!B${R_MEDIA}`,
         atteso: media,
         referenzia: [`B${DATA_START}`, `B${dataEnd}`],
@@ -147,9 +149,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T2',
         prompt:
-          `In B${R_MEDIANA} calcola la MEDIANA degli stessi ${num(n)} multipli (${rangeMultipli}): il valore ` +
-          "centrale dell'elenco ordinato, non la media. Una sola funzione: MEDIAN. Confronta il risultato con " +
-          `B${R_MEDIA}: sono diversi, ed e' proprio questa differenza il punto del livello.`,
+          tx('M5-06-MEDIANAMEDIA.5', { R_MEDIANA, p1: num(n), rangeMultipli, R_MEDIA }),
         target: `Model!B${R_MEDIANA}`,
         atteso: med,
         referenzia: [`B${DATA_START}`, `B${dataEnd}`],
@@ -163,10 +163,7 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        `In B${R_PULL} quantifica quanto l'outlier "tira" la media rispetto alla mediana: (Media - Mediana) / ` +
-        `Mediana, cioe' (B${R_MEDIA}-B${R_MEDIANA})/B${R_MEDIANA}. Un numero vicino a zero direbbe che la media ` +
-        "e' un buon riassunto del comp set; un numero grande direbbe l'opposto — che senza mediana avresti " +
-        "applicato al target un multiplo distorto da un solo peer anomalo.",
+        tx('M5-06-MEDIANAMEDIA.6', { R_PULL, R_MEDIA, R_MEDIANA }),
       target: `Model!B${R_PULL}`,
       atteso: pullEffect,
       referenzia: [`B${R_MEDIA}`, `B${R_MEDIANA}`],
@@ -180,31 +177,13 @@ export default defineTemplate({
     return {
       templateId: 'M5-06-MEDIANAMEDIA',
       seed: rng.seed,
-      brief: [
-        "## Mediana vs media: come si sintetizza un comp set",
-        '',
-        "Un comp set non e' un solo multiplo, e' un elenco. Per applicarlo al target serve UN numero " +
-          "solo — e come lo ottieni non e' indifferente.",
-        '',
-        "La **media** aritmetica pesa ogni peer allo stesso modo: sommi tutto e dividi per quanti sono. " +
-          "Un singolo peer anomalo — comprato a premio di recente, o con un EBITDA temporaneamente " +
-          "compresso da un evento straordinario — la trascina verso l'alto tanto quanto TUTTI gli altri " +
-          "peer messi insieme.",
-        '',
-        "La **mediana** no: e' il valore centrale dell'elenco ordinato (o la media dei due centrali, se " +
-          "i peer sono in numero pari). Non le importa QUANTO lontano sia un outlier dal resto del " +
-          "gruppo — solo che sia uno solo. Per questo un comp set si sintetizza con la mediana, non con " +
-          "la media: e' la statistica che resiste agli outlier.",
-        '',
-        `Il comp set di oggi ha ${num(n)} peer. Uno di loro e' un ${motivoOutlier} — un caso reale, non ` +
-          'un errore di battitura: capita, ed e\' per questo che la mediana esiste come prassi.',
-      ].join('\n'),
+      brief: [tx('M5-06-MEDIANAMEDIA.7', { p0: num(n), motivoOutlier })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ["Mediana vs media: come si sintetizza un comp set"], { style: STILE_TITOLO }),
-            riga(`A${HEADER_ROW}`, ['Peer', 'Multiplo EV/EBITDA, x', 'Nota'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M5-06-MEDIANAMEDIA.8')], { style: STILE_TITOLO }),
+            riga(`A${HEADER_ROW}`, [tx('M5-06-MEDIANAMEDIA.16'), tx('M5-06-MEDIANAMEDIA.9'), tx('M5-06-MEDIANAMEDIA.17')], { style: STILE_TITOLO }),
             colonna(`A${DATA_START}`, peerLabels, { style: STILE_ETICHETTA }),
             blocco(
               `B${DATA_START}`,
@@ -213,13 +192,13 @@ export default defineTemplate({
             ),
             [{ ref: `C${outlierRow}`, content: motivoOutlier, locked: true, style: STILE_ETICHETTA }],
 
-            riga(`A${riepilogoRow}`, ['Sintesi del comp set'], { style: STILE_TITOLO }),
+            riga(`A${riepilogoRow}`, [tx('M5-06-MEDIANAMEDIA.10')], { style: STILE_TITOLO }),
             colonna(
               `A${R_MEDIA}`,
               [
-                'Media dei multipli, x',
-                'Mediana dei multipli, x',
-                "Quanto l'outlier tira la media rispetto alla mediana, %",
+                tx('M5-06-MEDIANAMEDIA.11'),
+                tx('M5-06-MEDIANAMEDIA.12'),
+                tx('M5-06-MEDIANAMEDIA.13'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -235,16 +214,13 @@ export default defineTemplate({
         hint('H1', `=AVERAGE(${rangeMultipli}) — qui vale ${multiplo(media)}.`, 8, 'T1'),
         hint(
           'H2',
-          `=MEDIAN(${rangeMultipli}) — qui vale ${multiplo(med)}. E' piu' basso della media proprio perche' ` +
-            "un solo peer (l'outlier) sta trascinando la media verso l'alto, ma non conta piu' di un peer " +
-            "qualsiasi nella mediana.",
+          tx('M5-06-MEDIANAMEDIA.14', { rangeMultipli, p1: multiplo(med) }),
           8,
           'T2',
         ),
         hint(
           'H3',
-          `=(B${R_MEDIA}-B${R_MEDIANA})/B${R_MEDIANA} — qui vale ${pct(pullEffect)}: la media supera la ` +
-            "mediana di questa percentuale, un effetto interamente dovuto all'outlier.",
+          tx('M5-06-MEDIANAMEDIA.15', { R_MEDIA, R_MEDIANA, p2: pct(pullEffect) }),
           10,
           'T3',
         ),

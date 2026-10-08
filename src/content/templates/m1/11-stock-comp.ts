@@ -45,6 +45,7 @@ import { DEFAULT_FORMATS } from '../../../engine/numberFormat';
 import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 
+import { tx } from '../../../i18n/content';
 /** L'EPS si legge in euro per azione, a due decimali: ne serve uno stile locale. */
 const STILE_FORMULA_EUR2DEC: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: DEFAULT_FORMATS.numero2dec };
 
@@ -62,7 +63,9 @@ const B_EPSDIL = 'B13'; // T3
 export default defineTemplate({
   id: 'M1-11-STOCKCOMP',
   module: 'M1',
-  title: 'Stock comp: costo del piano ed EPS diluito',
+  get title() {
+    return tx('M1-11-STOCKCOMP.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -92,10 +95,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_COSTO} calcola il COSTO ANNUO di competenza del piano di stock option: il fair value ` +
-        `totale assegnato (${B_FV}) diviso gli anni di vesting (${B_VEST}). E' la quota lineare che ` +
-        "matura ogni anno: il costo del piano non e' mai un'uscita di cassa, ma e' comunque un costo a " +
-        "Conto Economico, spalmato sugli anni in cui il dipendente 'guadagna' il diritto alle opzioni.",
+        tx('M1-11-STOCKCOMP.2', { B_COSTO, B_FV, B_VEST }),
       target: `Model!${B_COSTO}`,
       atteso: costoAnnuo,
       referenzia: [B_FV, B_VEST],
@@ -107,9 +107,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_EPSBASE} calcola l'EPS BASE (utile per azione): l'utile netto dell'esercizio (${B_UN}) ` +
-        `diviso le azioni ordinarie effettivamente in circolazione (${B_AZBASE}). E' l'EPS "storico", ` +
-        'quello che si legge senza considerare alcun effetto diluitivo.',
+        tx('M1-11-STOCKCOMP.3', { B_EPSBASE, B_UN, B_AZBASE }),
       target: `Model!${B_EPSBASE}`,
       atteso: epsBase,
       referenzia: [B_UN, B_AZBASE],
@@ -121,13 +119,7 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        `In ${B_EPSDIL} calcola l'EPS DILUITO: stesso utile netto (${B_UN}) del task precedente, ma al ` +
-        `denominatore aggiungi alle azioni ordinarie (${B_AZBASE}) anche le azioni potenziali derivanti ` +
-        `dalle opzioni se esercitate (${B_AZPOT}) — qui gia' date come numero netto di azioni aggiuntive, ` +
-        'senza applicare il treasury stock method (semplificazione dichiarata: quel meccanismo e\' materia ' +
-        "di un modulo futuro). Lo stesso utile diviso per PIU' azioni non puo' che dare un risultato " +
-        'minore o uguale all\'EPS base: se il tuo EPS diluito viene piu\' alto di quello base, il ' +
-        'denominatore e\' sbagliato, non il segno.',
+        tx('M1-11-STOCKCOMP.4', { B_EPSDIL, B_UN, B_AZBASE, B_AZPOT }),
       target: `Model!${B_EPSDIL}`,
       atteso: epsDiluito,
       referenzia: [B_UN, B_AZBASE, B_AZPOT],
@@ -141,48 +133,21 @@ export default defineTemplate({
     return {
       templateId: 'M1-11-STOCKCOMP',
       seed: rng.seed,
-      brief: [
-        "## Stock comp: un costo senza cassa, e le azioni che nascono da esso",
-        '',
-        "Un piano di stock option assegnato ai dipendenti ha un fair value totale, stimato al momento " +
-          "dell'assegnazione, e matura (vesta) in modo lineare su un certo numero di anni. Anche se " +
-          "nessuna cassa esce finche' le opzioni non vengono esercitate, quel fair value E' un costo: " +
-          "ogni anno di vesting ne assorbe una quota a Conto Economico. E' lo stesso principio di " +
-          "competenza economica di ratei e risconti, applicato a una posta non monetaria.",
-        '',
-        `Fair value totale del piano assegnato: ${eur(fairValueTotale)}. Anni di vesting: ${num(anniVesting)}.`,
-        `Utile netto dell'esercizio: ${eur(utileNetto)}. Azioni ordinarie in circolazione: ` +
-          `${num(azioniBase)}. Azioni potenziali derivanti dalle opzioni, se esercitate: ${num(azioniPotenziali)}.`,
-        '',
-        "**Perche' due EPS.** L'EPS base racconta l'utile per azione con le azioni che esistono OGGI. " +
-          "L'EPS diluito racconta la stessa storia assumendo che tutte le opzioni assegnate vengano " +
-          "esercitate: stesso utile netto, ma diviso per PIU' azioni. Il risultato e' sempre minore o " +
-          "uguale all'EPS base — mai il contrario — perche' aggiungere azioni al denominatore non puo' " +
-          'far salire un rapporto con lo stesso numeratore. Se un analista guarda solo l\'EPS base di ' +
-          "un'azienda che ha assegnato molte stock option, sta guardando un numero migliore di quello " +
-          "che gli azionisti vedranno davvero una volta che le opzioni saranno esercitate.",
-        '',
-        '**Semplificazione dichiarata**: le azioni potenziali qui sotto sono gia\' il numero netto di ' +
-          "azioni aggiuntive da sommare (si assume che le opzioni siano gia' pienamente esercitabili e " +
-          "\"in the money\"). Il calcolo completo userebbe il treasury stock method — la cassa incassata " +
-          "dall'esercizio delle opzioni ricompra azioni sul mercato, riducendo la diluizione netta — ma " +
-          "quel meccanismo e' materia di un modulo futuro: qui il punto e' capire la DIREZIONE " +
-          "dell'effetto, non il suo calcolo esatto.",
-      ].join('\n'),
+      brief: [tx('M1-11-STOCKCOMP.5', { p0: eur(fairValueTotale), p1: num(anniVesting), p2: eur(utileNetto), p3: num(azioniBase), p4: num(azioniPotenziali) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Stock comp: costo del piano ed EPS diluito'], { style: STILE_TITOLO }),
-            riga('A3', ['Dati di partenza'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M1-11-STOCKCOMP.6')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M1-11-STOCKCOMP.7')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'Fair value totale del piano di stock option, €',
-                'Anni di vesting',
-                "Utile netto dell'esercizio, €",
-                'Azioni ordinarie in circolazione',
-                'Azioni potenziali da opzioni (se esercitate)',
+                tx('M1-11-STOCKCOMP.8'),
+                tx('M1-11-STOCKCOMP.9'),
+                tx('M1-11-STOCKCOMP.10'),
+                tx('M1-11-STOCKCOMP.11'),
+                tx('M1-11-STOCKCOMP.12'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -194,13 +159,13 @@ export default defineTemplate({
               { ref: B_AZPOT, content: azioniPotenziali, style: STILE_INPUT, locked: true },
             ],
 
-            riga('A10', ['Calcoli'], { style: STILE_TITOLO }),
+            riga('A10', [tx('M1-11-STOCKCOMP.19')], { style: STILE_TITOLO }),
             colonna(
               'A11',
               [
-                'Costo annuo di competenza dello stock comp, €',
-                'EPS base, €/azione',
-                'EPS diluito, €/azione',
+                tx('M1-11-STOCKCOMP.13'),
+                tx('M1-11-STOCKCOMP.14'),
+                tx('M1-11-STOCKCOMP.15'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -213,11 +178,11 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', `=${B_FV}/${B_VEST}: fair value totale diviso gli anni su cui matura.`, 8, 'T1'),
-        hint('H2', `=${B_UN}/${B_AZBASE}: utile netto diviso le sole azioni in circolazione oggi.`, 8, 'T2'),
+        hint('H1', tx('M1-11-STOCKCOMP.16', { B_FV, B_VEST }), 8, 'T1'),
+        hint('H2', tx('M1-11-STOCKCOMP.17', { B_UN, B_AZBASE }), 8, 'T2'),
         hint(
           'H3',
-          `=${B_UN}/(${B_AZBASE}+${B_AZPOT}): stesso utile netto di ${B_EPSBASE}, ma al denominatore aggiungi anche le azioni potenziali.`,
+          tx('M1-11-STOCKCOMP.18', { B_UN, B_AZBASE, B_AZPOT, B_EPSBASE }),
           10,
           'T3',
         ),

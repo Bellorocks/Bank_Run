@@ -51,6 +51,7 @@ import { SECTORS, ebitdaMargin, evEbitdaMultiple, growthRate, revenue } from '..
 import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 
+import { sectorName, tx } from '../../../i18n/content';
 /** Output di una formula che restituisce un multiplo: nero, "x". */
 const STILE_FORMULA_MULTIPLO: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: '0.0x' };
 
@@ -67,7 +68,9 @@ const B_MULT_SALES = 'B12'; // T3
 export default defineTemplate({
   id: 'M5-04-MULTIPLI1',
   module: 'M5',
-  title: 'I tre multipli enterprise-based: EBITDA, EBIT, Sales',
+  get title() {
+    return tx('M5-04-MULTIPLI1.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 280,
@@ -109,10 +112,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_MULT_EBITDA} calcola il multiplo EV/EBITDA: dividi l'Enterprise Value (${B_EV}) per ` +
-        `l'EBITDA (${B_EBITDA}). E' il multiplo enterprise-based piu' usato: l'EBITDA e' la metrica ` +
-        "operativa piu' vicina alla generazione di cassa prima della struttura finanziaria e delle " +
-        'politiche di ammortamento. Formula: EV / EBITDA.',
+        tx('M5-04-MULTIPLI1.2', { B_MULT_EBITDA, B_EV, B_EBITDA }),
       target: `Model!${B_MULT_EBITDA}`,
       atteso: multEvEbitda,
       referenzia: [B_EV, B_EBITDA],
@@ -124,13 +124,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_MULT_EBIT} calcola il multiplo EV/EBIT: dividi lo STESSO Enterprise Value (${B_EV}) ` +
-        `per l'EBIT (${B_EBIT}), non per l'EBITDA. Formula: EV / EBIT. Attenzione alla direzione del ` +
-        "risultato: l'EBIT e' SEMPRE minore dell'EBITDA (EBIT = EBITDA - D&A, e il D&A e' un costo " +
-        "reale anche se non monetario), quindi a parita' di EV dividere per un numero piu' piccolo " +
-        `produce un multiplo PIU' ALTO — l'opposto di quello che ci si aspetterebbe per analogia con ` +
-        "LTM/NTM, dove il denominatore piu' grande abbassa il multiplo. Qui la relazione fra le due " +
-        "metriche e' dettata dalla contabilita', non dal mercato, e va sempre nella stessa direzione.",
+        tx('M5-04-MULTIPLI1.3', { B_MULT_EBIT, B_EV, B_EBIT }),
       target: `Model!${B_MULT_EBIT}`,
       atteso: multEvEbit,
       referenzia: [B_EV, B_EBIT],
@@ -142,12 +136,7 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        `In ${B_MULT_SALES} calcola il multiplo EV/Sales: dividi l'Enterprise Value (${B_EV}) per i ` +
-        `Ricavi (${B_RICAVI}). Formula: EV / Ricavi. Questo multiplo torna utile quando l'EBITDA non ` +
-        "e' un denominatore affidabile — un'azienda ancora in perdita operativa (EBITDA negativo o " +
-        "vicino a zero rende EV/EBITDA privo di senso) o con un EBITDA troppo volatile da un anno " +
-        "all'altro per essere un ancoraggio stabile. I Ricavi, la riga piu' in alto del conto " +
-        "economico, sono la metrica meno soggetta a queste distorsioni.",
+        tx('M5-04-MULTIPLI1.4', { B_MULT_SALES, B_EV, B_RICAVI }),
       target: `Model!${B_MULT_SALES}`,
       atteso: multEvSales,
       referenzia: [B_EV, B_RICAVI],
@@ -161,47 +150,20 @@ export default defineTemplate({
     return {
       templateId: 'M5-04-MULTIPLI1',
       seed: rng.seed,
-      brief: [
-        '## I tre multipli enterprise-based',
-        '',
-        "Un multiplo di mercato e' un rapporto fra un VALORE e una METRICA operativa. L'Enterprise " +
-          "Value (EV) sta \"sopra la linea del debito\": non tiene conto di come l'azienda e' " +
-          "finanziata, quindi si accoppia solo a metriche anch'esse calcolate PRIMA degli oneri " +
-          "finanziari — **enterprise-based**, appunto. I tre piu' comuni sono EV/EBITDA, EV/EBIT ed " +
-          'EV/Sales: stesso EV al numeratore, tre denominatori diversi.',
-        '',
-        "**EV/EBITDA** e' lo standard: l'EBITDA e' la metrica operativa piu' vicina alla generazione " +
-          "di cassa, prima di ammortamenti, oneri finanziari e imposte.",
-        '',
-        "**EV/EBIT** usa l'EBIT, cioe' l'EBITDA al netto di D&A (ammortamenti e svalutazioni). " +
-          "L'EBIT e' SEMPRE minore dell'EBITDA — il D&A e' un costo contabile reale, anche se non " +
-          "movimenta cassa — quindi, a parita' di EV, EV/EBIT esce SEMPRE PIU' ALTO di EV/EBITDA. E' " +
-          "il contrario di quello che l'intuizione (allenata su LTM/NTM, dove denominatore piu' " +
-          "grande vuol dire multiplo piu' basso) suggerirebbe: li' il denominatore piu' grande viene " +
-          "dal mercato che si aspetta crescita, qui il denominatore piu' piccolo viene da una regola " +
-          "contabile fissa, e la direzione della relazione non dipende mai dal caso specifico.",
-        '',
-        "**EV/Sales** usa i Ricavi. E' il multiplo di ultima istanza: torna utile quando l'EBITDA " +
-          "non e' un denominatore affidabile, per un'azienda ancora in perdita operativa o con un " +
-          "EBITDA troppo volatile da un anno all'altro.",
-        '',
-        `**I dati.** Una comparable quotata del settore ${sector} (crescita attesa ${pct(growth)}, ` +
-          `margine EBITDA ${pct(margin)}) ha un Enterprise Value di mercato di ${eurM(ev)}, Ricavi ` +
-          `di ${eurM(ricavi)}, EBITDA di ${eurM(ebitda)} ed EBIT di ${eurM(ebit)} (D&A di ${eurM(da)}).`,
-      ].join('\n'),
+      brief: [tx('M5-04-MULTIPLI1.5', { sector: sectorName(sector), p1: pct(growth), p2: pct(margin), p3: eurM(ev), p4: eurM(ricavi), p5: eurM(ebitda), p6: eurM(ebit), p7: eurM(da) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['I tre multipli enterprise-based'], { style: STILE_TITOLO }),
-            riga('A3', ['Dati di mercato della comparable'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M5-04-MULTIPLI1.6')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M5-04-MULTIPLI1.7')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'Enterprise Value di mercato, €',
-                'EBITDA, €',
-                'EBIT (EBITDA - D&A), €',
-                'Ricavi, €',
+                tx('M5-04-MULTIPLI1.8'),
+                tx('M5-04-MULTIPLI1.13'),
+                tx('M5-04-MULTIPLI1.9'),
+                tx('M5-04-MULTIPLI1.14'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -212,13 +174,13 @@ export default defineTemplate({
               { ref: B_RICAVI, content: ricavi, style: STILE_INPUT, locked: true },
             ],
 
-            riga('A9', ['Multipli enterprise-based'], { style: STILE_TITOLO }),
+            riga('A9', [tx('M5-04-MULTIPLI1.10')], { style: STILE_TITOLO }),
             colonna(
               'A10',
               [
-                'EV/EBITDA, x',
-                'EV/EBIT, x',
-                'EV/Sales, x',
+                tx('M5-04-MULTIPLI1.15'),
+                tx('M5-04-MULTIPLI1.16'),
+                tx('M5-04-MULTIPLI1.17'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -239,15 +201,13 @@ export default defineTemplate({
         ),
         hint(
           'H2',
-          `=${B_EV}/${B_EBIT}: stesso EV, ma diviso per l'EBIT (qui vale ${multiplo(multEvEbit)}) — ` +
-            "piu' alto del multiplo EV/EBITDA perche' il denominatore e' piu' piccolo, non piu' grande.",
+          tx('M5-04-MULTIPLI1.11', { B_EV, B_EBIT, p2: multiplo(multEvEbit) }),
           10,
           'T2',
         ),
         hint(
           'H3',
-          `=${B_EV}/${B_RICAVI}: EV su Ricavi (qui vale ${multiplo(multEvSales)}) — il piu' basso dei ` +
-            "tre, perche' i Ricavi sono la metrica piu' grande al denominatore.",
+          tx('M5-04-MULTIPLI1.12', { B_EV, B_RICAVI, p2: multiplo(multEvSales) }),
           10,
           'T3',
         ),

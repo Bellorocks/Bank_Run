@@ -38,6 +38,7 @@ import { DEFAULT_FORMATS } from '../../../engine/numberFormat';
 import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 
+import { contentNumberLocale, tx } from '../../../i18n/content';
 const MS_PER_DAY = 86_400_000;
 
 /** Giorni dal 30/12/1899 (epoca di Excel) — stessa funzione usata in M0F-09-FUNZIONIDATA. */
@@ -56,7 +57,9 @@ const STILE_INPUT_DATA: CellStyle = { fontColor: MODEL_COLORS.input, numFmt: DEF
 export default defineTemplate({
   id: 'M1-03-RATEIRISCONTI',
   module: 'M1',
-  title: 'Ratei e risconti: competenza vs cassa',
+  get title() {
+    return tx('M1-03-RATEIRISCONTI.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 320,
@@ -101,11 +104,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In B10 calcola il risconto attivo: la quota del premio (B4) gia' pagata ma di competenza ` +
-        `dell'esercizio successivo al 31/12 dell'anno di pagamento (B8). La polizza copre da B5 a B7: ` +
-        `la quota futura e' la parte di quei giorni che cade DOPO B8. Formula: premio × (giorni da B8 a ` +
-        `B7) / (giorni totali della polizza, da B5 a B7). Usa la sottrazione diretta fra le celle-data, ` +
-        'mai un numero di giorni scritto a mano.',
+        tx('M1-03-RATEIRISCONTI.2'),
       target: 'Model!B10',
       atteso: attesoRisconto,
       referenzia: ['B4', 'B5', 'B7', 'B8'],
@@ -117,11 +116,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In B19 calcola il rateo passivo: la quota del costo annuo (B14) gia' maturata fra l'inizio ` +
-        `della prestazione (B15) e il 31/12 dell'esercizio corrente (B17), ma non ancora fatturata — ` +
-        "nessun documento contabile esiste ancora, e' proprio la definizione di rateo. Formula: costo " +
-        "annuo × (giorni maturati, da B15 a B17) / (giorni totali del periodo di competenza, da B15 a " +
-        'B16 — 365 o 366 a seconda dell\'anno, mai un numero scritto a mano).',
+        tx('M1-03-RATEIRISCONTI.3'),
       target: 'Model!B19',
       atteso: attesoRateo,
       referenzia: ['B14', 'B15', 'B16', 'B17'],
@@ -135,47 +130,22 @@ export default defineTemplate({
     return {
       templateId: 'M1-03-RATEIRISCONTI',
       seed: rng.seed,
-      brief: [
-        '## Ratei e risconti: quando cassa e competenza non coincidono',
-        '',
-        "Un bilancio corretto non registra i costi (e i ricavi) quando si muove la cassa, ma quando ",
-        "sono di COMPETENZA del periodo. Quando le due cose non coincidono, servono le rettifiche di",
-        "fine esercizio: **risconto** e **rateo** sono le due facce dello stesso problema, in direzioni",
-        'opposte.',
-        '',
-        '- **Risconto attivo** — la cassa si e\' GIA\' mossa (un costo e\' stato pagato per intero), ma',
-        '  una parte di quel costo appartiene a un esercizio FUTURO. Va rinviata in avanti: e\' un costo',
-        "  sospeso, non ancora di competenza.",
-        '- **Rateo passivo** — la competenza e\' GIA\' maturata (un servizio e\' stato reso), ma la cassa',
-        '  non si e\' ancora mossa: nessuna fattura e\' arrivata. Il costo va riconosciuto comunque, per',
-        '  la quota che e\' gia\' economicamente "consumata".',
-        '',
-        `**Scenario 1.** Il ${giorno1}/${mese1}/${anno1} e' stato pagato per intero un premio ` +
-          `assicurativo di € ${premio.toLocaleString('it-IT')}, a copertura di ${mesiPolizza} mesi di ` +
-          "polizza da quella data. Al 31/12 dello stesso anno, la parte di premio che copre i mesi di " +
-          "polizza dell'anno successivo e' un risconto attivo: costo gia' pagato, competenza futura.",
-        '',
-        `**Scenario 2.** Il ${giorno2}/${mese2}/${anno2} e' iniziata una prestazione (un contratto di ` +
-          `servizio) il cui costo annuo di competenza e' € ${costoAnnuo.toLocaleString('it-IT')}. Al ` +
-          "31/12 la prestazione e' ancora in corso e non e' ancora arrivata alcuna fattura: la quota " +
-          "di costo gia' maturata fino a quella data e' un rateo passivo: competenza gia' maturata,",
-          "cassa non ancora mossa.",
-      ].join('\n'),
+      brief: [tx('M1-03-RATEIRISCONTI.4', { giorno1, mese1, anno1, p3: premio.toLocaleString(contentNumberLocale()), mesiPolizza, giorno2, mese2, anno2, p8: costoAnnuo.toLocaleString(contentNumberLocale()) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            blocco('A1', [['Ratei e risconti']], { style: STILE_TITOLO }),
+            blocco('A1', [[tx('M1-03-RATEIRISCONTI.5')]], { style: STILE_TITOLO }),
 
-            blocco('A3', [["SCENARIO 1 — Risconto attivo: premio pagato per intero, competenza futura"]], { style: STILE_TITOLO }),
+            blocco('A3', [[tx('M1-03-RATEIRISCONTI.6')]], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'Premio assicurativo pagato per intero (€)',
-                'Data di inizio polizza',
-                'Durata della polizza (mesi)',
-                'Data di fine polizza',
-                "31/12 dell'esercizio di pagamento",
+                tx('M1-03-RATEIRISCONTI.7'),
+                tx('M1-03-RATEIRISCONTI.8'),
+                tx('M1-03-RATEIRISCONTI.9'),
+                tx('M1-03-RATEIRISCONTI.10'),
+                tx('M1-03-RATEIRISCONTI.11'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -184,17 +154,17 @@ export default defineTemplate({
             blocco('B6', [[mesiPolizza]], { style: STILE_INPUT }),
             blocco('B7', [[`=DATE(${finePolizza.anno},${finePolizza.mese},${finePolizza.giorno})`]], { style: STILE_INPUT_DATA }),
             blocco('B8', [[`=DATE(${anno1},12,31)`]], { style: STILE_INPUT_DATA }),
-            colonna('A10', ["Risconto attivo — quota di competenza dell'esercizio successivo (€)"], { style: STILE_ETICHETTA }),
+            colonna('A10', [tx('M1-03-RATEIRISCONTI.12')], { style: STILE_ETICHETTA }),
             [{ ref: 'B10', content: null, locked: false, style: STILE_FORMULA }],
 
-            blocco('A13', [["SCENARIO 2 — Rateo passivo: competenza gia' maturata, cassa non ancora mossa"]], { style: STILE_TITOLO }),
+            blocco('A13', [[tx('M1-03-RATEIRISCONTI.13')]], { style: STILE_TITOLO }),
             colonna(
               'A14',
               [
-                'Costo annuo di competenza (€)',
-                'Data di inizio della prestazione',
-                'Data di fine del periodo di competenza (12 mesi dopo)',
-                "31/12 dell'esercizio corrente",
+                tx('M1-03-RATEIRISCONTI.14'),
+                tx('M1-03-RATEIRISCONTI.15'),
+                tx('M1-03-RATEIRISCONTI.16'),
+                tx('M1-03-RATEIRISCONTI.17'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -202,7 +172,7 @@ export default defineTemplate({
             blocco('B15', [[`=DATE(${anno2},${mese2},${giorno2})`]], { style: STILE_INPUT_DATA }),
             blocco('B16', [[`=DATE(${fineCompetenza.anno},${fineCompetenza.mese},${fineCompetenza.giorno})`]], { style: STILE_INPUT_DATA }),
             blocco('B17', [[`=DATE(${anno2},12,31)`]], { style: STILE_INPUT_DATA }),
-            colonna('A19', ['Rateo passivo — costo maturato non ancora fatturato (€)'], { style: STILE_ETICHETTA }),
+            colonna('A19', [tx('M1-03-RATEIRISCONTI.18')], { style: STILE_ETICHETTA }),
             [{ ref: 'B19', content: null, locked: false, style: STILE_FORMULA }],
           ],
           { colWidths: { A: 420, B: 150 }, frozenRows: 1 },
@@ -210,8 +180,8 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', 'Risconto attivo: =B4*(B7-B8)/(B7-B5). La parte di polizza che cade dopo B8, sul totale dei giorni fra B5 e B7.', 10, 'T1'),
-        hint('H2', 'Rateo passivo: =B14*(B17-B15)/(B16-B15). I giorni gia\' maturati fra B15 e B17, sul totale del periodo fra B15 e B16.', 10, 'T2'),
+        hint('H1', tx('M1-03-RATEIRISCONTI.19'), 10, 'T1'),
+        hint('H2', tx('M1-03-RATEIRISCONTI.20'), 10, 'T2'),
       ],
       parScore: par(tasks, { letturaSecondi: 100 }),
       startAt: 'Model!B10',

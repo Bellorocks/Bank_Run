@@ -60,6 +60,7 @@ import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 /** Beta: un numero puro (non una percentuale, non una valuta), due decimali. */
 const STILE_INPUT_BETA: CellStyle = { fontColor: MODEL_COLORS.input, numFmt: '0.00' };
 const STILE_FORMULA_PCT: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: '0.0%' };
@@ -74,7 +75,9 @@ const B_KE = 'B10'; // T1: costo del capitale proprio
 export default defineTemplate({
   id: 'M7-04-CAPM',
   module: 'M7',
-  title: 'CAPM: il costo del capitale proprio',
+  get title() {
+    return tx('M7-04-CAPM.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 260,
@@ -113,13 +116,7 @@ export default defineTemplate({
     const t1: Task = {
       id: 'T1',
       prompt:
-        `In ${B_KE} calcola il costo del capitale proprio (Ke) con il CAPM: il risk free rate ` +
-        `(${B_RF}) piu' il beta (${B_BETA}) moltiplicato per l'equity risk premium (${B_ERP}). ` +
-        `Formula: Ke = Rf + beta × ERP. Il beta misura il rischio SISTEMATICO di questa azienda ` +
-        "relativo al mercato: un beta maggiore di 1 significa un'azione piu' volatile del mercato " +
-        "(amplifica i suoi movimenti, quindi rischio sistematico maggiore e Ke piu' alto), un beta " +
-        "minore di 1 il contrario — un'azione piu' difensiva, che si muove meno del mercato, con un " +
-        "Ke piu' basso. Usa le tre celle date, senza copiare i numeri a mano.",
+        tx('M7-04-CAPM.2', { B_KE, B_RF, B_BETA, B_ERP }),
       targetCell: `Model!${B_KE}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -129,8 +126,7 @@ export default defineTemplate({
           tolerance: 0.0001,
           toleranceMode: 'absolute',
           message:
-            "Il valore non torna: controlla che tu stia sommando il risk free e moltiplicando " +
-            "beta per l'ERP, non un'altra combinazione delle tre celle.",
+            tx('M7-04-CAPM.3'),
         },
         { kind: 'mustReference', cells: [B_RF, B_BETA, B_ERP] },
         { kind: 'mustNotContainLiteral', except: [] },
@@ -144,42 +140,16 @@ export default defineTemplate({
     return {
       templateId: 'M7-04-CAPM',
       seed: rng.seed,
-      brief: [
-        '## CAPM: il costo del capitale proprio',
-        '',
-        "Il WACC (il tasso a cui si sconta il FCFF, M7-07) e' una media pesata fra il costo del " +
-          "debito e il costo del capitale proprio (Ke). Il CAPM (Capital Asset Pricing Model) e' il " +
-          'modo standard per stimare Ke.',
-        '',
-        '> **Ke = Rf + beta × ERP**',
-        '',
-        '- **Rf (risk free rate)**: il rendimento di un investimento senza rischio, tipicamente un ' +
-          'titolo di stato a lunga scadenza.',
-        "- **ERP (equity risk premium)**: il rendimento EXTRA che il mercato azionario nel suo " +
-          'complesso richiede rispetto al risk free, per accettare il rischio di detenere azioni.',
-        "- **beta**: il rischio SISTEMATICO di questa azienda, relativo al mercato. beta = 1 vuol " +
-          "dire \"si muove come il mercato\"; **beta > 1** vuol dire un'azione **piu' volatile** del " +
-          "mercato — amplifica i suoi movimenti, quindi il mercato le chiede un Ke **piu' alto** per " +
-          "compensare il rischio maggiore; **beta < 1** vuol dire il contrario, un'azione **piu' " +
-          "difensiva** e un Ke **piu' basso**.",
-        '',
-        "beta moltiplica l'ERP: l'ERP e' un dato di mercato uguale per tutte le aziende quotate sullo " +
-          "stesso mercato, beta lo scala sul rischio specifico di QUESTA azienda. Il risultato, " +
-          "sommato al risk free, e' il rendimento atteso totale richiesto da chi detiene l'equity di " +
-          'questa azienda.',
-        '',
-        `**I dati**, gia' pronti come assunzioni di mercato: risk free rate ${pct(rf, 2)}, beta ` +
-          `${num(beta, 2)}, equity risk premium ${pct(erp, 2)}.`,
-      ].join('\n'),
+      brief: [tx('M7-04-CAPM.4', { p0: pct(rf, 2), p1: num(beta, 2), p2: pct(erp, 2) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['CAPM: il costo del capitale proprio'], { style: STILE_TITOLO }),
-            riga('A3', ['Assunzioni di mercato'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M7-04-CAPM.5')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M7-04-CAPM.6')], { style: STILE_TITOLO }),
             colonna(
               'A4',
-              ['Risk free rate (Rf)', 'Beta', 'Equity risk premium (ERP)'],
+              [tx('M7-04-CAPM.7'), tx('M7-04-CAPM.12'), tx('M7-04-CAPM.8')],
               { style: STILE_ETICHETTA },
             ),
             [
@@ -188,8 +158,8 @@ export default defineTemplate({
               { ref: B_ERP, content: erp, style: STILE_INPUT_PCT, locked: true },
             ],
 
-            riga('A9', ['Costo del capitale proprio'], { style: STILE_TITOLO }),
-            colonna('A10', ['Ke (CAPM)'], { style: STILE_ETICHETTA }),
+            riga('A9', [tx('M7-04-CAPM.9')], { style: STILE_TITOLO }),
+            colonna('A10', [tx('M7-04-CAPM.10')], { style: STILE_ETICHETTA }),
             [{ ref: B_KE, content: null, locked: false, style: STILE_FORMULA_PCT }],
           ],
           { colWidths: { A: 260, B: 120 }, frozenRows: 1 },
@@ -199,8 +169,7 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_RF}+${B_BETA}*${B_ERP}: risk free piu' beta moltiplicato per l'ERP (qui vale ` +
-            `${pct(ke, 2)}).`,
+          tx('M7-04-CAPM.11', { B_RF, B_BETA, B_ERP, p3: pct(ke, 2) }),
           10,
           'T1',
         ),

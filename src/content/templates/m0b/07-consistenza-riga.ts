@@ -45,6 +45,7 @@ import { revenue } from '../../../rng/finance';
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { CellStyle } from '../../../engine/types';
 
+import { tx } from '../../../i18n/content';
 /** L'unica cella che tutta la riga di proiezione deve guardare: riquadrata di proposito. */
 const STILE_TASSO_UNICO: CellStyle = {
   ...STILE_INPUT_PCT,
@@ -63,7 +64,9 @@ const COLONNE_PROIEZIONE = ['C', 'D', 'E', 'F', 'G'] as const; // Anno 1..Anno 5
 export default defineTemplate({
   id: 'M0B-07-CONSISTENZARIGA',
   module: 'M0-B',
-  title: 'La stessa formula, riga per riga',
+  get title() {
+    return tx('M0B-07-CONSISTENZARIGA.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 240,
@@ -92,10 +95,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T1',
         prompt:
-          `In C${RIGA_RICAVI} calcola il ricavo dell'Anno 1: il ricavo dell'anno precedente moltiplicato ` +
-          `per (1 + il tasso di crescita). Il tasso sta nell'unica casella riquadrata, C3 — e' quella ` +
-          "cella, e nessun'altra, che TUTTO l'orizzonte di proiezione deve guardare. Scrivi la formula " +
-          'in modo che tu possa trascinarla fino a G6 senza mai piu\' doverla ritoccare.',
+          tx('M0B-07-CONSISTENZARIGA.2', { RIGA_RICAVI }),
         target: `Model!C${RIGA_RICAVI}`,
         atteso: ricavi[0],
         referenzia: [`B${RIGA_RICAVI}`, 'C3'],
@@ -107,11 +107,7 @@ export default defineTemplate({
       {
         id: 'T2',
         prompt:
-          `Riempi tutto l'orizzonte, da C${RIGA_RICAVI} a G${RIGA_RICAVI}: fill right (maniglione o ` +
-          'Ctrl+R), oppure seleziona tutto l\'intervallo e chiudi con Ctrl+Invio. In ogni cella deve ' +
-          "restare la STESSA formula, solo traslata di colonna: se anche una sola casella e' stata " +
-          "ritoccata a mano o incollata come valore, e' li' che si nasconde l'errore che nessuno vede " +
-          'finche\' non e\' troppo tardi.',
+          tx('M0B-07-CONSISTENZARIGA.3', { RIGA_RICAVI }),
         targetCell: rangeRiga,
         check: [
           { kind: 'consistentRow' as const, range: rangeRiga },
@@ -122,46 +118,22 @@ export default defineTemplate({
       },
     ];
 
-    const intestazioniAnno = ['Anno 0', 'Anno 1', 'Anno 2', 'Anno 3', 'Anno 4', 'Anno 5'];
+    const intestazioniAnno = [tx('M0B-07-CONSISTENZARIGA.4'), tx('M0B-07-CONSISTENZARIGA.5'), tx('M0B-07-CONSISTENZARIGA.6'), tx('M0B-07-CONSISTENZARIGA.7'), tx('M0B-07-CONSISTENZARIGA.8'), tx('M0B-07-CONSISTENZARIGA.9')];
 
     return {
       templateId: 'M0B-07-CONSISTENZARIGA',
       seed: rng.seed,
-      brief: [
-        "## Una riga, una formula, nessuna eccezione",
-        '',
-        'Una proiezione di ricavi non e\' cinque numeri indipendenti: e\' **una formula sola**, scritta',
-        'una volta e trascinata lungo tutto l\'orizzonte. Se l\'hai scritta bene, ogni cella della riga',
-        'racconta la stessa storia — "l\'anno prima, cresciuto del tasso" — solo spostata di una colonna.',
-        '',
-        `Qui i ricavi dell'Anno 0 valgono **${eurM(ricaviAnno0)}** e crescono a un tasso fisso del`,
-        `**${pct(tasso)}** l'anno, per ${ANNI_PROIEZIONE} anni. Il tasso sta in **una sola casella**,`,
-        'riquadrata in C3: e\' quella, e non un\'altra, che ogni colonna della riga deve referenziare',
-        'con lo stesso ancoraggio assoluto.',
-        '',
-        '**Fill down** (Ctrl+D) copia verso il basso, **fill right** (Ctrl+R) copia verso destra, e se',
-        'selezioni prima l\'intera area e poi scrivi la formula nella prima cella, **Ctrl+Invio** la',
-        'incolla in tutta la selezione in un colpo solo. Tre scorciatoie per lo stesso gesto: prendi una',
-        'formula corretta e falla scorrere.',
-        '',
-        "Perche' importa cosi' tanto che resti IDENTICA: nessuno pianta un errore in un modello scrivendo",
-        'una formula sbagliata su tutta la riga — si vedrebbe al primo sguardo. Lo pianta **ritoccando',
-        "una cella sola in mezzo**, magari per aggiustare un numero che sembrava strano, magari",
-        'incollando un valore al posto della formula durante una modifica dell\'ultimo minuto. Il totale',
-        'continua a calcolare, non compare nessun cancelletto rosso, e il numero sembra plausibile: e\'',
-        "l'errore silenzioso piu' comune nei modelli veri, perche' si vede solo confrontando le FORMULE",
-        'cella per cella — mai guardando solo i numeri che restituiscono.',
-      ].join('\n'),
+      brief: [tx('M0B-07-CONSISTENZARIGA.10', { p0: eurM(ricaviAnno0), p1: pct(tasso), ANNI_PROIEZIONE })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Proiezione ricavi a tasso di crescita fisso'], { style: STILE_TITOLO }),
-            colonna('A3', ['Tasso di crescita annuo (fisso)'], { style: STILE_ETICHETTA }),
+            riga('A1', [tx('M0B-07-CONSISTENZARIGA.11')], { style: STILE_TITOLO }),
+            colonna('A3', [tx('M0B-07-CONSISTENZARIGA.12')], { style: STILE_ETICHETTA }),
             [{ ref: 'C3', content: tasso, style: STILE_TASSO_UNICO, locked: true }],
 
             riga('B5', intestazioniAnno, { style: STILE_TITOLO }),
-            colonna('A6', ['Ricavi (€)'], { style: STILE_ETICHETTA }),
+            colonna('A6', [tx('M0B-07-CONSISTENZARIGA.13')], { style: STILE_ETICHETTA }),
             [{ ref: `B${RIGA_RICAVI}`, content: ricaviAnno0, style: STILE_INPUT, locked: true }],
 
             areaLibera(COLONNE_PROIEZIONE.map((col) => `${col}${RIGA_RICAVI}`)),
@@ -177,19 +149,19 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=B${RIGA_RICAVI}*(1+$C$3): il tasso e' bloccato con $ su riga e colonna, cosi' non scivola quando trascini a destra.`,
+          tx('M0B-07-CONSISTENZARIGA.14', { RIGA_RICAVI }),
           10,
           'T1',
         ),
         hint(
           'H2',
-          `Seleziona C${RIGA_RICAVI}, prendi il maniglione in basso a destra e trascinalo fino a G${RIGA_RICAVI} — oppure copia e incolla su C${RIGA_RICAVI}:G${RIGA_RICAVI}.`,
+          tx('M0B-07-CONSISTENZARIGA.15', { RIGA_RICAVI }),
           8,
           'T2',
         ),
         hint(
           'H3',
-          "Se una cella nel mezzo mostra un numero diverso da quello che ti aspetti, controllane la formula con F2: e' li' che si nasconde il ritocco a mano.",
+          tx('M0B-07-CONSISTENZARIGA.16'),
           6,
           'T2',
         ),

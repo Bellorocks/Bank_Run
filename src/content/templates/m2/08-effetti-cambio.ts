@@ -44,6 +44,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
 const B_EBITDA_RIP = 'B4'; // EBITDA riportato (dato, bloccato)
 const B_UTILE_CAMBI = 'B5'; // Utile su cambi non ricorrente, importo assoluto (dato, bloccato)
@@ -54,7 +55,9 @@ const B_EBITDA_NORM = 'B9'; // T2
 export default defineTemplate({
   id: 'M2-08-EFFETTICAMBIO',
   module: 'M2',
-  title: 'Utili su cambi: un provento one-off nascosto nei costi',
+  get title() {
+    return tx('M2-08-EFFETTICAMBIO.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 220,
@@ -78,11 +81,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_RETTIFICA} calcola la rettifica QoE dovuta all'utile su cambi non ricorrente ` +
-        `(${B_UTILE_CAMBI}). Attenzione al segno: e' un PROVENTO one-off che ha gia' GONFIATO l'EBITDA ` +
-        "riportato — anche se e' finito dentro il costo delle materie prime invece che tra i ricavi, " +
-        "resta un guadagno una tantum, esattamente come una plusvalenza o un qualunque ricavo non " +
-        'ricorrente. Va TOLTO: la formula ha un segno meno davanti al riferimento.',
+        tx('M2-08-EFFETTICAMBIO.2', { B_RETTIFICA, B_UTILE_CAMBI }),
       target: `Model!${B_RETTIFICA}`,
       atteso: rettifica,
       referenzia: [B_UTILE_CAMBI],
@@ -94,9 +93,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_EBITDA_NORM} calcola l'EBITDA normalizzato: l'EBITDA riportato (${B_EBITDA_RIP}) piu' la ` +
-        `rettifica (${B_RETTIFICA}). La rettifica in ${B_RETTIFICA} porta gia' il segno corretto (negativo): ` +
-        'qui e\' comunque una somma.',
+        tx('M2-08-EFFETTICAMBIO.3', { B_EBITDA_NORM, B_EBITDA_RIP, B_RETTIFICA }),
       target: `Model!${B_EBITDA_NORM}`,
       atteso: ebitdaNormalizzato,
       referenzia: [B_EBITDA_RIP, B_RETTIFICA],
@@ -110,44 +107,18 @@ export default defineTemplate({
     return {
       templateId: 'M2-08-EFFETTICAMBIO',
       seed: rng.seed,
-      brief: [
-        "## Un utile su cambi puo' nascondersi dentro un costo, non solo tra i ricavi",
-        '',
-        "Questa azienda importa materie prime in valuta estera. Per come tiene i conti — una scelta " +
-          "di classificazione SUA, non lo standard contabile generale — contabilizza gli utili e le " +
-          "perdite su cambi REALIZZATI sui debiti commerciali direttamente dentro il costo delle " +
-          "materie prime, invece che nella gestione finanziaria sotto l'EBITDA (dove di norma gli " +
-          "effetti cambio si troverebbero, e non toccherebbero affatto l'EBITDA). Tienilo a mente: non " +
-          "e' la convenzione generale, e' una particolarita' di questa azienda.",
-        '',
-        "Quest'anno un forte movimento del cambio ha generato un **utile su cambi non ricorrente** " +
-          `di ${eur(utileCambi)}, finito dentro quel costo — e quindi dentro l'EBITDA riportato di ` +
-          `${eur(ebitdaRiportato)}, gonfiandolo.`,
-        '',
-        "La regola resta sempre la stessa:",
-        '',
-        '> **EBITDA normalizzato = EBITDA riportato + Σ rettifiche**',
-        '',
-        "- un **costo** one-off che ha gonfiato i costi (sgonfiato l'EBITDA riportato) si RIAGGIUNGE: " +
-          'rettifica **positiva**.',
-        "- un **ricavo/provento** one-off che ha gonfiato l'EBITDA riportato si TOGLIE: rettifica " +
-          '**negativa**.',
-        '',
-        "Un utile su cambi e' un provento, non un costo — anche se qui vive dentro una riga di costo. " +
-          "In questo livello la rettifica e' sempre negativa: non c'e' un caso \"perdita su cambi\" da " +
-          "confrontare, il punto e' fissare bene questo singolo segno prima di andare avanti nel modulo.",
-      ].join('\n'),
+      brief: [tx('M2-08-EFFETTICAMBIO.4', { p0: eur(utileCambi), p1: eur(ebitdaRiportato) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Effetti cambio nel costo delle materie prime'], { style: STILE_TITOLO }),
-            riga('A3', ['Dati di partenza'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M2-08-EFFETTICAMBIO.5')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M2-08-EFFETTICAMBIO.6')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'EBITDA riportato (da bilancio), €',
-                "Utile su cambi non ricorrente, gia' incluso nel costo materie prime sopra, €",
+                tx('M2-08-EFFETTICAMBIO.7'),
+                tx('M2-08-EFFETTICAMBIO.8'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -156,8 +127,8 @@ export default defineTemplate({
               { ref: B_UTILE_CAMBI, content: utileCambi, style: STILE_INPUT, locked: true },
             ],
 
-            riga('A7', ['Normalizzazione'], { style: STILE_TITOLO }),
-            colonna('A8', ['Rettifica QoE, €', 'EBITDA normalizzato, €'], { style: STILE_ETICHETTA }),
+            riga('A7', [tx('M2-08-EFFETTICAMBIO.13')], { style: STILE_TITOLO }),
+            colonna('A8', [tx('M2-08-EFFETTICAMBIO.9'), tx('M2-08-EFFETTICAMBIO.10')], { style: STILE_ETICHETTA }),
             [{ ref: B_RETTIFICA, content: null, locked: false, style: STILE_FORMULA }],
             [{ ref: B_EBITDA_NORM, content: null, locked: false, style: STILE_FORMULA }],
           ],
@@ -168,15 +139,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=-${B_UTILE_CAMBI}: l'utile su cambi e' un provento one-off da togliere, non un costo da ` +
-            'riaggiungere. Segno meno davanti al riferimento.',
+          tx('M2-08-EFFETTICAMBIO.11', { B_UTILE_CAMBI }),
           8,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_EBITDA_RIP}+${B_RETTIFICA}: EBITDA riportato piu' la rettifica, che porta gia' il segno ` +
-            'corretto (negativo).',
+          tx('M2-08-EFFETTICAMBIO.12', { B_EBITDA_RIP, B_RETTIFICA }),
           8,
           'T2',
         ),

@@ -47,6 +47,7 @@ import {
 } from '../../authoring';
 import { roundTo } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
 const B_CREDITI_CORR = 'B4'; // Crediti commerciali, anno corrente (dato, bloccato)
 const B_RIMANENZE_CORR = 'B5'; // Rimanenze, anno corrente (dato, bloccato)
@@ -61,7 +62,9 @@ const B_NWC_PREC = 'B16'; // T2
 export default defineTemplate({
   id: 'M3-01-COSAENWC',
   module: 'M3',
-  title: "Cos'e' il capitale circolante netto (NWC)",
+  get title() {
+    return tx('M3-01-COSAENWC.title');
+  },
   rank: 1,
   mode: 'GUIDED',
   estimatedSeconds: 220,
@@ -92,9 +95,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_NWC_CORR} calcola il Capitale Circolante Netto (NWC) dell'ANNO CORRENTE: crediti ` +
-        `commerciali (${B_CREDITI_CORR}) piu' rimanenze (${B_RIMANENZE_CORR}) meno debiti commerciali ` +
-        `(${B_DEBITI_CORR}). Nessun numero scritto a mano: solo i tre riferimenti.`,
+        tx('M3-01-COSAENWC.2', { B_NWC_CORR, B_CREDITI_CORR, B_RIMANENZE_CORR, B_DEBITI_CORR }),
       target: `Model!${B_NWC_CORR}`,
       atteso: nwcCorr,
       referenzia: [B_CREDITI_CORR, B_RIMANENZE_CORR, B_DEBITI_CORR],
@@ -106,11 +107,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_NWC_PREC} calcola LO STESSO Capitale Circolante Netto, ma per l'ANNO PRECEDENTE: la ` +
-        `formula e' identica a quella di sopra, cambiano solo i dati. Crediti commerciali ` +
-        `(${B_CREDITI_PREC}) piu' rimanenze (${B_RIMANENZE_PREC}) meno debiti commerciali ` +
-        `(${B_DEBITI_PREC}). Ti servira' nel prossimo livello, per calcolare quanto il NWC e' cambiato ` +
-        "da un anno all'altro.",
+        tx('M3-01-COSAENWC.3', { B_NWC_PREC, B_CREDITI_PREC, B_RIMANENZE_PREC, B_DEBITI_PREC }),
       target: `Model!${B_NWC_PREC}`,
       atteso: nwcPrec,
       referenzia: [B_CREDITI_PREC, B_RIMANENZE_PREC, B_DEBITI_PREC],
@@ -124,51 +121,17 @@ export default defineTemplate({
     return {
       templateId: 'M3-01-COSAENWC',
       seed: rng.seed,
-      brief: [
-        '## Il capitale circolante netto, dai suoi tre pezzi',
-        '',
-        "In M1-07 hai costruito il Rendiconto Finanziario partendo da una variazione del Capitale " +
-          "Circolante Netto (ΔCCN) che arrivava gia' pronta, come un unico numero con segno. Era una " +
-          "semplificazione dichiarata: qui, in M3, si smonta. Il NWC (*Net Working Capital*, capitale " +
-          "circolante netto operativo) non arriva piu' bell'e pronto — lo costruisci tu, da tre poste " +
-          "commerciali di fine periodo:",
-        '',
-        '> **NWC operativo = Crediti commerciali + Rimanenze - Debiti commerciali**',
-        '',
-        "**Nota bene**: questa e' la definizione OPERATIVA, quella commerciale — non la definizione " +
-          "contabile completa di capitale circolante (che includerebbe anche ratei, risconti e altre " +
-          "attivita'/passivita' correnti non legate al ciclo commerciale). E' pero' esattamente la " +
-          "definizione che si usa in pratica in M&A quando si parla di \"NWC\", ed e' quella su cui si " +
-          "costruira' tutto il resto di questo modulo.",
-        '',
-        "**Perche' crediti e rimanenze si sommano, e i debiti si sottraggono?** Crediti commerciali e " +
-          "rimanenze sono soldi che l'azienda ha gia' \"congelato\" — venduto ma non ancora incassato, o " +
-          "comprato ma non ancora venduto. I debiti commerciali sono l'opposto: soldi che l'azienda deve " +
-          "ancora pagare ai fornitori, quindi cassa che non e' ancora uscita. Piu' crediti e magazzino " +
-          "significano meno cassa disponibile; piu' debiti verso i fornitori significano piu' cassa " +
-          "disponibile — da qui il segno.",
-        '',
-        `Qui hai i dati di due periodi. Anno corrente: crediti commerciali ${eur(creditiCorr)}, ` +
-          `rimanenze ${eur(rimanenzeCorr)}, debiti commerciali ${eur(debitiCorr)}. Anno precedente: ` +
-          `crediti commerciali ${eur(creditiPrec)}, rimanenze ${eur(rimanenzePrec)}, debiti commerciali ` +
-          `${eur(debitiPrec)}.`,
-        '',
-        "Calcola il NWC di entrambi gli anni, con la stessa formula. Non ti chiedo ancora di calcolare " +
-          "quanto e' cambiato da un anno all'altro — quello e' il livello successivo, dove i due numeri " +
-          "che stai per calcolare diventano il punto di partenza. Ricorda solo la regola che gia' " +
-          "conosci da M1-07: un NWC che AUMENTA assorbe cassa, un NWC che DIMINUISCE la libera. Lo stesso " +
-          'segno, sempre.',
-      ].join('\n'),
+      brief: [tx('M3-01-COSAENWC.4', { p0: eur(creditiCorr), p1: eur(rimanenzeCorr), p2: eur(debitiCorr), p3: eur(creditiPrec), p4: eur(rimanenzePrec), p5: eur(debitiPrec) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Capitale circolante netto: la definizione'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M3-01-COSAENWC.5')], { style: STILE_TITOLO }),
 
-            riga('A3', ['Anno corrente (fine periodo)'], { style: STILE_TITOLO }),
+            riga('A3', [tx('M3-01-COSAENWC.6')], { style: STILE_TITOLO }),
             colonna(
               'A4',
-              ['Crediti commerciali, €', 'Rimanenze, €', 'Debiti commerciali, €'],
+              [tx('M3-01-COSAENWC.7'), tx('M3-01-COSAENWC.16'), tx('M3-01-COSAENWC.8')],
               { style: STILE_ETICHETTA },
             ),
             [
@@ -176,13 +139,13 @@ export default defineTemplate({
               { ref: B_RIMANENZE_CORR, content: rimanenzeCorr, style: STILE_INPUT, locked: true },
               { ref: B_DEBITI_CORR, content: debitiCorr, style: STILE_INPUT, locked: true },
             ],
-            [{ ref: 'A8', content: 'Capitale circolante netto (NWC), €', locked: true, style: STILE_ETICHETTA }],
+            [{ ref: 'A8', content: tx('M3-01-COSAENWC.9'), locked: true, style: STILE_ETICHETTA }],
             [{ ref: B_NWC_CORR, content: null, locked: false, style: STILE_FORMULA }],
 
-            riga('A11', ['Anno precedente (fine periodo)'], { style: STILE_TITOLO }),
+            riga('A11', [tx('M3-01-COSAENWC.10')], { style: STILE_TITOLO }),
             colonna(
               'A12',
-              ['Crediti commerciali, €', 'Rimanenze, €', 'Debiti commerciali, €'],
+              [tx('M3-01-COSAENWC.11'), tx('M3-01-COSAENWC.17'), tx('M3-01-COSAENWC.12')],
               { style: STILE_ETICHETTA },
             ),
             [
@@ -190,7 +153,7 @@ export default defineTemplate({
               { ref: B_RIMANENZE_PREC, content: rimanenzePrec, style: STILE_INPUT, locked: true },
               { ref: B_DEBITI_PREC, content: debitiPrec, style: STILE_INPUT, locked: true },
             ],
-            [{ ref: 'A16', content: 'Capitale circolante netto (NWC), €', locked: true, style: STILE_ETICHETTA }],
+            [{ ref: 'A16', content: tx('M3-01-COSAENWC.13'), locked: true, style: STILE_ETICHETTA }],
             [{ ref: B_NWC_PREC, content: null, locked: false, style: STILE_FORMULA }],
           ],
           { colWidths: { A: 420, B: 140 }, frozenRows: 1 },
@@ -200,15 +163,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_CREDITI_CORR}+${B_RIMANENZE_CORR}-${B_DEBITI_CORR}: crediti piu' rimanenze, meno debiti ` +
-            'commerciali.',
+          tx('M3-01-COSAENWC.14', { B_CREDITI_CORR, B_RIMANENZE_CORR, B_DEBITI_CORR }),
           8,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_CREDITI_PREC}+${B_RIMANENZE_PREC}-${B_DEBITI_PREC}: stessa formula di sopra, applicata ` +
-            "ai dati dell'anno precedente.",
+          tx('M3-01-COSAENWC.15', { B_CREDITI_PREC, B_RIMANENZE_PREC, B_DEBITI_PREC }),
           8,
           'T2',
         ),

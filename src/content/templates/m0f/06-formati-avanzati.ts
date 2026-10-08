@@ -52,6 +52,7 @@ import {
 } from '../../authoring';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 /** Formato contabile: negativi fra parentesi, zero mostrato come trattino. */
 const FORMATO_CONTABILE = '#,##0;(#,##0);-';
 /** Moltiplicatore, come si scrive un EV/EBITDA o una leva. */
@@ -66,7 +67,9 @@ const STILE_CAMPIONE_MIGLIAIA = { ...STILE_FORMULA, numFmt: FORMATO_MIGLIAIA };
 export default defineTemplate({
   id: 'M0F-06-FORMATIAVANZATI',
   module: 'M0-F',
-  title: 'Tre formati da mestiere',
+  get title() {
+    return tx('M0F-06-FORMATIAVANZATI.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 360,
@@ -102,10 +105,7 @@ export default defineTemplate({
     const t1Base = taskFormula({
       id: 'T1',
       prompt:
-        'In B5 calcola lo scostamento EBITDA: effettivo meno budget. Il numero verra\' negativo — ' +
-        'lascialo cosi\', il formato ci pensa a mostrarlo fra parentesi. Poi vestilo: copia la cella ' +
-        'campione E3 (Ctrl+C), seleziona B5, e incolla solo il formato con Ctrl+Alt+V seguito da T. ' +
-        'La formula che hai scritto non cambia: cambia solo come Excel la disegna.',
+        tx('M0F-06-FORMATIAVANZATI.2'),
       target: 'Model!B5',
       atteso: scostamento,
       referenzia: ['B4', 'B3'],
@@ -121,8 +121,7 @@ export default defineTemplate({
           kind: 'numberFormat' as const,
           expected: FORMATO_CONTABILE,
           message:
-            'Il numero e\' giusto ma manca il vestito contabile: copia il formato dalla cella campione ' +
-            '(Ctrl+C su E3, poi su B5 Ctrl+Alt+V e T) invece di lasciare il segno meno.',
+            tx('M0F-06-FORMATIAVANZATI.3'),
         },
       ],
     };
@@ -130,9 +129,7 @@ export default defineTemplate({
     const t2Base = taskFormula({
       id: 'T2',
       prompt:
-        'In B8 calcola il multiplo EV/EBITDA: Enterprise Value diviso l\'EBITDA effettivo che hai gia\' ' +
-        'in B4. Poi copia il formato dalla cella campione E7 (Ctrl+C, poi su B8 Ctrl+Alt+V e T): un ' +
-        'multiplo si legge "6,4x", non "6,4" e non "640%".',
+        tx('M0F-06-FORMATIAVANZATI.4'),
       target: 'Model!B8',
       atteso: multiploAtteso,
       referenzia: ['B7', 'B4'],
@@ -148,8 +145,7 @@ export default defineTemplate({
           kind: 'numberFormat' as const,
           expected: FORMATO_MULTIPLO,
           message:
-            'Il numero e\' giusto ma manca la "x": copia il formato dalla cella campione E7 (Ctrl+C, ' +
-            'poi su B8 Ctrl+Alt+V e T).',
+            tx('M0F-06-FORMATIAVANZATI.5'),
         },
       ],
     };
@@ -157,9 +153,7 @@ export default defineTemplate({
     const t3Base = taskFormula({
       id: 'T3',
       prompt:
-        'In B12 somma Ricavi Italia e Ricavi estero. Poi copia il formato dalla cella campione E10 ' +
-        '(Ctrl+C, poi su B12 Ctrl+Alt+V e T): la virgola finale del formato divide per mille SOLO in ' +
-        'facciata, il valore salvato in cella resta quello pieno.',
+        tx('M0F-06-FORMATIAVANZATI.6'),
       target: 'Model!B12',
       atteso: ricaviTotali,
       referenzia: ['B10', 'B11'],
@@ -175,8 +169,7 @@ export default defineTemplate({
           kind: 'numberFormat' as const,
           expected: FORMATO_MIGLIAIA,
           message:
-            'Il numero e\' giusto ma non e\' in scala: copia il formato dalla cella campione E10 ' +
-            '(Ctrl+C, poi su B12 Ctrl+Alt+V e T).',
+            tx('M0F-06-FORMATIAVANZATI.7'),
         },
       ],
     };
@@ -186,67 +179,32 @@ export default defineTemplate({
     return {
       templateId: 'M0F-06-FORMATIAVANZATI',
       seed: rng.seed,
-      brief: [
-        '## Tre vestiti che si leggono senza pensarci',
-        '',
-        'Un formato numerico non cambia il numero, cambia solo come Excel lo disegna — lo hai gia\' ' +
-        'visto con la valuta e la percentuale. Qui trovi tre formati **custom**, di quelli che non ' +
-        'hanno una scorciatoia dedicata e si copiano da una cella che li ha gia\':',
-        '',
-        `- **Formato contabile** \`${FORMATO_CONTABILE}\` — i negativi fra **parentesi**, mai col segno ` +
-        'meno. E\' lo standard di ogni modello IB/PE: uno scostamento negativo disperso in mezzo a una ' +
-        'colonna di numeri positivi si vede a colpo d\'occhio solo se non condivide lo stesso segno "-" ' +
-        'di un trattino di sottrazione scritto a mano.',
-        `- **Moltiplicatore** \`${FORMATO_MULTIPLO}\` — un rapporto come l\'EV/EBITDA si legge "x", non %.`,
-        `- **Scala in migliaia** \`${FORMATO_MIGLIAIA}\` — la virgola finale del formato divide per 1.000 ` +
-        'solo nella vista: il numero salvato in cella non si tocca.',
-        '',
-        'Nessuno di questi tre ha una combinazione di tasti dedicata, e questo trainer non ha ancora un ' +
-        'dialogo "Formato celle" con cui digitarli a mano. La soluzione e\' quella che si usa anche in un ' +
-        'modello vero quando lo standard di formattazione e\' gia\' fissato altrove nel foglio: **si copia ' +
-        'il formato**. Ogni blocco qui sotto ha una casella "Esempio", bloccata, gia\' vestita col formato ' +
-        'giusto — copiala (`Ctrl+C`), seleziona la cella dove hai scritto la tua formula, e incolla SOLO ' +
-        'il formato con `Ctrl+Alt+V` poi `T`: il contenuto della cella bersaglio non cambia, cambia solo ' +
-        'come Excel lo disegna.',
-        '',
-        '## Il caso',
-        '',
-        `L'EBITDA di budget era ${eur(ebitdaBudget)}, quello effettivo si e\' fermato a ` +
-        `${eur(ebitdaEffettivo)} — uno scostamento negativo che va letto fra parentesi, non con un segno ` +
-        'meno perso in mezzo alla colonna.',
-        '',
-        `L'Enterprise Value dell'operazione e\' ${eur(enterpriseValue)}: diviso l'EBITDA effettivo da\' il ` +
-        `multiplo a cui e\' stata valutata l'azienda.`,
-        '',
-        `Infine i ricavi: ${eur(ricaviItalia)} in Italia e ${eur(ricaviEstero)} all'estero. Sommati sono ` +
-        'un numero a otto cifre — in un report li mostri in migliaia, cosi\' si leggono senza contare gli ' +
-        'zeri.',
-      ].join('\n'),
+      brief: [tx('M0F-06-FORMATIAVANZATI.8', { FORMATO_CONTABILE, FORMATO_MULTIPLO, FORMATO_MIGLIAIA, p3: eur(ebitdaBudget), p4: eur(ebitdaEffettivo), p5: eur(enterpriseValue), p6: eur(ricaviItalia), p7: eur(ricaviEstero) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Report di valutazione'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M0F-06-FORMATIAVANZATI.9')], { style: STILE_TITOLO }),
 
-            blocco('A3', [['EBITDA di budget (€)'], ['EBITDA effettivo (€)'], ['Scostamento vs budget (€)']], {
+            blocco('A3', [[tx('M0F-06-FORMATIAVANZATI.10')], [tx('M0F-06-FORMATIAVANZATI.11')], [tx('M0F-06-FORMATIAVANZATI.12')]], {
               style: STILE_ETICHETTA,
             }),
             blocco('B3', [[ebitdaBudget], [ebitdaEffettivo]], { style: STILE_INPUT }),
-            blocco('D3', [['Esempio (formato contabile)']], { style: STILE_ETICHETTA }),
+            blocco('D3', [[tx('M0F-06-FORMATIAVANZATI.13')]], { style: STILE_ETICHETTA }),
             blocco('E3', [[esempioContabile]], { style: STILE_CAMPIONE_CONTABILE }),
 
-            blocco('A7', [['Enterprise Value (€)'], ['Multiplo EV/EBITDA (su EBITDA effettivo)']], {
+            blocco('A7', [[tx('M0F-06-FORMATIAVANZATI.14')], [tx('M0F-06-FORMATIAVANZATI.15')]], {
               style: STILE_ETICHETTA,
             }),
             blocco('B7', [[enterpriseValue]], { style: STILE_INPUT }),
-            blocco('D7', [['Esempio (formato multiplo)']], { style: STILE_ETICHETTA }),
+            blocco('D7', [[tx('M0F-06-FORMATIAVANZATI.16')]], { style: STILE_ETICHETTA }),
             blocco('E7', [[esempioMultiplo]], { style: STILE_CAMPIONE_MULTIPLO }),
 
-            blocco('A10', [['Ricavi Italia (€)'], ['Ricavi estero (€)'], ["Ricavi totali, in migliaia (€'000)"]], {
+            blocco('A10', [[tx('M0F-06-FORMATIAVANZATI.17')], [tx('M0F-06-FORMATIAVANZATI.18')], [tx('M0F-06-FORMATIAVANZATI.19')]], {
               style: STILE_ETICHETTA,
             }),
             blocco('B10', [[ricaviItalia], [ricaviEstero]], { style: STILE_INPUT }),
-            blocco('D10', [['Esempio (formato migliaia)']], { style: STILE_ETICHETTA }),
+            blocco('D10', [[tx('M0F-06-FORMATIAVANZATI.20')]], { style: STILE_ETICHETTA }),
             blocco('E10', [[esempioMigliaia]], { style: STILE_CAMPIONE_MIGLIAIA }),
 
             areaLibera(['B5', 'B8', 'B12']),
@@ -270,7 +228,7 @@ export default defineTemplate({
         ),
         hint(
           'H3',
-          `=B10+B11 in B12. Poi Ctrl+C su E10, seleziona B12, Ctrl+Alt+V e T: la scala in migliaia arriva col formato, il totale in cella resta pieno (scostamento ${pct(shortfallFrac)} su budget, per contesto).`,
+          tx('M0F-06-FORMATIAVANZATI.21', { p0: pct(shortfallFrac) }),
           12,
           'T3',
         ),

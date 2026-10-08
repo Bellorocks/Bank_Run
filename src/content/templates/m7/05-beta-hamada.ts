@@ -59,6 +59,7 @@ import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 /** Beta: un numero puro (non una percentuale, non una valuta), due decimali. */
 const STILE_INPUT_BETA: CellStyle = { fontColor: MODEL_COLORS.input, numFmt: '0.00' };
 const STILE_FORMULA_BETA: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: '0.00' };
@@ -77,7 +78,9 @@ const TAX_RATE = 0.24;
 export default defineTemplate({
   id: 'M7-05-BETAHAMADA',
   module: 'M7',
-  title: "Beta di Hamada: unlever e relever il beta di un peer",
+  get title() {
+    return tx('M7-05-BETAHAMADA.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -140,15 +143,7 @@ export default defineTemplate({
     const t1: Task = {
       id: 'T1',
       prompt:
-        `In ${B_BETA_UNLEV} calcola il beta UNLEVERED del peer: togli l'effetto della leva ` +
-        `finanziaria DEL PEER dal suo beta levered osservato (${B_BETA_PEER}), usando il D/E del ` +
-        `peer (${B_DE_PEER}) e l'aliquota fiscale (${B_TAX}). ` +
-        'Formula di Hamada (unlever): Beta unlevered = Beta levered / (1 + (1 - aliquota) × D/E). ' +
-        "Il beta unlevered e' il beta \"puro\" del business — quello che avrebbe l'azienda se fosse " +
-        "finanziata solo con equity, senza debito — indipendente da come il peer specifico e' " +
-        "finanziato. E' un risultato INTERMEDIO: non e' ancora il beta da usare nel CAPM " +
-        "dell'azienda da valutare (quello arriva in T2). Usa le tre celle date, senza copiare i " +
-        'numeri a mano.',
+        tx('M7-05-BETAHAMADA.2', { B_BETA_UNLEV, B_BETA_PEER, B_DE_PEER, B_TAX }),
       targetCell: `Model!${B_BETA_UNLEV}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -158,9 +153,7 @@ export default defineTemplate({
           tolerance: 0.0005,
           toleranceMode: 'absolute',
           message:
-            "Il valore non torna: controlla che tu stia DIVIDENDO il beta levered per " +
-            '(1 + (1 - aliquota) × D/E del peer), non moltiplicando o usando l\'aliquota da sola ' +
-            'al posto di (1 - aliquota).',
+            tx('M7-05-BETAHAMADA.3'),
         },
         { kind: 'mustReference', cells: [B_BETA_PEER, B_DE_PEER, B_TAX] },
         { kind: 'mustNotContainLiteral', except: [1] },
@@ -172,14 +165,7 @@ export default defineTemplate({
     const t2: Task = {
       id: 'T2',
       prompt:
-        `In ${B_BETA_RELEV} calcola il beta RELEVERED alla struttura TARGET: riparti dal beta ` +
-        `unlevered appena calcolato (${B_BETA_UNLEV}) e applica la leva TARGET dell'azienda da ` +
-        `valutare (${B_DE_TARGET}), con la stessa aliquota fiscale (${B_TAX}). ` +
-        'Formula di Hamada (relever): Beta relevered = Beta unlevered × (1 + (1 - aliquota) × D/E ' +
-        `target). Attenzione: la leva da usare qui e' quella TARGET, NON quella del peer (${B_DE_PEER} ` +
-        "e' gia' stata usata e \"consumata\" in T1) — il punto dell'esercizio e' proprio rivestire il " +
-        "beta puro del business con la struttura di capitale DELL'AZIENDA DA VALUTARE, non con " +
-        "quella del peer da cui e' partito. Usa le tre celle date, senza copiare i numeri a mano.",
+        tx('M7-05-BETAHAMADA.4', { B_BETA_RELEV, B_BETA_UNLEV, B_DE_TARGET, B_TAX, B_DE_PEER }),
       targetCell: `Model!${B_BETA_RELEV}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -189,8 +175,7 @@ export default defineTemplate({
           tolerance: 0.0005,
           toleranceMode: 'absolute',
           message:
-            "Il valore non torna: controlla che tu stia MOLTIPLICANDO il beta unlevered per " +
-            '(1 + (1 - aliquota) × D/E TARGET) — usa la leva target, non quella del peer.',
+            tx('M7-05-BETAHAMADA.5'),
         },
         { kind: 'mustReference', cells: [B_BETA_UNLEV, B_DE_TARGET, B_TAX] },
         { kind: 'mustNotContainLiteral', except: [1] },
@@ -204,54 +189,20 @@ export default defineTemplate({
     return {
       templateId: 'M7-05-BETAHAMADA',
       seed: rng.seed,
-      brief: [
-        "## Beta di Hamada: unlever e relever il beta di un peer",
-        '',
-        "Il CAPM (M7-04) ha bisogno di un beta, ma il beta osservato di un peer quotato NON si puo' " +
-          "riusare cosi' com'e': quel beta riflette anche la struttura di capitale (il rapporto " +
-          "Debito/Equity, \"D/E\") DI QUEL peer, non quella dell'azienda che stai valutando. Piu' " +
-          "un'azienda e' indebitata, piu' il rischio si amplifica per chi detiene l'equity — quindi " +
-          "il beta levered osservato \"contiene\" un pezzo di rischio che dipende da quanto debito ha " +
-          "il peer, non solo dal rischio del business in se'.",
-        '',
-        'La formula di Hamada separa le due cose in due passi, in questo ordine:',
-        '',
-        '**1) Unlever — togli la leva DEL PEER:**',
-        '',
-        '> **Beta unlevered = Beta levered peer / (1 + (1 - aliquota) × D/E peer)**',
-        '',
-        "Il beta unlevered e' il beta \"puro\" del business: quello che avrebbe l'azienda se fosse " +
-          "finanziata solo con equity, senza debito. E' un risultato INTERMEDIO, mai il numero " +
-          "finale da usare nel CAPM.",
-        '',
-        '**2) Relever — applica la leva TARGET:**',
-        '',
-        '> **Beta relevered = Beta unlevered × (1 + (1 - aliquota) × D/E target)**',
-        '',
-        "Qui si applica il D/E TARGET — quello dell'azienda da valutare, non quello del peer — per " +
-          "ottenere il beta che riflette IL SUO rischio.",
-        '',
-        "L'aliquota fiscale entra perche' gli interessi sul debito sono deducibili: lo scudo " +
-          "fiscale riduce l'effetto della leva sul rischio dell'equity, per questo compare come " +
-          '(1 - aliquota) e non da sola.',
-        '',
-        `**I dati**, gia' pronti come assunzioni: beta levered del peer comparabile ${num(betaPeer, 2)}, ` +
-          `D/E del peer ${num(dePeer, 2)}x, aliquota fiscale ${pct(TAX_RATE, 0)}, D/E target ` +
-          `dell'azienda da valutare ${num(deTarget, 2)}x.`,
-      ].join('\n'),
+      brief: [tx('M7-05-BETAHAMADA.6', { p0: num(betaPeer, 2), p1: num(dePeer, 2), p2: pct(TAX_RATE, 0), p3: num(deTarget, 2) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ["Beta di Hamada: unlever e relever"], { style: STILE_TITOLO }),
-            riga('A3', ['Dati'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M7-05-BETAHAMADA.7')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M7-05-BETAHAMADA.17')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'Beta levered del peer comparabile',
-                'D/E del peer',
-                'Aliquota fiscale',
-                "D/E target (azienda da valutare)",
+                tx('M7-05-BETAHAMADA.8'),
+                tx('M7-05-BETAHAMADA.9'),
+                tx('M7-05-BETAHAMADA.10'),
+                tx('M7-05-BETAHAMADA.11'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -262,10 +213,10 @@ export default defineTemplate({
               { ref: B_DE_TARGET, content: deTarget, style: STILE_INPUT_MULTIPLO, locked: true },
             ],
 
-            riga('A9', ['Formula di Hamada'], { style: STILE_TITOLO }),
+            riga('A9', [tx('M7-05-BETAHAMADA.12')], { style: STILE_TITOLO }),
             colonna(
               'A10',
-              ["Beta unlevered (del business)", 'Beta relevered (a struttura target)'],
+              [tx('M7-05-BETAHAMADA.13'), tx('M7-05-BETAHAMADA.14')],
               { style: STILE_ETICHETTA },
             ),
             [
@@ -280,15 +231,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_BETA_PEER}/(1+(1-${B_TAX})*${B_DE_PEER}): beta levered del peer diviso ` +
-            `(1 + (1 - aliquota) × D/E del peer) (qui vale ${num(betaUnlevered, 2)}).`,
+          tx('M7-05-BETAHAMADA.15', { B_BETA_PEER, B_TAX, B_DE_PEER, p3: num(betaUnlevered, 2) }),
           10,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_BETA_UNLEV}*(1+(1-${B_TAX})*${B_DE_TARGET}): beta unlevered moltiplicato per ` +
-            `(1 + (1 - aliquota) × D/E TARGET) (qui vale ${num(betaRelevered, 2)}).`,
+          tx('M7-05-BETAHAMADA.16', { B_BETA_UNLEV, B_TAX, B_DE_TARGET, p3: num(betaRelevered, 2) }),
           10,
           'T2',
         ),

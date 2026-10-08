@@ -71,6 +71,7 @@ import { roundTo, triangular } from '../../../rng/distributions';
 import type { CellStyle } from '../../../engine/types';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 /** FCF: unico numero che OGNI cella della griglia deve guardare — riquadrato. */
 const STILE_FCF: CellStyle = {
   fontColor: MODEL_COLORS.input,
@@ -104,7 +105,9 @@ const rigaMatrice = (i: number): number => 6 + i; // 6, 7, 8
 export default defineTemplate({
   id: 'M7-13-SENSITIVITY',
   module: 'M7',
-  title: 'Sensitivity WACC × g',
+  get title() {
+    return tx('M7-13-SENSITIVITY.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 360,
@@ -159,14 +162,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${primaCella} costruisci il Terminal Value (Gordon growth) per la prima combinazione della ` +
-        `griglia: FCF × (1 + g) / (WACC − g). Il FCF sta nella casella riquadrata in C2 — e\' l\'unico ` +
-        "numero che OGNI cella della matrice deve guardare, quindi va bloccato su riga E colonna con $. " +
-        `Il WACC di questa riga sta in B${rigaMatrice(0)} (deve restare fisso in colonna quando copi a ` +
-        'destra, ma scendere quando copi in basso: blocca solo la colonna). Il g di questa colonna sta ' +
-        'in C5 (deve restare fisso in riga quando copi in basso, ma scorrere quando copi a destra: blocca ' +
-        'solo la riga). Scrivi la formula in modo da poterla copiare su tutta la griglia C6:E8 senza mai ' +
-        'ritoccarla.',
+        tx('M7-13-SENSITIVITY.2', { primaCella, p1: rigaMatrice(0) }),
       target: `Model!${primaCella}`,
       atteso: valoreAt(0, 0),
       referenzia: ['C2', `B${rigaMatrice(0)}`, 'C5'],
@@ -179,10 +175,7 @@ export default defineTemplate({
     const t2: Task = {
       id: 'T2',
       prompt:
-        `Riempi tutta la griglia ${rangeMatrice.replace('Model!', '')} copiando quella formula in ogni ` +
-        "direzione. Stessa formula, stessi tre ancoraggi, nessun ritocco cella per cella: e\' cosi\' che " +
-        'una vera Data Table 2 vie si comporterebbe da sola — qui la ricostruisci a mano, ma la disciplina ' +
-        'e\' identica.',
+        tx('M7-13-SENSITIVITY.3', { p0: rangeMatrice.replace('Model!', '') }),
       targetCell: rangeMatrice,
       check: [
         { kind: 'consistentRow' as const, range: rangeMatrice },
@@ -195,9 +188,7 @@ export default defineTemplate({
     const t3: Task = {
       id: 'T3',
       prompt:
-        `Controlla ${ultimaCella}, l'angolo in basso a destra della griglia: WACC massimo, g massimo. Se ` +
-        "un ancoraggio e' sbagliato e' li' che smette di nascondersi — al centro della griglia lo stesso " +
-        'errore produce spesso un numero ancora plausibile, agli estremi no.',
+        tx('M7-13-SENSITIVITY.4', { ultimaCella }),
       targetCell: `Model!${ultimaCella}`,
       check: [
         { kind: 'mustBeFormula' as const },
@@ -205,9 +196,7 @@ export default defineTemplate({
           kind: 'value' as const,
           expected: valoreAt(N - 1, N - 1),
           message:
-            "L'angolo in basso a destra non torna: e' li' che un $ dimenticato o messo nel posto " +
-            "sbagliato si vede. Al centro della griglia lo stesso errore puo' produrre un numero che " +
-            'sembra credibile.',
+            tx('M7-13-SENSITIVITY.5'),
         },
       ],
       skills: ['dcf.sensitivity'],
@@ -221,11 +210,7 @@ export default defineTemplate({
     const t4: Task = {
       id: 'T4',
       prompt:
-        `In C10 calcola il RANGE del Terminal Value nella griglia: il valore massimo meno il valore ` +
-        `minimo sull'intera area ${rangeMatrice.replace('Model!', '')}, con MAX e MIN. E\' il numero che ` +
-        "quantifica quanto il Terminal Value dipende dalle due assunzioni piu' incerte — quello che " +
-        "davvero si porta in comitato, non il valore di una singola cella. Formula: MAX(griglia) - " +
-        'MIN(griglia).',
+        tx('M7-13-SENSITIVITY.6', { p0: rangeMatrice.replace('Model!', '') }),
       targetCell: 'Model!C10',
       check: [
         { kind: 'mustBeFormula' as const },
@@ -235,8 +220,7 @@ export default defineTemplate({
           tolerance: 0.001,
           toleranceMode: 'relative' as const,
           message:
-            "Il range non torna: controlla che tu stia usando MAX e MIN sull'intera griglia " +
-            `${rangeMatrice.replace('Model!', '')}, non un incrocio scelto a mano.`,
+            tx('M7-13-SENSITIVITY.7', { p0: rangeMatrice.replace('Model!', '') }),
         },
         { kind: 'mustReference' as const, cells: [primaCella, `${colLettera(N - 1)}${rigaMatrice(0)}`, `C${rigaMatrice(N - 1)}`, ultimaCella] },
         { kind: 'mustUseFunction' as const, functions: ['MAX', 'MIN'], quantifier: 'all' as const },
@@ -256,51 +240,20 @@ export default defineTemplate({
     return {
       templateId: 'M7-13-SENSITIVITY',
       seed: rng.seed,
-      brief: [
-        '## La tabella che finisce in comitato',
-        '',
-        'Ogni DCF sconta un Terminal Value che dipende da due assunzioni che nessuno conosce con',
-        'certezza: il **WACC** (il costo del capitale usato per scontare) e il **g** (la crescita',
-        "perpetua oltre l'orizzonte esplicito). Prima di portare il numero in comitato, il desk vuole",
-        'vedere quanto quel numero e\' FRAGILE — quanto cambia se WACC e g si muovono anche di poco',
-        'intorno al caso base. E\' la sensitivity WACC × g: una griglia dove ogni cella e\' un Terminal',
-        'Value ricalcolato per una combinazione diversa delle due assunzioni.',
-        '',
-        '*(Questo trainer non genera ancora la Data Table vera dentro il foglio — stesso limite gia\'',
-        'visto in M0F-02: HyperFormula non la implementa. L\'esercizio allena comunque esattamente la',
-        'disciplina che la farebbe funzionare: una formula sola, con tre ancoraggi diversi, copiata su',
-        'tutta la griglia.)*',
-        '',
-        `Il Terminal Value per ogni combinazione e\' la perpetuita' di Gordon: **FCF × (1 + g) /`,
-        '(WACC − g)**, dove FCF e\' il FCF (gia\' normalizzato) dell\'ultimo anno esplicito. La regola',
-        'che tiene in piedi la formula resta la stessa vista nel Terminal Value: **WACC deve sempre',
-        'restare maggiore di g**, altrimenti il denominatore collassa o s\'inverte di segno — guardando',
-        'la griglia, nota quanto il valore SALE in fretta quando WACC scende verso g: e\' esattamente il',
-        'motivo per cui nessun DCF vero si fida di un unico punto.',
-        '',
-        `**I dati**, gia' pronti come assunzioni: FCF dell'ultimo anno esplicito ${eurM(fcfUltimoAnno)}.`,
-        `WACC va da ${pct(waccValues[0], 2)} a ${pct(waccValues[N - 1], 2)} a passi di 1 punto`,
-        `percentuale, lungo le righe. g va da ${pct(gValues[0], 2)} a ${pct(gValues[N - 1], 2)} a passi`,
-        'di 50 punti base, lungo le colonne. Il FCF sta in una casella sola, riquadrata: e\' il numero',
-        'che ogni cella della matrice deve guardare, mai un altro punto del foglio.',
-        '',
-        'Dopo aver riempito la griglia, calcola anche il suo **range** (massimo meno minimo): e\' il',
-        'numero con cui si risponde alla domanda "quanto e\' sensibile questa valutazione?" in una riga',
-        'sola.',
-      ].join('\n'),
+      brief: [tx('M7-13-SENSITIVITY.8', { p0: eurM(fcfUltimoAnno), p1: pct(waccValues[0], 2), p2: pct(waccValues[N - 1], 2), p3: pct(gValues[0], 2), p4: pct(gValues[N - 1], 2) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Sensitivity WACC × g — Terminal Value (Gordon growth)'], { style: STILE_TITOLO }),
-            colonna('A2', ["FCF dell'ultimo anno esplicito della proiezione, €"], { style: STILE_ETICHETTA }),
+            riga('A1', [tx('M7-13-SENSITIVITY.9')], { style: STILE_TITOLO }),
+            colonna('A2', [tx('M7-13-SENSITIVITY.10')], { style: STILE_ETICHETTA }),
             [{ ref: 'C2', content: fcfUltimoAnno, style: STILE_FCF, locked: true }],
 
-            riga('A5', ['WACC ↓  \\  g →'], { style: STILE_ETICHETTA }),
+            riga('A5', [tx('M7-13-SENSITIVITY.11')], { style: STILE_ETICHETTA }),
             riga('C5', gValues, { style: STILE_ASSUNZIONE_PCT }),
             colonna('B6', waccValues, { style: STILE_ASSUNZIONE_PCT }),
 
-            colonna('A10', ['Range del Terminal Value nella griglia (max − min), €'], { style: STILE_ETICHETTA }),
+            colonna('A10', [tx('M7-13-SENSITIVITY.12')], { style: STILE_ETICHETTA }),
 
             areaLibera([...areaMatrice, 'C10']),
           ],
@@ -315,17 +268,14 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `Scrivi =$C$2*(1+C$5)/(B${rigaMatrice(0)}-C$5), poi torna su ciascun riferimento con F4: C2 ` +
-            `fisso su riga e colonna, B${rigaMatrice(0)} fisso solo sulla colonna (deve scendere ma non ` +
-            'scivolare a destra), C5 fisso solo sulla riga (deve scorrere a destra ma non scendere).',
+          tx('M7-13-SENSITIVITY.13', { p0: rigaMatrice(0), p1: rigaMatrice(0) }),
           15,
           'T1',
         ),
-        hint('H2', `Copia ${primaCella}, seleziona ${rangeMatrice.replace('Model!', '')}, incolla (o Ctrl+D poi Ctrl+R).`, 10, 'T2'),
+        hint('H2', tx('M7-13-SENSITIVITY.14', { primaCella, p1: rangeMatrice.replace('Model!', '') }), 10, 'T2'),
         hint(
           'H3',
-          'Se WACC scivola a destra invece di scendere, o g scende invece di scorrere a destra, i numeri ' +
-            'agli estremi della griglia esplodono o si azzerano in modo evidente.',
+          tx('M7-13-SENSITIVITY.15'),
           10,
           'T3',
         ),

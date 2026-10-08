@@ -36,6 +36,7 @@ import {
   pct,
 } from '../../authoring';
 
+import { tx } from '../../../i18n/content';
 const B_CANONE = 'B4';
 const B_DURATA = 'B5';
 const B_IBR = 'B6';
@@ -49,7 +50,9 @@ const B_EFFETTO_UTILE = 'B13'; // T5
 export default defineTemplate({
   id: 'M1-10-IFRS16',
   module: 'M1',
-  title: 'IFRS 16: il leasing entra in bilancio',
+  get title() {
+    return tx('M1-10-IFRS16.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 330,
@@ -93,8 +96,7 @@ export default defineTemplate({
       t(
         'T1',
         B_PASSIVITA,
-        `In ${B_PASSIVITA} la passivita' leasing iniziale: il valore attuale dei canoni futuri (pagati a fine ` +
-          "anno), scontati al tasso di finanziamento marginale. E' anche il valore iniziale del diritto d'uso.",
+        tx('M1-10-IFRS16.2', { B_PASSIVITA }),
         passivita,
         [B_CANONE, B_DURATA, B_IBR],
         [0, 1],
@@ -103,7 +105,7 @@ export default defineTemplate({
       t(
         'T2',
         B_AMMORT,
-        `In ${B_AMMORT} l'ammortamento annuo del diritto d'uso, lineare sulla durata del contratto.`,
+        tx('M1-10-IFRS16.3', { B_AMMORT }),
         ammort,
         [B_PASSIVITA, B_DURATA],
         [],
@@ -112,7 +114,7 @@ export default defineTemplate({
       t(
         'T3',
         B_INTERESSI,
-        `In ${B_INTERESSI} gli interessi del primo anno sulla passivita' leasing.`,
+        tx('M1-10-IFRS16.4', { B_INTERESSI }),
         interessi,
         [B_PASSIVITA, B_IBR],
         [],
@@ -121,7 +123,7 @@ export default defineTemplate({
       t(
         'T4',
         B_EFFETTO_EBITDA,
-        `In ${B_EFFETTO_EBITDA} di quanto sale l'EBITDA rispetto a quando il canone era un costo operativo.`,
+        tx('M1-10-IFRS16.5', { B_EFFETTO_EBITDA }),
         effettoEbitda,
         [B_CANONE],
         [],
@@ -130,8 +132,7 @@ export default defineTemplate({
       t(
         'T5',
         B_EFFETTO_UTILE,
-        `In ${B_EFFETTO_UTILE} l'effetto sull'utile ante imposte del primo anno: il canone che non c'e' piu', ` +
-          "meno i due costi che lo sostituiscono (negativo se l'utile scende).",
+        tx('M1-10-IFRS16.6', { B_EFFETTO_UTILE }),
         effettoUtile,
         [B_CANONE, B_AMMORT, B_INTERESSI],
         [],
@@ -142,44 +143,28 @@ export default defineTemplate({
     return {
       templateId: 'M1-10-IFRS16',
       seed: rng.seed,
-      brief: [
-        "## Il leasing operativo entra in bilancio, e l'EBITDA ne beneficia",
-        '',
-        "Prima di IFRS 16 il canone di un leasing operativo era un costo a conto economico, sopra la riga " +
-          "EBITDA. Con IFRS 16 l'azienda iscrive una **passivita' finanziaria** pari al valore attuale dei " +
-          "canoni futuri e un **diritto d'uso** di pari importo. Il canone sparisce dai costi operativi e " +
-          "al suo posto compaiono ammortamento del diritto d'uso e interessi sulla passivita', **entrambi " +
-          'sotto la riga EBITDA**.',
-        '',
-        `Contratto: canone annuo ${eur(canone)} pagato a fine anno, durata residua ${durata} anni, tasso ` +
-          `di finanziamento marginale ${pct(ibr)}.`,
-        '',
-        "Due effetti da vedere coi tuoi numeri: l'EBITDA migliora senza che entri un euro di cassa in piu', e " +
-          "il primo anno l'utile peggiora, perche' gli interessi pesano di piu' quando il debito e' ancora " +
-          "tutto da rimborsare. Per questo un analista confronta l'EBITDA di aziende IFRS 16 e non IFRS 16 " +
-          'solo dopo averlo rettificato.',
-      ].join('\n'),
+      brief: [tx('M1-10-IFRS16.7', { p0: eur(canone), durata, p2: pct(ibr) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['IFRS 16: il leasing entra in bilancio'], { style: STILE_TITOLO }),
-            riga('A3', ['Contratto', 'Valore'], { style: STILE_TITOLO }),
-            colonna('A4', ['Canone annuo (fine anno), €', 'Durata residua, anni', 'Tasso di finanziamento marginale (IBR)'], {
+            riga('A1', [tx('M1-10-IFRS16.8')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M1-10-IFRS16.19'), tx('M1-10-IFRS16.20')], { style: STILE_TITOLO }),
+            colonna('A4', [tx('M1-10-IFRS16.9'), tx('M1-10-IFRS16.10'), tx('M1-10-IFRS16.11')], {
               style: STILE_ETICHETTA,
             }),
             [{ ref: B_CANONE, content: canone, locked: true, style: STILE_INPUT }],
             [{ ref: B_DURATA, content: durata, locked: true, style: { ...STILE_INPUT, numFmt: '0' } }],
             [{ ref: B_IBR, content: ibr, locked: true, style: STILE_INPUT_PCT }],
-            riga('A8', ['IFRS 16', '€'], { style: STILE_TITOLO }),
+            riga('A8', [tx('M1-10-IFRS16.12'), '€'], { style: STILE_TITOLO }),
             colonna(
               'A9',
               [
-                "Passivita' leasing iniziale (= diritto d'uso)",
-                "Ammortamento annuo del diritto d'uso",
-                "Interessi del primo anno",
-                "Effetto sull'EBITDA",
-                "Effetto sull'utile ante imposte, anno 1",
+                tx('M1-10-IFRS16.13'),
+                tx('M1-10-IFRS16.14'),
+                tx('M1-10-IFRS16.15'),
+                tx('M1-10-IFRS16.16'),
+                tx('M1-10-IFRS16.17'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -196,7 +181,7 @@ export default defineTemplate({
         hint('H1', `=PV(${B_IBR},${B_DURATA},-${B_CANONE}), oppure =${B_CANONE}*(1-(1+${B_IBR})^-${B_DURATA})/${B_IBR}.`, 12, 'T1'),
         hint('H2', `=${B_PASSIVITA}/${B_DURATA}`, 8, 'T2'),
         hint('H3', `=${B_PASSIVITA}*${B_IBR}`, 8, 'T3'),
-        hint('H4', `=${B_CANONE}: il canone esce per intero dai costi sopra l'EBITDA.`, 8, 'T4'),
+        hint('H4', tx('M1-10-IFRS16.18', { B_CANONE }), 8, 'T4'),
         hint('H5', `=${B_CANONE}-${B_AMMORT}-${B_INTERESSI}`, 8, 'T5'),
       ],
       parScore: par(tasks, { letturaSecondi: 70 }),

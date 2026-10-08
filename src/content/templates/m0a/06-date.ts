@@ -30,6 +30,7 @@ import {
 } from '../../authoring';
 import { DEFAULT_FORMATS, serialToDate } from '../../../engine/numberFormat';
 
+import { tx } from '../../../i18n/content';
 const MS_PER_DAY = 86_400_000;
 
 /**
@@ -59,7 +60,9 @@ const STILE_FORMULA_DATA = { ...STILE_FORMULA, numFmt: DEFAULT_FORMATS.data };
 export default defineTemplate({
   id: 'M0A-06-DATE',
   module: 'M0-A',
-  title: 'Le date sono numeri',
+  get title() {
+    return tx('M0A-06-DATE.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 240,
@@ -90,7 +93,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T1',
         prompt:
-          'In B4 calcola la data di scadenza del contratto: parti dalla data di inizio in B2 e aggiungi la durata in giorni di B3. Una data in Excel e\' solo un numero: la sommi come sommeresti due numeri qualsiasi.',
+          tx('M0A-06-DATE.2'),
         target: 'Model!B4',
         atteso: serialeScadenza,
         referenzia: ['B2', 'B3'],
@@ -101,7 +104,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T2',
         prompt:
-          'In B8 calcola quanti giorni di ritardo ci sono stati fra la scadenza pattuita (B6) e la consegna effettiva (B7). Attenzione: qui il risultato non e\' un\'altra data, e\' un numero puro di giorni.',
+          tx('M0A-06-DATE.3'),
         target: 'Model!B8',
         atteso: giorniRitardo,
         referenzia: ['B6', 'B7'],
@@ -114,34 +117,15 @@ export default defineTemplate({
     return {
       templateId: 'M0A-06-DATE',
       seed: rng.seed,
-      brief: [
-        '## Una data e\' solo un numero',
-        '',
-        'Excel non ha un tipo speciale "data": conta i giorni a partire da un\'epoca fissa.',
-        'Il **1 gennaio 1900 e\' il giorno 1**. Il 2 gennaio 1900 e\' il giorno 2. E cosi\' via, un',
-        'intero in piu\' per ogni giorno che passa. Quando una cella "sembra" una data, sotto c\'e\'',
-        'sempre uno di questi numeri: il formato `gg/mm/aaaa` e\' solo il vestito con cui Excel lo',
-        'disegna, non cambia cosa c\'e\' dentro alla cella.',
-        '',
-        `Qui un contratto inizia il **${formattaData(annoInizio, meseInizio, giornoInizio)}** e dura`,
-        `**${durataGiorni} giorni**. Siccome la data e\' un numero e la durata pure, la scadenza e\'`,
-        'semplicemente la loro **somma** — non serve nessuna funzione, basta il segno `+`.',
-        '',
-        `Sotto, un secondo caso: un fornitore doveva consegnare entro il`,
-        `**${formattaData(annoPattuita, mesePattuita, giornoPattuita)}**, ma l\'ha consegnata solo il`,
-        `**${formattaData(effettiva.year, effettiva.month, effettiva.day)}**. Qui l\'operazione e\' l\'opposto:`,
-        'sottraendo la data piu\' vecchia da quella piu\' recente non ottieni una data, ottieni il',
-        '**numero di giorni** che le separa. Sommare avanza nel calendario; sottrarre due date lo',
-        'misura.',
-      ].join('\n'),
+      brief: [tx('M0A-06-DATE.4', { p0: formattaData(annoInizio, meseInizio, giornoInizio), durataGiorni, p2: formattaData(annoPattuita, mesePattuita, giornoPattuita), p3: formattaData(effettiva.year, effettiva.month, effettiva.day) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Scadenza di un contratto'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M0A-06-DATE.5')], { style: STILE_TITOLO }),
             blocco(
               'A2',
-              [['Data di inizio contratto'], ['Durata del contratto (giorni)'], ['Data di scadenza']],
+              [[tx('M0A-06-DATE.6')], [tx('M0A-06-DATE.7')], [tx('M0A-06-DATE.8')]],
               { style: STILE_ETICHETTA },
             ),
             blocco('B2', [[serialeInizio]], { style: STILE_INPUT_DATA }),
@@ -150,7 +134,7 @@ export default defineTemplate({
 
             blocco(
               'A6',
-              [['Data di scadenza pattuita'], ['Data di consegna effettiva'], ['Giorni di ritardo']],
+              [[tx('M0A-06-DATE.9')], [tx('M0A-06-DATE.10')], [tx('M0A-06-DATE.11')]],
               { style: STILE_ETICHETTA },
             ),
             blocco('B6', [[serialePattuita]], { style: STILE_INPUT_DATA }),
@@ -162,8 +146,8 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', 'In B4 scrivi `=B2+B3`: la data di inizio piu\' la durata in giorni.', 8, 'T1'),
-        hint('H2', 'In B8 scrivi `=B7-B6`: la data piu\' recente meno quella piu\' vecchia.', 8, 'T2'),
+        hint('H1', tx('M0A-06-DATE.12'), 8, 'T1'),
+        hint('H2', tx('M0A-06-DATE.13'), 8, 'T2'),
       ],
       parScore: par(tasks, { letturaSecondi: 45 }),
       startAt: 'Model!B4',

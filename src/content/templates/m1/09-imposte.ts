@@ -75,6 +75,7 @@ import {
   STILE_TOTALE,
 } from '../../authoring';
 
+import { tx } from '../../../i18n/content';
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
 const B_UAI = 'B4'; // Utile ante imposte
 const B_VAR = 'B5'; // Variazione in aumento permanente (costi mai deducibili)
@@ -90,7 +91,9 @@ const ALIQUOTA_IRES = 0.24; // dato di legge, non randomizzato
 export default defineTemplate({
   id: 'M1-09-IMPOSTE',
   module: 'M1',
-  title: 'Imposte correnti e imposte anticipate (DTA)',
+  get title() {
+    return tx('M1-09-IMPOSTE.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -112,12 +115,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_IMPCORR} calcola le IMPOSTE CORRENTI dell'anno: parti dall'utile ante imposte (${B_UAI}), ` +
-        `aggiungi la variazione in aumento permanente (${B_VAR} — un costo gia' spesato in bilancio che il ` +
-        `fisco non riconoscera' mai) e la differenza temporanea deducibile in futuro (${B_DTD} — ` +
-        "es. un accantonamento a fondo rischi, che il fisco tassa oggi e lascera' dedurre solo quando il " +
-        `fondo verra' utilizzato). Ottieni cosi' la base imponibile fiscale: moltiplicala per l'aliquota ` +
-        `IRES (${B_ALIQ}).`,
+        tx('M1-09-IMPOSTE.2', { B_IMPCORR, B_UAI, B_VAR, B_DTD, B_ALIQ }),
       target: `Model!${B_IMPCORR}`,
       atteso: imposteCorrenti,
       referenzia: [B_UAI, B_VAR, B_DTD, B_ALIQ],
@@ -129,12 +127,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_DTA} calcola le IMPOSTE ANTICIPATE (DTA) generate quest'anno: la differenza temporanea ` +
-        `deducibile in futuro (${B_DTD}) moltiplicata per l'aliquota IRES (${B_ALIQ}). ATTENZIONE al ` +
-        "segno: questo NON e' un costo aggiuntivo. E' un CREDITO fiscale — un provento che matura oggi " +
-        "perche' negli anni futuri, quando il fondo rischi verra' utilizzato, pagherai meno imposte di " +
-        'quelle correnti pure. Riduce (non aumenta) l\'onere fiscale totale di competenza dell\'anno, che ' +
-        'calcolerai nel prossimo task.',
+        tx('M1-09-IMPOSTE.3', { B_DTA, B_DTD, B_ALIQ }),
       target: `Model!${B_DTA}`,
       atteso: dta,
       referenzia: [B_DTD, B_ALIQ],
@@ -146,10 +139,7 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        `In ${B_IMPTOT} calcola le IMPOSTE TOTALI di competenza dell'anno, quelle che vanno a Conto ` +
-        `Economico: le imposte correnti (${B_IMPCORR}) MENO le imposte anticipate (${B_DTA}). Le ` +
-        "anticipate sono un provento che riduce l'onere fiscale complessivo: si sottraggono, non si " +
-        'sommano.',
+        tx('M1-09-IMPOSTE.4', { B_IMPTOT, B_IMPCORR, B_DTA }),
       target: `Model!${B_IMPTOT}`,
       atteso: imposteTotali,
       referenzia: [B_IMPCORR, B_DTA],
@@ -163,50 +153,20 @@ export default defineTemplate({
     return {
       templateId: 'M1-09-IMPOSTE',
       seed: rng.seed,
-      brief: [
-        '## Utile di bilancio e base imponibile fiscale non sono la stessa cosa',
-        '',
-        "**Semplificazione dichiarata**: qui calcoli solo l'IRES, con l'aliquota vera del 24%. L'IRAP " +
-          "resta fuori — ha una base imponibile diversa (include il costo del lavoro) e non e' il punto " +
-          'di questo livello.',
-        '',
-        "L'utile ante imposte che il bilancio riporta non e' quasi mai la cifra su cui il fisco calcola " +
-          "le imposte. Quest'anno ci sono due scostamenti fra i due mondi:",
-        '',
-        `- una **variazione in aumento permanente** di ${eur(variazioneInAumento)}: un costo gia' spesato in ` +
-          "bilancio che il fisco non riconoscera' mai (per esempio una quota di spese di rappresentanza " +
-          "indeducibile). Essendo permanente, non genera imposte anticipate;",
-        `- una **differenza temporanea deducibile in futuro** di ${eur(differenzaTemporaneaDeducibile)}: ` +
-          "l'esempio classico e' un accantonamento a fondo rischi, gia' dentro l'utile di bilancio, che " +
-          "il fisco tassa oggi ma lascera' dedurre solo nell'anno in cui il fondo verra' effettivamente " +
-          'utilizzato.',
-        '',
-        "Quest'anno il fisco tratta le due voci allo stesso modo: ENTRAMBE si aggiungono all'utile ante " +
-          "imposte per formare la base imponibile su cui si calcolano le imposte correnti. La differenza " +
-          "fra le due sta in cosa succede DOPO: solo la seconda si riassorbira' in un anno futuro, e quel " +
-          'riassorbimento futuro genera oggi un credito fiscale — le imposte anticipate (DTA).',
-        '',
-        "**Il punto piu' delicato**: le imposte anticipate NON sono un costo in piu'. Sono un provento — " +
-          "un credito verso l'Erario che riduce l'onere fiscale totale di competenza dell'anno, non lo " +
-          'aumenta.',
-        '',
-        `Dati dell'anno: utile ante imposte ${eur(utileAnteImposte)}, variazione in aumento ` +
-          `${eur(variazioneInAumento)}, differenza temporanea deducibile in futuro ` +
-          `${eur(differenzaTemporaneaDeducibile)}, aliquota IRES ${pct(ALIQUOTA_IRES)}.`,
-      ].join('\n'),
+      brief: [tx('M1-09-IMPOSTE.5', { p0: eur(variazioneInAumento), p1: eur(differenzaTemporaneaDeducibile), p2: eur(utileAnteImposte), p3: eur(variazioneInAumento), p4: eur(differenzaTemporaneaDeducibile), p5: pct(ALIQUOTA_IRES) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Imposte correnti e imposte anticipate (DTA)'], { style: STILE_TITOLO }),
-            riga('A3', ['Dati di partenza'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M1-09-IMPOSTE.6')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M1-09-IMPOSTE.7')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'Utile ante imposte, €',
-                'Variazione in aumento permanente (costi mai deducibili), €',
-                "Differenza temporanea deducibile in futuro (accantonamento fondo rischi), €",
-                'Aliquota IRES',
+                tx('M1-09-IMPOSTE.8'),
+                tx('M1-09-IMPOSTE.9'),
+                tx('M1-09-IMPOSTE.10'),
+                tx('M1-09-IMPOSTE.11'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -217,13 +177,13 @@ export default defineTemplate({
               { ref: B_ALIQ, content: ALIQUOTA_IRES, style: STILE_INPUT_PCT, locked: true },
             ],
 
-            riga('A9', ['Imposte'], { style: STILE_TITOLO }),
+            riga('A9', [tx('M1-09-IMPOSTE.18')], { style: STILE_TITOLO }),
             colonna(
               'A10',
               [
-                'Imposte correnti (IRES sulla base imponibile fiscale), €',
-                "Imposte anticipate (DTA) generate dall'anno, €",
-                'Imposte totali di competenza (a Conto Economico), €',
+                tx('M1-09-IMPOSTE.12'),
+                tx('M1-09-IMPOSTE.13'),
+                tx('M1-09-IMPOSTE.14'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -238,20 +198,19 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=(${B_UAI}+${B_VAR}+${B_DTD})*${B_ALIQ}: utile ante imposte piu' variazione in aumento piu' ` +
-            "differenza temporanea deducibile, e' la base imponibile fiscale; moltiplicala per l'aliquota.",
+          tx('M1-09-IMPOSTE.15', { B_UAI, B_VAR, B_DTD, B_ALIQ }),
           10,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_DTD}*${B_ALIQ}: la differenza temporanea deducibile per l'aliquota IRES. E' un credito, non un costo.`,
+          tx('M1-09-IMPOSTE.16', { B_DTD, B_ALIQ }),
           8,
           'T2',
         ),
         hint(
           'H3',
-          `=${B_IMPCORR}-${B_DTA}: imposte correnti meno le anticipate, che riducono l'onere totale.`,
+          tx('M1-09-IMPOSTE.17', { B_IMPCORR, B_DTA }),
           8,
           'T3',
         ),

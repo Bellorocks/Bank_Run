@@ -46,10 +46,13 @@ import {
   STILE_INPUT,
 } from '../../authoring';
 
+import { tx } from '../../../i18n/content';
 export default defineTemplate({
   id: 'M0E-01-NAVBLOCCHI',
   module: 'M0-E',
-  title: 'Il salto al bordo del blocco',
+  get title() {
+    return tx('M0E-01-NAVBLOCCHI.title');
+  },
   rank: 1,
   mode: 'SPEEDRUN',
   estimatedSeconds: 75,
@@ -75,13 +78,13 @@ export default defineTemplate({
       {
         id: 'T1',
         prompt:
-          'Vai in A1 e premi Ctrl+Freccia giu\': atterri sull\'ultima cella piena del primo blocco, prima del vuoto. Scrivi quel valore in L1.',
+          tx('M0E-01-NAVBLOCCHI.2'),
         targetCell: 'Model!L1',
         check: [
           {
             kind: 'value' as const,
             expected: finaleBlocco1,
-            message: 'Non e\' l\'ultima cella del primo blocco: da A1, Ctrl+Freccia giu\' deve fermarti sull\'ultima cella piena prima del vuoto.',
+            message: tx('M0E-01-NAVBLOCCHI.3'),
           },
         ],
         skills: ['spd.navigation'],
@@ -90,13 +93,13 @@ export default defineTemplate({
       {
         id: 'T2',
         prompt:
-          'Da li\' (l\'ultima cella del primo blocco) premi ancora Ctrl+Freccia giu\': sotto e\' vuoto, quindi il salto scavalca il vuoto e ti porta sulla prossima cella piena, l\'inizio del blocco successivo. Scrivi quel valore in L2.',
+          tx('M0E-01-NAVBLOCCHI.4'),
         targetCell: 'Model!L2',
         check: [
           {
             kind: 'value' as const,
             expected: inizioBlocco2,
-            message: 'Quando la cella sotto e\' vuota, Ctrl+Freccia giu\' non si ferma li\': scavalca il vuoto e atterra sulla prossima cella piena.',
+            message: tx('M0E-01-NAVBLOCCHI.5'),
           },
         ],
         skills: ['spd.navigation'],
@@ -105,13 +108,13 @@ export default defineTemplate({
       {
         id: 'T3',
         prompt:
-          'Sei gia\' dentro il secondo blocco: premi ancora Ctrl+Freccia giu\' e arrivi alla sua ultima cella piena. Scrivi quel valore in L3.',
+          tx('M0E-01-NAVBLOCCHI.6'),
         targetCell: 'Model!L3',
         check: [
           {
             kind: 'value' as const,
             expected: finaleBlocco2,
-            message: 'Non e\' l\'ultima cella del secondo blocco: la cella sotto e\' ancora piena finche\' non arrivi al fondo del blocco.',
+            message: tx('M0E-01-NAVBLOCCHI.7'),
           },
         ],
         skills: ['spd.navigation'],
@@ -120,13 +123,13 @@ export default defineTemplate({
       {
         id: 'T4',
         prompt:
-          'Vai in C1 e premi Ctrl+Freccia destra: stessa meccanica, in orizzontale. Scrivi il valore su cui atterri in L4.',
+          tx('M0E-01-NAVBLOCCHI.8'),
         targetCell: 'Model!L4',
         check: [
           {
             kind: 'value' as const,
             expected: finaleBlocco3,
-            message: 'Da C1, Ctrl+Freccia destra deve fermarti sull\'ultima cella piena della riga, prima del vuoto.',
+            message: tx('M0E-01-NAVBLOCCHI.9'),
           },
         ],
         skills: ['spd.navigation'],
@@ -137,20 +140,7 @@ export default defineTemplate({
     return {
       templateId: 'M0E-01-NAVBLOCCHI',
       seed: rng.seed,
-      brief: [
-        '## Il salto al bordo del blocco',
-        '',
-        'Drill puro, senza contenuto finanziario. Il mouse e\' disattivato: si gioca solo di tastiera.',
-        '',
-        '**Ctrl+Freccia** (in qualunque direzione) salta al bordo del blocco di dati contiguo:',
-        '',
-        '- se la cella nella direzione del salto e\' piena, ti fermi sull\'ULTIMA cella piena prima del vuoto;',
-        '- se invece e\' vuota, scavalchi tutto il vuoto e atterri sulla PROSSIMA cella piena.',
-        '',
-        'Sul foglio ci sono tre blocchi di numeri separati da righe o colonne vuote. Ogni task ti chiede',
-        'di saltare da un punto di partenza e scrivere il valore su cui atterri in una cella libera a destra.',
-        'Niente da calcolare: solo leggere e trascrivere, il piu\' in fretta possibile.',
-      ].join('\n'),
+      brief: [tx('M0E-01-NAVBLOCCHI.10')].join('\n'),
       sheets: [
         foglio(
           'Model',
@@ -160,7 +150,7 @@ export default defineTemplate({
             riga('C1', blocco3, { style: STILE_INPUT }),
             blocco(
               'K1',
-              [['Risposta T1'], ['Risposta T2'], ['Risposta T3'], ['Risposta T4']],
+              [[tx('M0E-01-NAVBLOCCHI.11')], [tx('M0E-01-NAVBLOCCHI.12')], [tx('M0E-01-NAVBLOCCHI.13')], [tx('M0E-01-NAVBLOCCHI.14')]],
               { style: STILE_ETICHETTA },
             ),
             areaLibera(['L1', 'L2', 'L3', 'L4']),
@@ -170,10 +160,10 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', 'Da A1 tieni Ctrl e premi Freccia giu\' una volta sola: ti fermi sull\'ultima cella piena prima del vuoto (A9).', 5, 'T1'),
-        hint('H2', 'Stessa scorciatoia, stessa direzione, ma partendo da A9: sotto e\' vuoto, quindi salti dritto al prossimo blocco (A15).', 5, 'T2'),
-        hint('H3', 'Da A15, Ctrl+Freccia giu\' ti porta in fondo al secondo blocco (A22): la cella sotto e\' ancora piena finche\' non arrivi li\'.', 5, 'T3'),
-        hint('H4', 'Da C1, Ctrl+Freccia destra invece di giu\': stesso identico meccanismo, in orizzontale (arrivi a H1).', 5, 'T4'),
+        hint('H1', tx('M0E-01-NAVBLOCCHI.15'), 5, 'T1'),
+        hint('H2', tx('M0E-01-NAVBLOCCHI.16'), 5, 'T2'),
+        hint('H3', tx('M0E-01-NAVBLOCCHI.17'), 5, 'T3'),
+        hint('H4', tx('M0E-01-NAVBLOCCHI.18'), 5, 'T4'),
       ],
       parScore: par(tasks, { letturaSecondi: 12 }),
       startAt: 'Model!A1',

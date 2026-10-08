@@ -36,6 +36,7 @@ import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 /** Prezzi unitari: servono due decimali, non gli interi di STILE_INPUT/STILE_FORMULA. */
 const STILE_INPUT_PREZZO: CellStyle = { fontColor: MODEL_COLORS.input, numFmt: DEFAULT_FORMATS.numero2dec };
 const STILE_FORMULA_PREZZO: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: DEFAULT_FORMATS.numero2dec };
@@ -43,7 +44,9 @@ const STILE_FORMULA_PREZZO: CellStyle = { fontColor: MODEL_COLORS.formula, numFm
 export default defineTemplate({
   id: 'M1-05-RIMANENZE',
   module: 'M1',
-  title: 'Rimanenze: costo medio ponderato',
+  get title() {
+    return tx('M1-05-RIMANENZE.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 280,
@@ -63,7 +66,7 @@ export default defineTemplate({
       quantita: roundTo(triangular(rLotti, 200, 700, 2500), 50),
       prezzo: roundTo(triangular(rLotti, 4, 12, 45), 0.05),
     }));
-    const lottoLabels = lotti.map((_l, i) => `Lotto ${i + 1}`);
+    const lottoLabels = lotti.map((_l, i) => tx('common.lotto', { n: i + 1 }));
 
     const quantitaTotale = lotti.reduce((a, l) => a + l.quantita, 0);
     const sommaProdotti = lotti.reduce((a, l) => a + l.quantita * l.prezzo, 0);
@@ -102,9 +105,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T1',
         prompt:
-          `In B${R_CMP} calcola il costo medio ponderato unitario dei lotti acquistati: pesa ogni prezzo per la ` +
-          `quantita' del proprio lotto (non basta la media semplice dei prezzi, un lotto piu' grande deve contare di piu'), ` +
-          `poi dividi per la quantita' totale acquistata. Una sola funzione fa il lavoro di pesatura in un colpo solo: SUMPRODUCT.`,
+          tx('M1-05-RIMANENZE.2', { R_CMP }),
         target: `Model!B${R_CMP}`,
         atteso: costoMedioPonderato,
         referenzia: [`B${LOT_ROW_FIRST}`, `B${LOT_ROW_LAST}`, `C${LOT_ROW_FIRST}`, `C${LOT_ROW_LAST}`],
@@ -118,8 +119,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In B${R_VAL} calcola il valore delle rimanenze finali: moltiplica il costo medio ponderato unitario ` +
-        `che hai appena calcolato per la quantita' rimasta in giacenza a fine periodo (B${GIACENZA_ROW}).`,
+        tx('M1-05-RIMANENZE.3', { R_VAL, GIACENZA_ROW }),
       target: `Model!B${R_VAL}`,
       atteso: valoreRimanenzeFinali,
       referenzia: [`B${R_CMP}`, `B${GIACENZA_ROW}`],
@@ -131,9 +131,7 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        `In B${R_VAR} calcola la variazione delle rimanenze che finisce nel Conto Economico: rimanenze finali ` +
-        `meno rimanenze iniziali. Se il magazzino e' cresciuto nel periodo il risultato e' positivo (si e' prodotto ` +
-        "piu' di quanto si e' venduto), se e' calato il risultato e' negativo: il segno non va corretto a mano, viene dai due numeri.",
+        tx('M1-05-RIMANENZE.4', { R_VAR }),
       target: `Model!B${R_VAR}`,
       atteso: variazioneRimanenze,
       referenzia: [`B${R_VAL}`, `B${R_INIZ}`],
@@ -147,29 +145,13 @@ export default defineTemplate({
     return {
       templateId: 'M1-05-RIMANENZE',
       seed: rng.seed,
-      brief: [
-        '## Rimanenze: quanto vale cio\' che e\' rimasto in magazzino',
-        '',
-        'Nel periodo hai acquistato la stessa merce in piu\' lotti, a prezzi diversi. A fine periodo',
-        `ne restano ${num(giacenzaFinale)} kg in magazzino, su un totale acquistato di ${num(quantitaTotale)} kg: il resto e\' gia\' stato`,
-        "venduto o consumato. Quanto valgono, in euro, i kg rimasti?",
-        '',
-        "Non puoi usare il prezzo di un solo lotto: ognuno pesa per la propria quantita'. Il metodo e'",
-        "il **costo medio ponderato**: la media dei prezzi, pesata sulle quantita' di ciascun lotto",
-        "invece che sul numero di lotti. (Esistono anche FIFO e LIFO, ma richiedono di tracciare quale",
-        "lotto specifico e' stato consumato per primo — un livello per un'altra volta.)",
-        '',
-        "Ultimo passo: le rimanenze non stanno solo nello Stato Patrimoniale. La loro **variazione**",
-        "— quanto sono cresciute o calate rispetto a inizio periodo — e' una voce del Conto Economico",
-        "(la stessa \"Variazione delle rimanenze\" che hai gia' incontrato in classe A). Qui il segno",
-        "conta davvero: magazzino cresciuto vuol dire piu' produzione di quanta ne sia stata venduta.",
-      ].join('\n'),
+      brief: [tx('M1-05-RIMANENZE.5', { p0: num(giacenzaFinale), p1: num(quantitaTotale) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Registro di magazzino — acquisti del periodo'], { style: STILE_TITOLO }),
-            riga(`A${HEADER_ROW}`, ['Lotto di acquisto', 'Quantita\' (kg)', 'Prezzo unitario (€/kg)'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M1-05-RIMANENZE.6')], { style: STILE_TITOLO }),
+            riga(`A${HEADER_ROW}`, [tx('M1-05-RIMANENZE.7'), tx('M1-05-RIMANENZE.8'), tx('M1-05-RIMANENZE.9')], { style: STILE_TITOLO }),
             colonna(`A${LOT_ROW_FIRST}`, lottoLabels, { style: STILE_ETICHETTA }),
             blocco(
               `B${LOT_ROW_FIRST}`,
@@ -181,16 +163,16 @@ export default defineTemplate({
               lotti.map((l) => [l.prezzo]),
               { style: STILE_INPUT_PREZZO },
             ),
-            riga(`A${GIACENZA_ROW}`, ['Giacenza a magazzino a fine periodo (kg)'], { style: STILE_ETICHETTA }),
+            riga(`A${GIACENZA_ROW}`, [tx('M1-05-RIMANENZE.10')], { style: STILE_ETICHETTA }),
             blocco(`B${GIACENZA_ROW}`, [[giacenzaFinale]], { style: STILE_INPUT }),
-            riga(`A${RIEP_TITLE_ROW}`, ['Riepilogo'], { style: STILE_TITOLO }),
+            riga(`A${RIEP_TITLE_ROW}`, [tx('M1-05-RIMANENZE.18')], { style: STILE_TITOLO }),
             colonna(
               `A${R_CMP}`,
               [
-                'Costo medio ponderato unitario (€/kg)',
-                'Valore delle rimanenze finali (€)',
-                'Rimanenze iniziali (€)',
-                'Variazione delle rimanenze (finali - iniziali) (€)',
+                tx('M1-05-RIMANENZE.11'),
+                tx('M1-05-RIMANENZE.12'),
+                tx('M1-05-RIMANENZE.13'),
+                tx('M1-05-RIMANENZE.14'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -209,14 +191,14 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `SUMPRODUCT(${rangeQty},${rangePrezzo})/SUM(${rangeQty}): il numeratore pesa ogni prezzo per la sua quantita', il denominatore e' la quantita' totale.`,
+          tx('M1-05-RIMANENZE.15', { rangeQty, rangePrezzo }),
           10,
           'T1',
         ),
-        hint('H2', `=B${R_CMP}*B${GIACENZA_ROW}: il costo medio ponderato per i kg rimasti in giacenza.`, 6, 'T2'),
+        hint('H2', tx('M1-05-RIMANENZE.16', { R_CMP, GIACENZA_ROW }), 6, 'T2'),
         hint(
           'H3',
-          `=B${R_VAL}-B${R_INIZ}: rimanenze finali meno rimanenze iniziali, cosi' come sono in cella. Il segno viene da solo.`,
+          tx('M1-05-RIMANENZE.17', { R_VAL, R_INIZ }),
           8,
           'T3',
         ),

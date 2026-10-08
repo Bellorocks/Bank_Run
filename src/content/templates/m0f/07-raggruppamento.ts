@@ -41,6 +41,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 interface VoceCosto {
   readonly nome: string;
   readonly importo: number;
@@ -51,7 +52,9 @@ const RIGA_PRIMA_VOCE = 5;
 export default defineTemplate({
   id: 'M0F-07-RAGGRUPPAMENTO',
   module: 'M0-F',
-  title: 'Il gruppo collassato: si vede solo il subtotale',
+  get title() {
+    return tx('M0F-07-RAGGRUPPAMENTO.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -62,12 +65,12 @@ export default defineTemplate({
     const r = rng.fork('dati');
 
     const voci: readonly VoceCosto[] = [
-      { nome: 'Advisory (M&A, legale)', importo: roundTo(triangular(r, 180_000, 420_000, 850_000), 5_000) },
-      { nome: 'Due diligence finanziaria', importo: roundTo(triangular(r, 90_000, 220_000, 480_000), 5_000) },
-      { nome: 'Due diligence commerciale', importo: roundTo(triangular(r, 60_000, 150_000, 320_000), 5_000) },
-      { nome: 'Financing fee', importo: roundTo(triangular(r, 120_000, 300_000, 700_000), 5_000) },
-      { nome: 'Assicurazioni W&I', importo: roundTo(triangular(r, 40_000, 95_000, 210_000), 5_000) },
-      { nome: 'Altri costi di transazione', importo: roundTo(triangular(r, 25_000, 60_000, 140_000), 5_000) },
+      { nome: tx('M0F-07-RAGGRUPPAMENTO.2'), importo: roundTo(triangular(r, 180_000, 420_000, 850_000), 5_000) },
+      { nome: tx('M0F-07-RAGGRUPPAMENTO.3'), importo: roundTo(triangular(r, 90_000, 220_000, 480_000), 5_000) },
+      { nome: tx('M0F-07-RAGGRUPPAMENTO.4'), importo: roundTo(triangular(r, 60_000, 150_000, 320_000), 5_000) },
+      { nome: tx('M0F-07-RAGGRUPPAMENTO.5'), importo: roundTo(triangular(r, 120_000, 300_000, 700_000), 5_000) },
+      { nome: tx('M0F-07-RAGGRUPPAMENTO.6'), importo: roundTo(triangular(r, 40_000, 95_000, 210_000), 5_000) },
+      { nome: tx('M0F-07-RAGGRUPPAMENTO.7'), importo: roundTo(triangular(r, 25_000, 60_000, 140_000), 5_000) },
     ];
 
     const RIGA_ULTIMA_VOCE = RIGA_PRIMA_VOCE + voci.length - 1; // 10
@@ -78,9 +81,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In B${RIGA_SUBTOTALE} calcola il subtotale dei costi di transazione: la somma delle ${num(voci.length)} voci ` +
-        `di dettaglio da B${RIGA_PRIMA_VOCE} a B${RIGA_ULTIMA_VOCE}. Questo e' l'unico numero che resterebbe visibile se il ` +
-        'dettaglio qui sopra fosse un gruppo raggruppato e collassato: il resto del modello lo guarda cosi\'.',
+        tx('M0F-07-RAGGRUPPAMENTO.8', { RIGA_SUBTOTALE, p1: num(voci.length), RIGA_PRIMA_VOCE, RIGA_ULTIMA_VOCE }),
       target: `Model!B${RIGA_SUBTOTALE}`,
       atteso: subtotale,
       referenzia: [`B${RIGA_PRIMA_VOCE}`, `B${RIGA_ULTIMA_VOCE}`],
@@ -93,50 +94,20 @@ export default defineTemplate({
     return {
       templateId: 'M0F-07-RAGGRUPPAMENTO',
       seed: rng.seed,
-      brief: [
-        '## Raggruppare righe: il dettaglio si apre solo quando serve',
-        '',
-        'Un modello di deal lungo — decine o centinaia di righe — non si legge mai tutto disteso.',
-        'Si legge **a gruppi collassati**: solo i subtotali, le sezioni chiuse, i numeri che',
-        'contano davvero in quel momento. Il dettaglio si apre solo quando serve controllarlo.',
-        '',
-        'In Excel vero questo si fa con il **raggruppamento di righe (outline)**: selezioni le',
-        'righe di dettaglio, poi **Dati > Struttura > Raggruppa** (o la scorciatoia diretta,',
-        '**Alt+Maiusc+Destra**), e a sinistra dei numeri di riga compare una barra di outline con',
-        'un simbolo **"−"**: cliccandolo il dettaglio si nasconde e resta visibile solo la riga',
-        'del subtotale, con un **"+"** al suo posto per riaprirlo quando serve. Per separare un',
-        'gruppo si usa **Alt+Maiusc+Sinistra**. E\' lo stesso principio dei livelli di outline',
-        '(1, 2, 3...) che vedi nell\'angolo in alto a sinistra della barra di struttura: un click',
-        'su "1" collassa tutto, un click su "2" apre solo il primo livello, e cosi\' via.',
-        '',
-        '*(Questo trainer non genera ancora un outline vero — collassare/espandere righe e' +
-          ' un comando che richiederebbe un supporto per la struttura del foglio che il motore di',
-        'gioco non ha ancora; le scorciatoie Alt+Maiusc+Destra/Sinistra esistono gia\' nella',
-        'mappa tasti ma senza logica dietro. L\'esercizio allena pero\' esattamente cosa RESTA',
-        'visibile quando un gruppo si chiude: costruisci il blocco di dettaglio esattamente come',
-        'si vedrebbe dentro un gruppo aperto, e il subtotale esattamente come si vedrebbe con',
-        'quel gruppo collassato — e\' il numero su cui il resto del modello si appoggia.)*',
-        '',
-        '## Il caso',
-        '',
-        `Stai chiudendo l'acquisizione e devi sommare i costi di transazione: ${num(voci.length)} voci di`,
-        'dettaglio — parcelle di advisory, due diligence, financing fee, assicurazioni — che in',
-        'un modello vero starebbero raggruppate sotto un\'unica riga di subtotale, cosi\' il resto',
-        'del piano puo\' riferirsi a un numero solo senza dover riaprire il dettaglio ogni volta.',
-      ].join('\n'),
+      brief: [tx('M0F-07-RAGGRUPPAMENTO.9', { p0: num(voci.length) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Costi di transazione'], { style: STILE_TITOLO }),
-            riga('A3', ['Voce', 'Importo (€)'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M0F-07-RAGGRUPPAMENTO.10')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M0F-07-RAGGRUPPAMENTO.15'), tx('M0F-07-RAGGRUPPAMENTO.11')], { style: STILE_TITOLO }),
             colonna(`A${RIGA_PRIMA_VOCE}`, voci.map((v) => v.nome), { style: STILE_ETICHETTA }),
             blocco(
               `B${RIGA_PRIMA_VOCE}`,
               voci.map((v) => [v.importo]),
               { style: STILE_INPUT },
             ),
-            colonna(`A${RIGA_SUBTOTALE}`, ['Subtotale costi di transazione'], { style: STILE_TITOLO }),
+            colonna(`A${RIGA_SUBTOTALE}`, [tx('M0F-07-RAGGRUPPAMENTO.12')], { style: STILE_TITOLO }),
             areaLibera([`B${RIGA_SUBTOTALE}`]),
           ],
           {
@@ -150,13 +121,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `SUM sull'intero intervallo di dettaglio: =SUM(B${RIGA_PRIMA_VOCE}:B${RIGA_ULTIMA_VOCE}).`,
+          tx('M0F-07-RAGGRUPPAMENTO.13', { RIGA_PRIMA_VOCE, RIGA_ULTIMA_VOCE }),
           10,
           'T1',
         ),
         hint(
           'H2',
-          `In Excel vero selezioneresti le righe ${RIGA_PRIMA_VOCE}-${RIGA_ULTIMA_VOCE} e premeresti Alt+Maiusc+Destra per raggrupparle: il subtotale che scrivi qui e' esattamente il numero che resterebbe visibile a gruppo chiuso.`,
+          tx('M0F-07-RAGGRUPPAMENTO.14', { RIGA_PRIMA_VOCE, RIGA_ULTIMA_VOCE }),
           6,
           'T1',
         ),

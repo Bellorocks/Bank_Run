@@ -32,6 +32,7 @@ import {
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 const COLONNE = ['B', 'C', 'D'] as const;
 const B_RUNRATE = 'B4';
 const B_TAX = 'B5';
@@ -45,7 +46,9 @@ const ROW_POST = 12;
 export default defineTemplate({
   id: 'M9-02-SYNERGIES',
   module: 'M9',
-  title: 'Sinergie M&A: curva di phasing, costi di integrazione e impatto netto',
+  get title() {
+    return tx('M9-02-SYNERGIES.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 330,
@@ -72,45 +75,32 @@ export default defineTemplate({
     const post = pre.map((p) => p * (1 - taxRate));
 
     const tasks: Task[] = [
-      rigaTask('T1', ROW_GROSS, 'le sinergie realizzate in ciascun anno', gross, ['B' + ROW_PHASE, B_RUNRATE]),
-      rigaTask('T2', ROW_PRE, "l'impatto netto ante imposte, dopo i costi di integrazione dell'anno", pre, [
+      rigaTask('T1', ROW_GROSS, tx('M9-02-SYNERGIES.2'), gross, ['B' + ROW_PHASE, B_RUNRATE]),
+      rigaTask('T2', ROW_PRE, tx('M9-02-SYNERGIES.3'), pre, [
         'B' + ROW_GROSS,
         'B' + ROW_INTEG,
       ]),
-      rigaTask('T3', ROW_POST, "l'impatto netto sull'utile, dopo le imposte", post, ['B' + ROW_PRE, B_TAX], [1]),
+      rigaTask('T3', ROW_POST, tx('M9-02-SYNERGIES.4'), post, ['B' + ROW_PRE, B_TAX], [1]),
     ];
 
-    const brief = [
-      "Modella l'impatto delle sinergie sui primi tre anni dopo il closing.",
-      '',
-      `- **Sinergie di costo a regime (run-rate)**: ${eur(runRate)} l'anno`,
-      `- **Phasing**: ${phase.map((p) => pct(p, 0)).join(' / ')} del run-rate negli anni 1, 2 e 3`,
-      `- **Costi di integrazione one-off**: ${integ.map((x) => eur(x)).join(' / ')}`,
-      `- **Aliquota fiscale**: ${pct(taxRate, 0)}`,
-      '',
-      'Le sinergie annunciate al mercato sono quelle a regime; nei primi anni arriva solo una parte, mentre ' +
-        "i costi per ottenerle (uscite di personale, chiusura di sedi, sistemi) si pagano subito. E' normale " +
-        "che il primo anno l'impatto netto sia negativo: il comitato deve vederlo.",
-      '',
-      'Costruisci le tre righe, una formula per riga copiata sui tre anni.',
-    ].join('\n');
+    const brief = [tx('M9-02-SYNERGIES.5', { p0: eur(runRate), p1: phase.map((p) => pct(p, 0)).join(' / '), p2: integ.map((x) => eur(x)).join(' / '), p3: pct(taxRate, 0) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['MODELLIZZAZIONE SINERGIE M&A'], { style: STILE_TITOLO }),
-      riga('A3', ['Parametri generali', 'Valore'], { style: STILE_TITOLO }),
-      colonna('A4', ['Sinergie run-rate annue a regime (€)', 'Aliquota fiscale'], { style: STILE_ETICHETTA }),
+      riga('A1', [tx('M9-02-SYNERGIES.6')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M9-02-SYNERGIES.7'), tx('M9-02-SYNERGIES.21')], { style: STILE_TITOLO }),
+      colonna('A4', [tx('M9-02-SYNERGIES.8'), tx('M9-02-SYNERGIES.9')], { style: STILE_ETICHETTA }),
       [{ ref: B_RUNRATE, content: runRate, style: STILE_INPUT, locked: true }],
       [{ ref: B_TAX, content: taxRate, style: STILE_INPUT_PCT, locked: true }],
 
-      riga('A7', ['Piano (€)', 'Anno 1', 'Anno 2', 'Anno 3'], { style: STILE_TITOLO }),
+      riga('A7', [tx('M9-02-SYNERGIES.10'), tx('M9-02-SYNERGIES.11'), tx('M9-02-SYNERGIES.12'), tx('M9-02-SYNERGIES.13')], { style: STILE_TITOLO }),
       colonna(
         `A${ROW_PHASE}`,
         [
-          'Phasing (% del run-rate)',
-          'Costi di integrazione one-off',
-          'Sinergie realizzate',
-          'Impatto netto ante imposte',
-          "Impatto netto sull'utile",
+          tx('M9-02-SYNERGIES.14'),
+          tx('M9-02-SYNERGIES.15'),
+          tx('M9-02-SYNERGIES.16'),
+          tx('M9-02-SYNERGIES.17'),
+          tx('M9-02-SYNERGIES.18'),
         ],
         { style: STILE_ETICHETTA },
       ),
@@ -135,7 +125,7 @@ export default defineTemplate({
       parScore: par(tasks, { letturaSecondi: 60 }),
       startAt: `Model!B${ROW_GROSS}`,
       hints: [
-        hint('H1', `In B${ROW_GROSS}: =$B$4*B${ROW_PHASE}, poi copia a destra.`, 10, 'T1'),
+        hint('H1', tx('M9-02-SYNERGIES.19', { ROW_GROSS, ROW_PHASE }), 10, 'T1'),
         hint('H2', `In B${ROW_PRE}: =B${ROW_GROSS}-B${ROW_INTEG}.`, 10, 'T2'),
         hint('H3', `In B${ROW_POST}: =B${ROW_PRE}*(1-$B$5).`, 10, 'T3'),
       ],
@@ -154,7 +144,7 @@ function rigaTask(
   const rg = `B${row}:D${row}`;
   return {
     id,
-    prompt: `Riga ${row}: ${cosa}. Una formula in B${row}, copiata fino a D${row}.`,
+    prompt: tx('M9-02-SYNERGIES.20', { row, cosa }),
     targetCell: `Model!${rg}`,
     check: [
       { kind: 'mustBeFormula' },

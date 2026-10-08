@@ -58,6 +58,7 @@ import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 const STILE_FORMULA_PCT: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: '0.0%' };
 
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
@@ -69,7 +70,9 @@ const B_KE_ADJ = 'B10'; // T1: costo del capitale proprio aggiustato per il risc
 export default defineTemplate({
   id: 'M7-06-COUNTRYRISK',
   module: 'M7',
-  title: 'Country risk premium: Ke aggiustato per il rischio paese',
+  get title() {
+    return tx('M7-06-COUNTRYRISK.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 240,
@@ -103,14 +106,7 @@ export default defineTemplate({
     const t1: Task = {
       id: 'T1',
       prompt:
-        `In ${B_KE_ADJ} calcola il costo del capitale proprio aggiustato per il rischio paese: ` +
-        `il Ke base dal CAPM (${B_KE_BASE}) PIU' il country risk premium (${B_CRP}). ` +
-        'Formula: Ke aggiustato = Ke base + CRP. Il CRP e\' un addendo, non un moltiplicatore: e\' ' +
-        "un premio per un rischio ULTERIORE (il rischio sovrano del paese in cui opera l'azienda) " +
-        'rispetto a quello che il beta gia\' cattura nel Ke base (il rischio sistematico specifico ' +
-        "dell'azienda). Per l'Italia, il CRP tipico e' lo spread BTP-Bund: uno spread misurabile del " +
-        "debito sovrano italiano sopra il benchmark risk-free tedesco. Usa le due celle date, senza " +
-        'copiare i numeri a mano.',
+        tx('M7-06-COUNTRYRISK.2', { B_KE_ADJ, B_KE_BASE, B_CRP }),
       targetCell: `Model!${B_KE_ADJ}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -120,8 +116,7 @@ export default defineTemplate({
           tolerance: 0.0001,
           toleranceMode: 'absolute',
           message:
-            "Il valore non torna: controlla che tu stia SOMMANDO il Ke base e il country risk " +
-            'premium, non moltiplicandoli o combinandoli in un altro modo.',
+            tx('M7-06-COUNTRYRISK.3'),
         },
         { kind: 'mustReference', cells: [B_KE_BASE, B_CRP] },
         { kind: 'mustNotContainLiteral', except: [] },
@@ -135,40 +130,16 @@ export default defineTemplate({
     return {
       templateId: 'M7-06-COUNTRYRISK',
       seed: rng.seed,
-      brief: [
-        '## Country risk premium: Ke aggiustato per il rischio paese',
-        '',
-        "Il CAPM di M7-04 stima Ke da Rf, beta ed ERP — ma quei dati sono tipicamente osservati su " +
-          'un benchmark "risk free puro" (es. il Bund tedesco per l\'area euro). Se l\'azienda opera ' +
-          "in un mercato il cui debito sovrano paga uno spread misurabile sopra quel benchmark — " +
-          "l'Italia, con lo spread BTP-Bund, e' l'esempio classico — quella stima e' incompleta: " +
-          "manca il rischio del PAESE, non solo quello dell'azienda.",
-        '',
-        '> **Ke aggiustato = Ke base + CRP**',
-        '',
-        "- **Ke base**: il costo del capitale proprio dal CAPM (M7-04), calcolato su un benchmark " +
-          "risk-free \"puro\".",
-        '- **CRP (country risk premium)**: lo spread del debito sovrano del paese rispetto a quel ' +
-          "benchmark risk-free — per l'Italia, lo spread BTP-Bund.",
-        '',
-        "Il CRP si SOMMA a Ke base, non lo moltiplica: e' un premio ADDIZIONALE per un rischio di " +
-          "natura diversa (il rischio del paese) rispetto a quello che il beta gia' cattura nel Ke " +
-          "base (il rischio sistematico specifico dell'azienda, relativo al suo mercato). Non e' un " +
-          "addendo universale: ha senso quando il paese in questione ha uno spread sovrano " +
-          'misurabile — non va sommato a prescindere a ogni Ke, di ogni azienda, in ogni paese.',
-        '',
-        `**I dati**, gia' pronti come assunzioni: Ke base dal CAPM ${pct(keBase, 2)}, country risk ` +
-          `premium Italia (spread BTP-Bund) ${pct(crp, 2)}.`,
-      ].join('\n'),
+      brief: [tx('M7-06-COUNTRYRISK.4', { p0: pct(keBase, 2), p1: pct(crp, 2) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Country risk premium: Ke aggiustato'], { style: STILE_TITOLO }),
-            riga('A3', ['Assunzioni'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M7-06-COUNTRYRISK.5')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M7-06-COUNTRYRISK.11')], { style: STILE_TITOLO }),
             colonna(
               'A4',
-              ['Ke base (CAPM, M7-04)', 'Country risk premium Italia (spread BTP-Bund)'],
+              [tx('M7-06-COUNTRYRISK.6'), tx('M7-06-COUNTRYRISK.7')],
               { style: STILE_ETICHETTA },
             ),
             [
@@ -176,8 +147,8 @@ export default defineTemplate({
               { ref: B_CRP, content: crp, style: STILE_INPUT_PCT, locked: true },
             ],
 
-            riga('A9', ['Costo del capitale proprio aggiustato'], { style: STILE_TITOLO }),
-            colonna('A10', ['Ke aggiustato per il rischio paese'], { style: STILE_ETICHETTA }),
+            riga('A9', [tx('M7-06-COUNTRYRISK.8')], { style: STILE_TITOLO }),
+            colonna('A10', [tx('M7-06-COUNTRYRISK.9')], { style: STILE_ETICHETTA }),
             [{ ref: B_KE_ADJ, content: null, locked: false, style: STILE_FORMULA_PCT }],
           ],
           { colWidths: { A: 320, B: 120 }, frozenRows: 1 },
@@ -187,8 +158,7 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_KE_BASE}+${B_CRP}: Ke base piu' il country risk premium, senza moltiplicare (qui ` +
-            `vale ${pct(keAdj, 2)}).`,
+          tx('M7-06-COUNTRYRISK.10', { B_KE_BASE, B_CRP, p2: pct(keAdj, 2) }),
           10,
           'T1',
         ),

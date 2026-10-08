@@ -55,6 +55,7 @@ import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 import { roundTo } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 /** Giorni con una cifra decimale: DSO/DIO/DPO/CCC non sono mai numeri interi puliti. */
 const STILE_FORMULA_GIORNI: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: '#,##0.0' };
 
@@ -74,7 +75,9 @@ const B_CCC = 'B16'; // T4
 export default defineTemplate({
   id: 'M3-02-DSODIODPO',
   module: 'M3',
-  title: 'Il Cash Conversion Cycle: DSO, DIO, DPO',
+  get title() {
+    return tx('M3-02-DSODIODPO.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 260,
@@ -115,10 +118,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_DSO} calcola il DSO (Days Sales Outstanding): quanti giorni, in media, l'azienda ` +
-        `impiega a incassare le proprie vendite. Formula: crediti commerciali (${B_CREDITI}) diviso ` +
-        `fatturato annuo (${B_FATTURATO}), moltiplicato per 365 (i giorni dell'anno). Il 365 e' l'unico ` +
-        'numero che scrivi a mano: il resto sono riferimenti.',
+        tx('M3-02-DSODIODPO.2', { B_DSO, B_CREDITI, B_FATTURATO }),
       target: `Model!${B_DSO}`,
       atteso: dso,
       referenzia: [B_CREDITI, B_FATTURATO],
@@ -130,11 +130,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_DIO} calcola il DIO (Days Inventory Outstanding): quanti giorni, in media, la merce ` +
-        `resta ferma in magazzino prima di essere venduta. Formula: rimanenze (${B_RIMANENZE}) diviso ` +
-        `costo del venduto annuo — COGS — (${B_COGS}), moltiplicato per 365. Stessa struttura del task ` +
-        "precedente, cambiano solo le poste: qui non c'entra il fatturato, perche' le rimanenze sono " +
-        "valorizzate al costo, non al prezzo di vendita.",
+        tx('M3-02-DSODIODPO.3', { B_DIO, B_RIMANENZE, B_COGS }),
       target: `Model!${B_DIO}`,
       atteso: dio,
       referenzia: [B_RIMANENZE, B_COGS],
@@ -146,11 +142,7 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        `In ${B_DPO} calcola il DPO (Days Payable Outstanding): quanti giorni, in media, l'azienda ` +
-        `impiega a pagare i propri fornitori. Formula: debiti commerciali (${B_DEBITI}) diviso acquisti ` +
-        `da fornitori annui (${B_ACQUISTI}), moltiplicato per 365. Nota il denominatore: non e' il COGS ` +
-        "del task precedente, sono gli acquisti — la posta da cui i debiti verso fornitori nascono " +
-        'davvero.',
+        tx('M3-02-DSODIODPO.4', { B_DPO, B_DEBITI, B_ACQUISTI }),
       target: `Model!${B_DPO}`,
       atteso: dpo,
       referenzia: [B_DEBITI, B_ACQUISTI],
@@ -162,14 +154,7 @@ export default defineTemplate({
     const t4 = taskFormula({
       id: 'T4',
       prompt:
-        `In ${B_CCC} calcola il Cash Conversion Cycle: DSO (${B_DSO}) piu' DIO (${B_DIO}) meno DPO ` +
-        `(${B_DPO}). Non ricalcolare nulla da zero: i tre numeri li hai gia' appena trovati, questo task ` +
-        "e' solo combinarli. Un CCC positivo sono giorni di cassa \"congelata\" nel ciclo operativo — il " +
-        "tempo che passa fra quando l'azienda deve pagare per produrre/comprare e quando incassa di " +
-        "nuovo dai clienti. Il DPO si SOTTRAE perche' e' l'unica delle tre poste che gioca a favore della " +
-        "cassa: finche' l'azienda non paga i fornitori, e' come se loro le stessero prestando i soldi. " +
-        "Piu' DPO, meno capitale deve anticiparci di tasca propria — lo stesso segno gia' visto in M3-01, " +
-        'dove i debiti commerciali si sottraevano dal NWC.',
+        tx('M3-02-DSODIODPO.5', { B_CCC, B_DSO, B_DIO, B_DPO }),
       target: `Model!${B_CCC}`,
       atteso: ccc,
       referenzia: [B_DSO, B_DIO, B_DPO],
@@ -183,55 +168,23 @@ export default defineTemplate({
     return {
       templateId: 'M3-02-DSODIODPO',
       seed: rng.seed,
-      brief: [
-        '## Il Cash Conversion Cycle: DSO, DIO, DPO',
-        '',
-        "In M3-01 hai costruito il NWC da tre poste di fine periodo: crediti, rimanenze e debiti " +
-          "commerciali. Sapevi QUANTO valeva ciascuna, ma non quanto fosse grande rispetto al giro " +
-          "d'affari dell'azienda che la genera. E' quello che aggiunge questo livello: le stesse tre " +
-          'poste, lette come numero di GIORNI.',
-        '',
-        '> **DSO** = Crediti commerciali / Fatturato × 365 — giorni medi per incassare le vendite',
-        '> **DIO** = Rimanenze / COGS × 365 — giorni medi che la merce resta in magazzino',
-        '> **DPO** = Debiti commerciali / Acquisti × 365 — giorni medi per pagare i fornitori',
-        '',
-        '> **Cash Conversion Cycle (CCC) = DSO + DIO − DPO**',
-        '',
-        "Il CCC misura quanti giorni passano, in media, fra il momento in cui l'azienda tira fuori " +
-          'cassa (per produrre o comprare merce) e il momento in cui la incassa di nuovo dai clienti. ' +
-          "DSO e DIO sono entrambi giorni in cui la cassa e' gia' uscita — o non ancora entrata — ma " +
-          "non e' disponibile: si sommano. DPO e' l'opposto: sono i giorni in cui sono i FORNITORI a " +
-          "finanziare l'azienda, perche' lei non li ha ancora pagati — per questo si SOTTRAE. E' lo " +
-          "stesso segno che hai gia' usato in M3-01, dove i debiti commerciali si sottraevano dal NWC: " +
-          "piu' debiti (o piu' DPO), meno cassa che l'azienda deve anticipare di tasca propria.",
-        '',
-        `Dati dell'anno: fatturato ${eur(fatturato)}, costo del venduto (COGS) ${eur(cogs)}, acquisti ` +
-          `da fornitori ${eur(acquisti)}. A fine periodo: crediti commerciali ${eur(crediti)}, ` +
-          `rimanenze ${eur(rimanenze)}, debiti commerciali ${eur(debiti)}.`,
-        '',
-        `Nota che acquisti e COGS NON coincidono (${eur(acquisti)} contro ${eur(cogs)}): nella realta' ` +
-          'differiscono per la variazione di magazzino durante l\'anno. Usa il denominatore giusto per ' +
-          'ogni rapporto, come indicato in ciascun task.',
-        '',
-        `Calcola DSO, DIO e DPO uno alla volta (task 1-3), poi combinali nel Cash Conversion Cycle ` +
-          '(task 4).',
-      ].join('\n'),
+      brief: [tx('M3-02-DSODIODPO.6', { p0: eur(fatturato), p1: eur(cogs), p2: eur(acquisti), p3: eur(crediti), p4: eur(rimanenze), p5: eur(debiti), p6: eur(acquisti), p7: eur(cogs) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Il Cash Conversion Cycle: DSO, DIO, DPO'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M3-02-DSODIODPO.7')], { style: STILE_TITOLO }),
 
-            riga('A3', ["Dati dell'anno"], { style: STILE_TITOLO }),
+            riga('A3', [tx('M3-02-DSODIODPO.8')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'Fatturato annuo, €',
-                'Costo del venduto (COGS) annuo, €',
-                'Acquisti da fornitori annui, €',
-                'Crediti commerciali (fine periodo), €',
-                'Rimanenze (fine periodo), €',
-                'Debiti commerciali (fine periodo), €',
+                tx('M3-02-DSODIODPO.9'),
+                tx('M3-02-DSODIODPO.10'),
+                tx('M3-02-DSODIODPO.11'),
+                tx('M3-02-DSODIODPO.12'),
+                tx('M3-02-DSODIODPO.13'),
+                tx('M3-02-DSODIODPO.14'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -244,13 +197,13 @@ export default defineTemplate({
               { ref: B_DEBITI, content: debiti, style: STILE_INPUT, locked: true },
             ],
 
-            riga('A11', ['Cash Conversion Cycle (in giorni)'], { style: STILE_TITOLO }),
+            riga('A11', [tx('M3-02-DSODIODPO.15')], { style: STILE_TITOLO }),
             colonna(
               'A12',
               [
-                'DSO (Days Sales Outstanding), giorni',
-                'DIO (Days Inventory Outstanding), giorni',
-                'DPO (Days Payable Outstanding), giorni',
+                tx('M3-02-DSODIODPO.16'),
+                tx('M3-02-DSODIODPO.17'),
+                tx('M3-02-DSODIODPO.18'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -260,7 +213,7 @@ export default defineTemplate({
               { ref: B_DPO, content: null, locked: false, style: STILE_FORMULA_GIORNI },
             ],
 
-            [{ ref: 'A16', content: 'Cash Conversion Cycle, giorni', locked: true, style: STILE_ETICHETTA }],
+            [{ ref: 'A16', content: tx('M3-02-DSODIODPO.19'), locked: true, style: STILE_ETICHETTA }],
             [{ ref: B_CCC, content: null, locked: false, style: STILE_FORMULA_GIORNI }],
           ],
           { colWidths: { A: 420, B: 140 }, frozenRows: 1 },
@@ -268,9 +221,9 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', `=${B_CREDITI}/${B_FATTURATO}*365: crediti diviso fatturato, per 365.`, 8, 'T1'),
-        hint('H2', `=${B_RIMANENZE}/${B_COGS}*365: rimanenze diviso COGS, per 365.`, 8, 'T2'),
-        hint('H3', `=${B_DEBITI}/${B_ACQUISTI}*365: debiti diviso acquisti, per 365.`, 8, 'T3'),
+        hint('H1', tx('M3-02-DSODIODPO.20', { B_CREDITI, B_FATTURATO }), 8, 'T1'),
+        hint('H2', tx('M3-02-DSODIODPO.21', { B_RIMANENZE, B_COGS }), 8, 'T2'),
+        hint('H3', tx('M3-02-DSODIODPO.22', { B_DEBITI, B_ACQUISTI }), 8, 'T3'),
         hint(
           'H4',
           `=${B_DSO}+${B_DIO}-${B_DPO}: DSO piu' DIO, meno DPO. Il DPO si sottrae, non si somma.`,

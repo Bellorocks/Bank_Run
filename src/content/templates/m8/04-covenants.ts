@@ -32,6 +32,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // Geometria fissa
 const B_EBITDA = 'B4'; // EBITDA effettivo (dato)
 const B_NET_DEBT = 'B5'; // Posizione Finanziaria Netta (debito netto) (dato)
@@ -47,7 +48,9 @@ const B_HEADROOM_PCT = 'B16'; // T4: di quanto puo' scendere l'EBITDA prima del 
 export default defineTemplate({
   id: 'M8-04-COVENANTS',
   module: 'M8',
-  title: 'Covenant e headroom: leverage ratio e interest coverage',
+  get title() {
+    return tx('M8-04-COVENANTS.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -70,41 +73,24 @@ export default defineTemplate({
     const headroomEur = ebitda - minEbitdaAllowed;
     const headroomPct = headroomEur / ebitda;
 
-    const brief = [
-      `Verifica il rispetto dei covenant bancari dell'operazione LBO.`,
-      ``,
-      `Dati di bilancio correnti:`,
-      `- **EBITDA LTM**: ${eur(ebitda)}`,
-      `- **PFN (Debito Netto)**: ${eur(netDebt)}`,
-      `- **Interessi Passivi Annui**: ${eur(intExp)}`,
-      ``,
-      `Soglie contrattuali (Covenants):`,
-      `- **Massimo Leverage Consentito**: ${multiplo(maxLevCov)}`,
-      `- **Minimo Interest Coverage Ratio (ICR)**: ${multiplo(minIcrCov)}`,
-      ``,
-      `Il comitato non vuole sapere solo se oggi i covenant sono rispettati, ma **quanto margine c'e'**: ` +
-        "di quanto puo' scendere l'EBITDA, a parita' di debito, prima che il leverage sfondi la soglia " +
-        '(headroom). E\' il numero che decide se un anno storto diventa una rinegoziazione con le banche.',
-      ``,
-      `Calcola leverage e ICR effettivi, poi l'headroom sul leverage in euro di EBITDA e in percentuale.`,
-    ].join('\n');
+    const brief = [tx('M8-04-COVENANTS.2', { p0: eur(ebitda), p1: eur(netDebt), p2: eur(intExp), p3: multiplo(maxLevCov), p4: multiplo(minIcrCov) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['MONITORAGGIO COVENANTS LBO'], { style: STILE_TITOLO }),
-      riga('A3', ['Dati Operativi & Debito', 'Valore (€)'], { style: STILE_TITOLO }),
-      colonna('A4', ['EBITDA', 'Debito Netto (PFN)', 'Interessi Passivi Annui'], { style: STILE_ETICHETTA }),
+      riga('A1', [tx('M8-04-COVENANTS.3')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M8-04-COVENANTS.4'), tx('M8-04-COVENANTS.5')], { style: STILE_TITOLO }),
+      colonna('A4', [tx('M8-04-COVENANTS.23'), tx('M8-04-COVENANTS.6'), tx('M8-04-COVENANTS.7')], { style: STILE_ETICHETTA }),
       colonna('B4', [ebitda, netDebt, intExp], { style: STILE_INPUT }),
 
-      riga('A8', ['Soglie Contrattuali (Covenants)', 'Soglia'], { style: STILE_TITOLO }),
-      colonna('A9', ['Max Leverage (Net Debt / EBITDA)', 'Min ICR (EBITDA / Interessi)'], { style: STILE_ETICHETTA }),
+      riga('A8', [tx('M8-04-COVENANTS.8'), tx('M8-04-COVENANTS.24')], { style: STILE_TITOLO }),
+      colonna('A9', [tx('M8-04-COVENANTS.9'), tx('M8-04-COVENANTS.10')], { style: STILE_ETICHETTA }),
       colonna('B9', [maxLevCov, minIcrCov], { style: STILE_INPUT_MULTIPLO }),
 
-      riga('A12', ['Metriche Effettive & Headroom', 'Risultato'], { style: STILE_TITOLO }),
+      riga('A12', [tx('M8-04-COVENANTS.11'), tx('M8-04-COVENANTS.25')], { style: STILE_TITOLO }),
       colonna('A13', [
-        'Leverage Effettivo (x)',
-        'ICR Effettivo (x)',
-        'Headroom EBITDA (€)',
-        'Headroom EBITDA (%)',
+        tx('M8-04-COVENANTS.12'),
+        tx('M8-04-COVENANTS.13'),
+        tx('M8-04-COVENANTS.14'),
+        tx('M8-04-COVENANTS.15'),
       ], { style: STILE_ETICHETTA }),
       colonna(B_ACT_LEV, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_ACT_ICR, [null], { style: STILE_FORMULA, locked: false }),
@@ -115,7 +101,7 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `In ${B_ACT_LEV} il leverage effettivo, misurato come lo misura il covenant.`,
+        prompt: tx('M8-04-COVENANTS.16', { B_ACT_LEV }),
         target: `Model!${B_ACT_LEV}`,
         atteso: actLev,
         referenzia: [B_NET_DEBT, B_EBITDA],
@@ -125,7 +111,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T2',
-        prompt: `In ${B_ACT_ICR} l'interest coverage effettivo: quante volte l'EBITDA copre gli interessi.`,
+        prompt: tx('M8-04-COVENANTS.17', { B_ACT_ICR }),
         target: `Model!${B_ACT_ICR}`,
         atteso: actIcr,
         referenzia: [B_EBITDA, B_INT_EXP],
@@ -136,8 +122,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T3',
         prompt:
-          `In ${B_HEADROOM} l'headroom in euro: quanto EBITDA si puo' perdere, a parita' di debito netto, ` +
-          'prima che il leverage arrivi esattamente alla soglia massima.',
+          tx('M8-04-COVENANTS.18', { B_HEADROOM }),
         target: `Model!${B_HEADROOM}`,
         atteso: headroomEur,
         referenzia: [B_EBITDA, B_NET_DEBT, B_COV_LEV],
@@ -147,7 +132,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T4',
-        prompt: `In ${B_HEADROOM_PCT} lo stesso headroom in percentuale dell'EBITDA attuale.`,
+        prompt: tx('M8-04-COVENANTS.19', { B_HEADROOM_PCT }),
         target: `Model!${B_HEADROOM_PCT}`,
         atteso: headroomPct,
         referenzia: [B_HEADROOM, B_EBITDA],
@@ -166,9 +151,9 @@ export default defineTemplate({
       parScore: par(tasks, { letturaSecondi: 50 }),
       startAt: `Model!${B_ACT_LEV}`,
       hints: [
-        hint('H1', 'Leverage = debito netto / EBITDA: =B5/B4.', 10, 'T1'),
-        hint('H2', 'ICR = EBITDA / interessi: =B4/B6.', 10, 'T2'),
-        hint('H3', "L'EBITDA minimo che rispetta il covenant e' B5/B9: =B4-B5/B9.", 15, 'T3'),
+        hint('H1', tx('M8-04-COVENANTS.20'), 10, 'T1'),
+        hint('H2', tx('M8-04-COVENANTS.21'), 10, 'T2'),
+        hint('H3', tx('M8-04-COVENANTS.22'), 15, 'T3'),
         hint('H4', '=B15/B4', 10, 'T4'),
       ],
     };

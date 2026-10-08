@@ -25,28 +25,29 @@ import {
 import { triangular, roundTo } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
-const CATEGORIE = [
-  'Affitto ufficio',
-  'Utenze (luce, gas, acqua)',
-  'Licenze software',
-  'Consulenze legali',
-  'Trasferte commerciali',
-  'Manutenzione impianti',
-  'Formazione del personale',
-  'Spese di rappresentanza',
-] as const;
+import { tx } from '../../../i18n/content';
+const CATEGORIE = () => ([
+  tx('M0A-03-AGGREGAZIONI.1'),
+  tx('M0A-03-AGGREGAZIONI.2'),
+  tx('M0A-03-AGGREGAZIONI.3'),
+  tx('M0A-03-AGGREGAZIONI.4'),
+  tx('M0A-03-AGGREGAZIONI.5'),
+  tx('M0A-03-AGGREGAZIONI.6'),
+  tx('M0A-03-AGGREGAZIONI.7'),
+  tx('M0A-03-AGGREGAZIONI.8'),
+] as const);
 
 const MESI = [
   'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
   'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre',
 ] as const;
 
-const NOTE = [
-  'in attesa di fattura',
-  "da confermare con l'amministrazione",
-  'verificare con il fornitore',
-  'importo non ancora comunicato',
-] as const;
+const NOTE = () => ([
+  tx('M0A-03-AGGREGAZIONI.9'),
+  tx('M0A-03-AGGREGAZIONI.10'),
+  tx('M0A-03-AGGREGAZIONI.11'),
+  tx('M0A-03-AGGREGAZIONI.12'),
+] as const);
 
 const RANGE = 'B4:B11';
 
@@ -78,7 +79,9 @@ function taskAggregato(args: {
 export default defineTemplate({
   id: 'M0A-03-AGGREGAZIONI',
   module: 'M0-A',
-  title: 'SUM e famiglia',
+  get title() {
+    return tx('M0A-03-AGGREGAZIONI.title');
+  },
   rank: 1,
   mode: 'PRACTICE',
   estimatedSeconds: 240,
@@ -92,13 +95,13 @@ export default defineTemplate({
     // Una voce resta senza importo (cella vuota) e una ha solo una nota (testo,
     // non un numero): sono le due eccezioni che rendono COUNT e COUNTA diversi
     // per davvero, non solo sulla carta.
-    const posVuota = r.int(0, CATEGORIE.length - 1);
-    let posNota = r.int(0, CATEGORIE.length - 1);
-    while (posNota === posVuota) posNota = r.int(0, CATEGORIE.length - 1);
-    const nota = r.pick(NOTE);
+    const posVuota = r.int(0, CATEGORIE().length - 1);
+    let posNota = r.int(0, CATEGORIE().length - 1);
+    while (posNota === posVuota) posNota = r.int(0, CATEGORIE().length - 1);
+    const nota = r.pick(NOTE());
 
     const numeri: number[] = [];
-    const valori: (number | string | null)[] = CATEGORIE.map((_cat, i) => {
+    const valori: (number | string | null)[] = CATEGORIE().map((_cat, i) => {
       if (i === posVuota) return null;
       if (i === posNota) return nota;
       const importo = roundTo(triangular(r, 250, 1500, 9200), 5);
@@ -117,7 +120,7 @@ export default defineTemplate({
       taskAggregato({
         id: 'T1',
         prompt:
-          `In B13 calcola il totale delle spese di ${mese}: somma tutti gli importi della tabella con un'unica funzione, senza sommarli a mano uno per uno.`,
+          tx('M0A-03-AGGREGAZIONI.14', { mese }),
         target: 'Model!B13',
         atteso: somma,
         funzione: 'SUM',
@@ -126,7 +129,7 @@ export default defineTemplate({
       }),
       taskAggregato({
         id: 'T2',
-        prompt: 'In B14 calcola la spesa media per voce: la media delle sole celle che contengono davvero un numero.',
+        prompt: tx('M0A-03-AGGREGAZIONI.15'),
         target: 'Model!B14',
         atteso: media,
         funzione: 'AVERAGE',
@@ -135,7 +138,7 @@ export default defineTemplate({
       }),
       taskAggregato({
         id: 'T3',
-        prompt: "In B15 trova l'importo piu' basso fra le voci di spesa.",
+        prompt: tx('M0A-03-AGGREGAZIONI.16'),
         target: 'Model!B15',
         atteso: minimo,
         funzione: 'MIN',
@@ -144,7 +147,7 @@ export default defineTemplate({
       }),
       taskAggregato({
         id: 'T4',
-        prompt: "In B16 trova l'importo piu' alto fra le voci di spesa.",
+        prompt: tx('M0A-03-AGGREGAZIONI.17'),
         target: 'Model!B16',
         atteso: massimo,
         funzione: 'MAX',
@@ -154,7 +157,7 @@ export default defineTemplate({
       taskAggregato({
         id: 'T5',
         prompt:
-          'In B17 conta quante voci hanno un importo vero e proprio: una cella con solo una nota scritta, o lasciata vuota, non deve contare.',
+          tx('M0A-03-AGGREGAZIONI.18'),
         target: 'Model!B17',
         atteso: conteggioNumeri,
         funzione: 'COUNT',
@@ -164,7 +167,7 @@ export default defineTemplate({
       taskAggregato({
         id: 'T6',
         prompt:
-          "In B18 conta quante voci della tabella sono state compilate in qualche modo: qui la nota scritta a mano conta, la cella lasciata vuota no.",
+          tx('M0A-03-AGGREGAZIONI.19'),
         target: 'Model!B18',
         atteso: conteggioCompilate,
         funzione: 'COUNTA',
@@ -176,46 +179,29 @@ export default defineTemplate({
     return {
       templateId: 'M0A-03-AGGREGAZIONI',
       seed: rng.seed,
-      brief: [
-        '## SUM non lavora da sola',
-        '',
-        `Qui sotto trovi le spese di ${mese}, una riga per voce. Sono otto celle, ma non tutte`,
-        "contengono un numero: qualcuno in ufficio non ha ancora caricato tutti gli importi.",
-        '',
-        `**${RANGE}** e' l'intervallo su cui lavorerai per tutto il livello. Le prime quattro`,
-        'richieste sono la famiglia che conosci gia\' di nome: `SUM` per il totale, `AVERAGE` per',
-        'la media, `MIN` e `MAX` per gli estremi. Tutte e quattro, da sole, ignorano cio\' che non',
-        'e\' un numero: non serve dirglielo, e\' cosi\' che sono fatte.',
-        '',
-        'Le ultime due sono quelle che sembrano uguali e non lo sono. `COUNT` conta **solo i',
-        'numeri**. `COUNTA` conta **tutto cio\' che non e\' vuoto**, numeri e testo insieme. Nella',
-        'tabella qui sotto una voce e\' rimasta senza importo — una cella vuota — e un\'altra ha',
-        'solo una nota scritta a mano, non una cifra. Sono l\'una l\'eccezione di COUNT, l\'altra',
-        'l\'eccezione di COUNTA: se le due formule ti danno lo stesso numero, una delle due e\'',
-        'sbagliata.',
-      ].join('\n'),
+      brief: [tx('M0A-03-AGGREGAZIONI.20', { mese, RANGE })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', [`Spese operative — ${mese}`], { style: STILE_TITOLO }),
-            riga('A3', ['Voce di spesa', 'Importo (€)'], { style: STILE_TITOLO }),
-            colonna('A4', CATEGORIE, { style: STILE_ETICHETTA }),
+            riga('A1', [tx('M0A-03-AGGREGAZIONI.21', { mese })], { style: STILE_TITOLO }),
+            riga('A3', [tx('M0A-03-AGGREGAZIONI.22'), tx('M0A-03-AGGREGAZIONI.23')], { style: STILE_TITOLO }),
+            colonna('A4', CATEGORIE(), { style: STILE_ETICHETTA }),
             blocco(
               'B4',
               valori.map((v) => [v]),
               { style: STILE_INPUT },
             ),
-            riga('A12', ['Riepilogo'], { style: STILE_TITOLO }),
+            riga('A12', [tx('M0A-03-AGGREGAZIONI.34')], { style: STILE_TITOLO }),
             colonna(
               'A13',
               [
-                'Totale spese',
-                'Spesa media per voce',
-                'Voce di importo minimo',
-                'Voce di importo massimo',
-                'Numero di importi registrati',
-                'Numero di voci compilate',
+                tx('M0A-03-AGGREGAZIONI.24'),
+                tx('M0A-03-AGGREGAZIONI.25'),
+                tx('M0A-03-AGGREGAZIONI.26'),
+                tx('M0A-03-AGGREGAZIONI.27'),
+                tx('M0A-03-AGGREGAZIONI.28'),
+                tx('M0A-03-AGGREGAZIONI.29'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -226,12 +212,12 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', 'SUM(B4:B11): non serve escludere a mano la cella vuota o quella di testo, SUM lo fa da sola.', 8, 'T1'),
-        hint('H2', 'AVERAGE(B4:B11): stessa logica di SUM, divide solo per il numero di celle numeriche trovate.', 8, 'T2'),
+        hint('H1', tx('M0A-03-AGGREGAZIONI.30'), 8, 'T1'),
+        hint('H2', tx('M0A-03-AGGREGAZIONI.31'), 8, 'T2'),
         hint('H3', 'MIN(B4:B11).', 6, 'T3'),
         hint('H4', 'MAX(B4:B11).', 6, 'T4'),
-        hint('H5', 'COUNT(B4:B11): guarda solo i numeri, salta sia la cella vuota sia quella con la nota.', 10, 'T5'),
-        hint('H6', 'COUNTA(B4:B11): guarda tutto cio\' che non e\' vuoto. La nota scritta a mano la fa contare, la cella vuota no.', 10, 'T6'),
+        hint('H5', tx('M0A-03-AGGREGAZIONI.32'), 10, 'T5'),
+        hint('H6', tx('M0A-03-AGGREGAZIONI.33'), 10, 'T6'),
       ],
       parScore: par(tasks, { letturaSecondi: 55 }),
       startAt: 'Model!B13',

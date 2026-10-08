@@ -44,21 +44,22 @@ import {
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
-const RICORRENTI = [
-  'Consulenza legale societaria ordinaria',
-  'Assistenza legale su contrattualistica commerciale',
-  "Consulenza legale in materia di lavoro, attivita' ordinaria",
-  'Assistenza legale per gestione crediti e recupero ordinario',
-  'Consulenza legale fiscale ricorrente',
-] as const;
+import { tx } from '../../../i18n/content';
+const RICORRENTI = () => ([
+  tx('M2-05-ONEOFFLEGALI.1'),
+  tx('M2-05-ONEOFFLEGALI.2'),
+  tx('M2-05-ONEOFFLEGALI.3'),
+  tx('M2-05-ONEOFFLEGALI.4'),
+  tx('M2-05-ONEOFFLEGALI.5'),
+] as const);
 
-const STRAORDINARIE = [
-  'Causa legale con ex-fornitore, transazione una tantum',
-  'Costi di ristrutturazione organizzativa, piano una tantum',
-  'Contenzioso con cliente per fornitura difettosa, transazione',
-  "Consulenza legale per due diligence su acquisizione, evento straordinario",
-  'Transazione con ex-dipendente per licenziamento contestato',
-] as const;
+const STRAORDINARIE = () => ([
+  tx('M2-05-ONEOFFLEGALI.6'),
+  tx('M2-05-ONEOFFLEGALI.7'),
+  tx('M2-05-ONEOFFLEGALI.8'),
+  tx('M2-05-ONEOFFLEGALI.9'),
+  tx('M2-05-ONEOFFLEGALI.10'),
+] as const);
 
 interface Voce {
   readonly descrizione: string;
@@ -77,7 +78,9 @@ const DATA_START = 8;
 export default defineTemplate({
   id: 'M2-05-ONEOFFLEGALI',
   module: 'M2',
-  title: 'One-off legali: isolare lo straordinario con SUMIF',
+  get title() {
+    return tx('M2-05-ONEOFFLEGALI.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 260,
@@ -98,8 +101,8 @@ export default defineTemplate({
     const kStraordinarie = r.int(1, n - 1);
     const nRicorrenti = n - kStraordinarie;
 
-    const descrizioniRicorrenti = r.shuffle([...RICORRENTI]).slice(0, nRicorrenti);
-    const descrizioniStraordinarie = r.shuffle([...STRAORDINARIE]).slice(0, kStraordinarie);
+    const descrizioniRicorrenti = r.shuffle([...RICORRENTI()]).slice(0, nRicorrenti);
+    const descrizioniStraordinarie = r.shuffle([...STRAORDINARIE()]).slice(0, kStraordinarie);
 
     const vociRicorrenti: Voce[] = descrizioniRicorrenti.map((descrizione) => ({
       descrizione,
@@ -139,12 +142,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T1',
         prompt:
-          `In ${C_RETTIFICA} calcola la rettifica: la somma dei SOLI importi con Tipo = "straordinaria" ` +
-          `nell'elenco qui sopra (${rifTipo}:B${DATA_END} per il tipo, ${rifImporti}:C${DATA_END} per gli ` +
-          `importi). Le voci "ricorrente" sono la normale gestione legale dell'azienda e NON vanno toccate: ` +
-          "sommare l'intero elenco, incluse le voci ricorrenti, non e' solo impreciso ma un errore " +
-          "concettuale grave — gonfieresti l'EBITDA normalizzato riaggiungendo anche costi che si " +
-          "ripeteranno ogni anno. Serve una funzione che sommi solo le righe che rispettano il criterio.",
+          tx('M2-05-ONEOFFLEGALI.12', { C_RETTIFICA, rifTipo, DATA_END, rifImporti }),
         target: `Model!${C_RETTIFICA}`,
         atteso: rettifica,
         referenzia: [rifTipo, rifImporti],
@@ -161,9 +159,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${C_EBITDA_NORM} calcola l'EBITDA normalizzato: l'EBITDA riportato (${B_EBITDA_RIP}) piu' la ` +
-        `rettifica appena isolata (${C_RETTIFICA}). Le spese straordinarie sono gia' dentro l'EBITDA ` +
-        "riportato e lo hanno sgonfiato: sono un costo one-off che si RIAGGIUNGE, con segno positivo.",
+        tx('M2-05-ONEOFFLEGALI.13', { C_EBITDA_NORM, B_EBITDA_RIP, C_RETTIFICA }),
       target: `Model!${C_EBITDA_NORM}`,
       atteso: ebitdaNormalizzato,
       referenzia: [B_EBITDA_RIP, C_RETTIFICA],
@@ -177,44 +173,26 @@ export default defineTemplate({
     return {
       templateId: 'M2-05-ONEOFFLEGALI',
       seed: rng.seed,
-      brief: [
-        '## Non tutte le spese legali sono uguali',
-        '',
-        "Un elenco di spese legali e di ristrutturazione mescola quasi sempre due cose diverse: la " +
-          "normale gestione legale dell'azienda (contrattualistica, lavoro, crediti — costi che tornano " +
-          'ogni anno) e episodi straordinari (una causa legale, un piano di ristrutturazione — costi che ' +
-          "non si ripeteranno). Solo la seconda categoria e' materia di rettifica.",
-        '',
-        `L'EBITDA riportato e' ${eur(ebitdaRiportato)}. Qui sotto trovi ${num(n)} voci di spesa legale, ` +
-          "ciascuna etichettata Tipo = \"ricorrente\" oppure Tipo = \"straordinaria\", in ordine sparso.",
-        '',
-        '- Le voci **"ricorrente"** sono la normale gestione legale: NON si toccano.',
-        "- Le voci **\"straordinaria\"** sono one-off, gia' dentro l'EBITDA riportato, e lo hanno gonfiato " +
-          "nei costi (quindi sgonfiato nell'EBITDA): si RIAGGIUNGONO, rettifica **positiva**.",
-        '',
-        'Sommare tutto l\'elenco indiscriminatamente sarebbe un errore concettuale, non un dettaglio: ' +
-          `il totale di TUTTE le voci e' ${eur(totaleElencoCompleto)}, ma solo una parte di quel numero e\' ` +
-          "davvero straordinaria. Isola prima le righe giuste, poi somma.",
-      ].join('\n'),
+      brief: [tx('M2-05-ONEOFFLEGALI.14', { p0: eur(ebitdaRiportato), p1: num(n), p2: eur(totaleElencoCompleto) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga(`A${ROW_TITOLO}`, ['One-off legali e di ristrutturazione'], { style: STILE_TITOLO }),
-            riga(`A${ROW_SEZ1}`, ['Dati di partenza'], { style: STILE_TITOLO }),
-            colonna(`A${ROW_EBITDA}`, ['EBITDA riportato (da bilancio), €'], { style: STILE_ETICHETTA }),
+            riga(`A${ROW_TITOLO}`, [tx('M2-05-ONEOFFLEGALI.15')], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ1}`, [tx('M2-05-ONEOFFLEGALI.16')], { style: STILE_TITOLO }),
+            colonna(`A${ROW_EBITDA}`, [tx('M2-05-ONEOFFLEGALI.17')], { style: STILE_ETICHETTA }),
             [{ ref: B_EBITDA_RIP, content: ebitdaRiportato, style: STILE_INPUT, locked: true }],
 
-            riga(`A${ROW_SEZ2}`, ['Spese legali e di ristrutturazione — elenco completo'], { style: STILE_TITOLO }),
-            riga(`A${ROW_HEADER}`, ['Voce', 'Tipo', 'Importo (€)'], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ2}`, [tx('M2-05-ONEOFFLEGALI.18')], { style: STILE_TITOLO }),
+            riga(`A${ROW_HEADER}`, [tx('M2-05-ONEOFFLEGALI.24'), tx('M2-05-ONEOFFLEGALI.25'), tx('M2-05-ONEOFFLEGALI.19')], { style: STILE_TITOLO }),
             colonna(`A${DATA_START}`, voci.map((v) => v.descrizione), { style: STILE_ETICHETTA }),
-            colonna(`B${DATA_START}`, voci.map((v) => v.tipo), { style: STILE_ETICHETTA }),
+            colonna(`B${DATA_START}`, voci.map((v) => tx(`M2-05-ONEOFFLEGALI.tok.${v.tipo}`)), { style: STILE_ETICHETTA }),
             colonna(`C${DATA_START}`, voci.map((v) => v.importo), { style: STILE_INPUT }),
 
-            riga(`A${ROW_SEZ3}`, ['Normalizzazione'], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ3}`, [tx('M2-05-ONEOFFLEGALI.26')], { style: STILE_TITOLO }),
             colonna(
               `A${ROW_RETT}`,
-              ['Rettifica: totale spese legali straordinarie da riaggiungere, €', 'EBITDA normalizzato, €'],
+              [tx('M2-05-ONEOFFLEGALI.20'), tx('M2-05-ONEOFFLEGALI.21')],
               { style: STILE_ETICHETTA },
             ),
             [{ ref: C_RETTIFICA, content: null, locked: false, style: STILE_FORMULA }],
@@ -227,15 +205,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=SUMIF(${rifTipo}:B${DATA_END},"straordinaria",${rifImporti}:C${DATA_END}): somma solo gli ` +
-            'importi delle righe con Tipo uguale a "straordinaria", ignorando le righe "ricorrente".',
+          tx('M2-05-ONEOFFLEGALI.22', { rifTipo, DATA_END, rifImporti }),
           12,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_EBITDA_RIP}+${C_RETTIFICA}: EBITDA riportato piu' la rettifica appena isolata. Il costo ` +
-            "straordinario ha gonfiato i costi, quindi si riaggiunge con segno positivo.",
+          tx('M2-05-ONEOFFLEGALI.23', { B_EBITDA_RIP, C_RETTIFICA }),
           8,
           'T2',
         ),

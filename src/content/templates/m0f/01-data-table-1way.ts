@@ -40,6 +40,7 @@ import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 const RIGHE_TABELLA = 6;
 const RIGA_PRIMO_MULTIPLO = 8;
 const RIGA_ULTIMO_MULTIPLO = RIGA_PRIMO_MULTIPLO + RIGHE_TABELLA - 1; // 13
@@ -51,7 +52,9 @@ const STILE_LIBERA_PREZZO: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt
 export default defineTemplate({
   id: 'M0F-01-DATATABLE1',
   module: 'M0-F',
-  title: 'La tabella a una variabile, riga per riga',
+  get title() {
+    return tx('M0F-01-DATATABLE1.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 360,
@@ -76,11 +79,7 @@ export default defineTemplate({
     const t1: Task = {
       id: 'T1',
       prompt:
-        `In B${RIGA_PRIMO_MULTIPLO} calcola il prezzo per azione al primo multiplo della colonna: ` +
-        '(multiplo × EBITDA − debito netto) / azioni in circolazione. EBITDA, debito netto e azioni ' +
-        'stanno nelle tre caselle in alto: sono i tre punti che OGNI riga della tabella deve guardare, ' +
-        `mai un valore ribattuto a mano. Il multiplo invece cambia riga per riga: referenzia A${RIGA_PRIMO_MULTIPLO} ` +
-        'senza bloccarlo, cosi\' scorre con la copia.',
+        tx('M0F-01-DATATABLE1.2', { RIGA_PRIMO_MULTIPLO }),
       targetCell: `Model!B${RIGA_PRIMO_MULTIPLO}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -101,9 +100,7 @@ export default defineTemplate({
     const t2: Task = {
       id: 'T2',
       prompt:
-        `Riempi B${RIGA_PRIMO_MULTIPLO}:B${RIGA_ULTIMO_MULTIPLO} copiando quella formula su tutta la colonna. ` +
-        'Stessa formula, stesso ancoraggio: e\' cosi\' che una Data Table vera calcola ogni riga, ' +
-        'e qui lo fai a mano una volta sola.',
+        tx('M0F-01-DATATABLE1.3', { RIGA_PRIMO_MULTIPLO, RIGA_ULTIMO_MULTIPLO }),
       targetCell: `Model!B${RIGA_PRIMO_MULTIPLO}:B${RIGA_ULTIMO_MULTIPLO}`,
       check: [
         { kind: 'consistentRow', range: `Model!B${RIGA_PRIMO_MULTIPLO}:B${RIGA_ULTIMO_MULTIPLO}` },
@@ -118,8 +115,7 @@ export default defineTemplate({
       // ancoraggio dimenticato smette di dare un numero plausibile per caso.
       id: 'T3',
       prompt:
-        `Controlla B${RIGA_ULTIMO_MULTIPLO}, l'ultima riga della tabella: il multiplo piu' alto. ` +
-        'Se quel numero non torna, il problema e\' negli ancoraggi di EBITDA, debito o azioni — non nella copia.',
+        tx('M0F-01-DATATABLE1.4', { RIGA_ULTIMO_MULTIPLO }),
       targetCell: `Model!B${RIGA_ULTIMO_MULTIPLO}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -127,7 +123,7 @@ export default defineTemplate({
           kind: 'value',
           expected: prezzi[RIGHE_TABELLA - 1],
           message:
-            'L\'ultima riga non torna: e\' li\' che un riferimento rimasto relativo si vede, perche\' nel mezzo della tabella spesso produce comunque un numero plausibile.',
+            tx('M0F-01-DATATABLE1.5'),
         },
       ],
       skills: ['xl.anchoring'],
@@ -137,9 +133,7 @@ export default defineTemplate({
     const t4 = taskFormula({
       id: 'T4',
       prompt:
-        `In B${RIGA_ESCURSIONE} calcola l'escursione della tabella: il prezzo per azione piu' alto meno ` +
-        'il piu\' basso, con MAX e MIN sull\'intera colonna dei risultati. E\' il primo numero che si guarda ' +
-        'in comitato quando si legge una sensitivity: quanto si muove l\'output nel range testato.',
+        tx('M0F-01-DATATABLE1.6', { RIGA_ESCURSIONE }),
       target: `Model!B${RIGA_ESCURSIONE}`,
       atteso: escursione,
       referenzia: [`B${RIGA_PRIMO_MULTIPLO}`, `B${RIGA_ULTIMO_MULTIPLO}`],
@@ -152,61 +146,27 @@ export default defineTemplate({
     return {
       templateId: 'M0F-01-DATATABLE1',
       seed: rng.seed,
-      brief: [
-        '## La Data Table vera, e perche\' qui la costruisci a mano',
-        '',
-        'In Excel vero esiste un comando apposta per "cosa succede all\'output se faccio variare',
-        'un input su una serie di valori": **Dati > Analisi di simulazione > Struttura** (in',
-        'inglese, *Data > What-If Analysis > Data Table*). Si usa cosi\': scrivi la formula UNA',
-        'volta sola, in un angolo, referenziando la cella di assunzione che vuoi far variare;',
-        'sotto o accanto a quella cella metti la colonna (o la riga) dei valori da testare;',
-        'selezioni tutto il rettangolo — colonna dei valori inclusa, formula inclusa — e lanci',
-        'il comando indicando come **cella di input colonna** proprio l\'assunzione che la',
-        'formula referenzia. Excel scrive da solo, su ogni cella del corpo, una formula array',
-        '`{=TABLE(,cella)}`: sostituisce mentalmente ogni valore della colonna dentro quella',
-        'cella di input, ricalcola la formula, e mette il risultato nella riga corrispondente.',
-        'Tutto resta collegato — se cambi la formula in alto, l\'intera tabella si aggiorna da sola.',
-        '',
-        '*(Questo trainer non genera ancora la formula array `TABLE()` — e\' un comando che',
-        'richiederebbe un supporto per formule multi-cella che il motore di gioco non ha ancora.',
-        'L\'esercizio allena pero\' esattamente il meccanismo che quel comando esegue dietro le',
-        'quinte: sostituire un valore diverso riga per riga e ricalcolare la stessa formula.',
-        'Qui lo fai esplicitamente, una volta, con gli ancoraggi giusti, e lo riempi in basso —',
-        'lo stesso risultato numerico di una vera Data Table, scritto a mano invece che generato.)*',
-        '',
-        '## Il caso',
-        '',
-        `L'EBITDA del target vale **${eur(ebitda)}**, il debito netto **${eur(debitoNetto)}** e le azioni`,
-        `in circolazione sono **${num(azioni)}**. Il comitato non si accontenta di un solo multiplo:`,
-        `vuole vedere il prezzo per azione a ogni multiplo EV/EBITDA da **${multiplo(multipli[0])}** a`,
-        `**${multiplo(multipli[RIGHE_TABELLA - 1])}**, passo ${multiplo(0.5)}.`,
-        '',
-        'La colonna dei multipli e\' gia\' pronta: sono i valori che una vera Data Table avrebbe',
-        'chiesto come intervallo di test. Il tuo compito e\' scrivere la formula del prezzo per',
-        'azione una volta sola nella prima riga, con EBITDA, debito netto e azioni bloccati con',
-        'il dollaro — sono le tre caselle che OGNI riga guarda, mai un\'altra — e riempirla su',
-        'tutta la colonna.',
-      ].join('\n'),
+      brief: [tx('M0F-01-DATATABLE1.7', { p0: eur(ebitda), p1: eur(debitoNetto), p2: num(azioni), p3: multiplo(multipli[0]), p4: multiplo(multipli[RIGHE_TABELLA - 1]), p5: multiplo(0.5) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Sensitivity: prezzo per azione al variare del multiplo EV/EBITDA'], {
+            riga('A1', [tx('M0F-01-DATATABLE1.8')], {
               style: STILE_TITOLO,
             }),
-            blocco('A3', [['EBITDA (€)'], ['Debito netto (€)'], ['Azioni in circolazione']], {
+            blocco('A3', [[tx('M0F-01-DATATABLE1.9')], [tx('M0F-01-DATATABLE1.10')], [tx('M0F-01-DATATABLE1.11')]], {
               style: STILE_ETICHETTA,
             }),
             blocco('B3', [[ebitda], [debitoNetto], [azioni]], { style: STILE_INPUT }),
 
-            riga('A7', ['Multiplo EV/EBITDA', 'Prezzo per azione (€)'], { style: STILE_TITOLO }),
+            riga('A7', [tx('M0F-01-DATATABLE1.12'), tx('M0F-01-DATATABLE1.13')], { style: STILE_TITOLO }),
             blocco(
               `A${RIGA_PRIMO_MULTIPLO}`,
               multipli.map((m) => [m]),
               { style: STILE_INPUT_MULTIPLO },
             ),
 
-            blocco(`A${RIGA_ESCURSIONE}`, [['Escursione (max − min)']], { style: STILE_ETICHETTA }),
+            blocco(`A${RIGA_ESCURSIONE}`, [[tx('M0F-01-DATATABLE1.14')]], { style: STILE_ETICHETTA }),
 
             ...Array.from({ length: RIGHE_TABELLA }, (_, i) => [
               {
@@ -229,14 +189,14 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=(A${RIGA_PRIMO_MULTIPLO}*$B$3-$B$4)/$B$5: il dollaro sulle tre assunzioni, non sul multiplo.`,
+          tx('M0F-01-DATATABLE1.15', { RIGA_PRIMO_MULTIPLO }),
           14,
           'T1',
         ),
-        hint('H2', `Copia B${RIGA_PRIMO_MULTIPLO}, seleziona B${RIGA_PRIMO_MULTIPLO}:B${RIGA_ULTIMO_MULTIPLO}, incolla (o Ctrl+D).`, 8, 'T2'),
+        hint('H2', tx('M0F-01-DATATABLE1.16', { RIGA_PRIMO_MULTIPLO, RIGA_ULTIMO_MULTIPLO }), 8, 'T2'),
         hint(
           'H3',
-          'Se l\'ultima riga non torna, riapri la formula con F2: uno dei tre riferimenti e\' rimasto senza dollaro.',
+          tx('M0F-01-DATATABLE1.17'),
           10,
           'T3',
         ),

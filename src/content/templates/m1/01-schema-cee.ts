@@ -34,26 +34,27 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 /** Voci di classe A — "Valore della produzione". Sempre tutte e tre presenti. */
-const CLASSE_A = [
-  'Ricavi delle vendite e delle prestazioni',
-  'Variazione delle rimanenze di prodotti',
-  'Altri ricavi e proventi',
-] as const;
+const CLASSE_A = () => ([
+  tx('M1-01-SCHEMACEE.1'),
+  tx('M1-01-SCHEMACEE.2'),
+  tx('M1-01-SCHEMACEE.3'),
+] as const);
 
 /**
  * Voci di classe B — "Costi della produzione". Il livello ne mostra 4 o 5 delle
  * 6 possibili, sempre nello stesso ordine relativo: e' cosi' che il totale
  * righe resta fra 7 e 8 (§ brief) senza mai riordinare la lista.
  */
-const CLASSE_B_POOL = [
-  'Costi per materie prime e merci',
-  'Costi per servizi',
-  'Costi per godimento di beni di terzi',
-  'Costo del personale',
-  'Ammortamenti',
-  'Altri costi operativi',
-] as const;
+const CLASSE_B_POOL = () => ([
+  tx('M1-01-SCHEMACEE.4'),
+  tx('M1-01-SCHEMACEE.5'),
+  tx('M1-01-SCHEMACEE.6'),
+  tx('M1-01-SCHEMACEE.7'),
+  tx('M1-01-SCHEMACEE.ammortamenti'),
+  tx('M1-01-SCHEMACEE.8'),
+] as const);
 
 /** Peso di ciascuna voce B come frazione dei ricavi, stesso ordine di CLASSE_B_POOL. */
 const B_FRAZIONI: readonly { min: number; mode: number; max: number }[] = [
@@ -68,7 +69,9 @@ const B_FRAZIONI: readonly { min: number; mode: number; max: number }[] = [
 export default defineTemplate({
   id: 'M1-01-SCHEMACEE',
   module: 'M1',
-  title: 'Schema di Conto Economico CEE',
+  get title() {
+    return tx('M1-01-SCHEMACEE.title');
+  },
   rank: 1,
   mode: 'GUIDED',
   estimatedSeconds: 260,
@@ -86,16 +89,16 @@ export default defineTemplate({
 
     // --- Classe B: 4 o 5 voci su 6, ordine relativo mai alterato. --------
     const bCount = r.int(4, 5);
-    const bIndiciTutti = CLASSE_B_POOL.map((_voce, i) => i);
+    const bIndiciTutti = CLASSE_B_POOL().map((_voce, i) => i);
     const bIndiciScelti = r.shuffle(bIndiciTutti).slice(0, bCount).sort((a, b) => a - b);
-    const classeB = bIndiciScelti.map((i) => CLASSE_B_POOL[i]);
+    const classeB = bIndiciScelti.map((i) => CLASSE_B_POOL()[i]);
     const valoriB = bIndiciScelti.map((i) => {
       const f = B_FRAZIONI[i];
       return roundTo(triangular(r, f.min * ricavi, f.mode * ricavi, f.max * ricavi), 500);
     });
 
-    const vociTotali = [...CLASSE_A, ...classeB];
-    const classiTotali = [...CLASSE_A.map(() => 'A'), ...classeB.map(() => 'B')];
+    const vociTotali = [...CLASSE_A(), ...classeB];
+    const classiTotali = [...CLASSE_A().map(() => 'A'), ...classeB.map(() => 'B')];
     const importiTotali = [...valoriA, ...valoriB];
 
     const sommaA = valoriA.reduce((a, b) => a + b, 0);
@@ -105,7 +108,7 @@ export default defineTemplate({
     // --- Geometria: righe calcolate, mai letterali. -----------------------
     const HEADER_ROW = 3;
     const A_ROW_FIRST = HEADER_ROW + 1; // 4
-    const A_ROW_LAST = A_ROW_FIRST + CLASSE_A.length - 1; // 6
+    const A_ROW_LAST = A_ROW_FIRST + CLASSE_A().length - 1; // 6
     const B_ROW_FIRST = A_ROW_LAST + 1; // 7
     const B_ROW_LAST = B_ROW_FIRST + classeB.length - 1; // 10 o 11
     const RIEP_TITLE_ROW = B_ROW_LAST + 2;
@@ -120,9 +123,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T1',
         prompt:
-          `In C${R1} calcola "A) Valore della produzione": somma con un'unica funzione le ` +
-          `${CLASSE_A.length} voci di classe A (le righe ${A_ROW_FIRST}-${A_ROW_LAST}, quelle con "A" nella colonna Classe). ` +
-          "La variazione delle rimanenze entra con il suo segno cosi' com'e' in cella: se e' negativa, sommandola la riduce.",
+          tx('M1-01-SCHEMACEE.10', { R1, p1: CLASSE_A().length, A_ROW_FIRST, A_ROW_LAST }),
         target: `Model!C${R1}`,
         atteso: sommaA,
         referenzia: [`C${A_ROW_FIRST}`, `C${A_ROW_LAST}`],
@@ -136,8 +137,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T2',
         prompt:
-          `In C${R2} calcola "B) Costi della produzione": somma con un'unica funzione le ` +
-          `${classeB.length} voci di classe B (le righe ${B_ROW_FIRST}-${B_ROW_LAST}, quelle con "B" nella colonna Classe).`,
+          tx('M1-01-SCHEMACEE.11', { R2, p1: classeB.length, B_ROW_FIRST, B_ROW_LAST }),
         target: `Model!C${R2}`,
         atteso: sommaB,
         referenzia: [`C${B_ROW_FIRST}`, `C${B_ROW_LAST}`],
@@ -150,8 +150,7 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        `In C${R3} calcola la "Differenza tra valore e costi della produzione (A-B)": il totale di C${R1} meno il totale di C${R2}. ` +
-        "Nessun numero scritto a mano: solo il riferimento alle due cifre che hai gia' calcolato sopra.",
+        tx('M1-01-SCHEMACEE.12', { R3, R1, R2 }),
       target: `Model!C${R3}`,
       atteso: differenza,
       referenzia: [`C${R1}`, `C${R2}`],
@@ -165,30 +164,13 @@ export default defineTemplate({
     return {
       templateId: 'M1-01-SCHEMACEE',
       seed: rng.seed,
-      brief: [
-        '## Lo schema di Conto Economico, in forma scalare',
-        '',
-        "Il Conto Economico del codice civile italiano (art. 2425 c.c.) non elenca le voci a caso:",
-        "le raggruppa in classi, e la prima cosa che un modello CEE deve fare e' sommarle nell'ordine",
-        "giusto. Qui sotto trovi un elenco grezzo di voci, cosi' come potrebbero arrivare da un",
-        "gestionale: non ancora nello schema, ma gia' etichettate con la loro classe.",
-        '',
-        "**Classe A — Valore della produzione**: ricavi e proventi che il conto economico riconosce",
-        "come produzione del periodo. **Classe B — Costi della produzione**: tutto cio' che e' costato",
-        "produrla. La colonna **Classe** ti dice, riga per riga, dove finisce ciascuna voce: le voci A",
-        "vengono prima, le voci B subito dopo, nello stesso ordine in cui le vedi in tabella.",
-        '',
-        "Questo livello costruisce solo i due totali e la loro differenza — ma e' la prima pietra:",
-        "su \"A) Valore della produzione\" e \"B) Costi della produzione\" si appoggeranno le",
-        "riclassificazioni, l'EBITDA e i tre prospetti collegati che vedrai piu' avanti in questo modulo.",
-        "Se questi due numeri non sono solidi, niente di quello che viene dopo lo e'.",
-      ].join('\n'),
+      brief: [tx('M1-01-SCHEMACEE.13')].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Conto Economico — voci da riclassificare'], { style: STILE_TITOLO }),
-            riga(`A${HEADER_ROW}`, ['Voce di Conto Economico', 'Classe', 'Importo (€)'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M1-01-SCHEMACEE.14')], { style: STILE_TITOLO }),
+            riga(`A${HEADER_ROW}`, [tx('M1-01-SCHEMACEE.15'), tx('M1-01-SCHEMACEE.23'), tx('M1-01-SCHEMACEE.16')], { style: STILE_TITOLO }),
             colonna(`A${A_ROW_FIRST}`, vociTotali, { style: STILE_ETICHETTA }),
             colonna(`B${A_ROW_FIRST}`, classiTotali, { style: STILE_ETICHETTA }),
             blocco(
@@ -196,13 +178,13 @@ export default defineTemplate({
               importiTotali.map((v) => [v]),
               { style: STILE_INPUT },
             ),
-            riga(`A${RIEP_TITLE_ROW}`, ['Riepilogo'], { style: STILE_TITOLO }),
+            riga(`A${RIEP_TITLE_ROW}`, [tx('M1-01-SCHEMACEE.24')], { style: STILE_TITOLO }),
             colonna(
               `A${R1}`,
               [
-                'A) Valore della produzione',
-                'B) Costi della produzione',
-                'Differenza tra valore e costi della produzione (A-B)',
+                tx('M1-01-SCHEMACEE.17'),
+                tx('M1-01-SCHEMACEE.18'),
+                tx('M1-01-SCHEMACEE.19'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -213,9 +195,9 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', `SUM(${rangeA}): somma le sole righe etichettate "A" nella colonna Classe.`, 8, 'T1'),
-        hint('H2', `SUM(${rangeB}): somma le sole righe etichettate "B" nella colonna Classe.`, 8, 'T2'),
-        hint('H3', `=C${R1}-C${R2}: la differenza fra i due totali che hai gia' scritto sopra, nessun numero nuovo.`, 6, 'T3'),
+        hint('H1', tx('M1-01-SCHEMACEE.20', { rangeA }), 8, 'T1'),
+        hint('H2', tx('M1-01-SCHEMACEE.21', { rangeB }), 8, 'T2'),
+        hint('H3', tx('M1-01-SCHEMACEE.22', { R1, R2 }), 6, 'T3'),
       ],
       parScore: par(tasks, { letturaSecondi: 60 }),
       startAt: `Model!C${R1}`,

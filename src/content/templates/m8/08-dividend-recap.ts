@@ -32,6 +32,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // Geometria fissa
 const B_EBITDA_Y3 = 'B4'; // EBITDA Anno 3 (dato)
 const B_EXIST_DEBT = 'B5'; // Debito Esistente pre-recap Anno 3 (dato)
@@ -46,7 +47,9 @@ const B_CUMUL_RET = 'B13'; // T3: % Capitale Iniziale già Recuperato ad Anno 3 
 export default defineTemplate({
   id: 'M8-08-DIVIDENDRECAP',
   module: 'M8',
-  title: 'Dividend recap: rifinanziamento ed estrazione di cassa intermedia',
+  get title() {
+    return tx('M8-08-DIVIDENDRECAP.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -66,43 +69,28 @@ export default defineTemplate({
     const dividend = maxDebt - existDebt - maxDebt * feePct;
     const cumulRecovery = dividend / entryEq;
 
-    const brief = [
-      `All'**Anno 3** dell'LBO, l'azienda ha aumentato l'EBITDA e rimborsato gran parte del debito. Lo Sponsor decide di effettuare una **Dividend Recapitalization**.`,
-      ``,
-      `Dati all'Anno 3:`,
-      `- **EBITDA Anno 3**: ${eur(ebitdaY3)}`,
-      `- **Debito Finanziario Esistente**: ${eur(existDebt)}`,
-      `- **Massimo Leverage Consentito dalle Banche**: ${multiplo(maxLev)}`,
-      `- **Equity Inizialmente Investita dallo Sponsor (Anno 0)**: ${eur(entryEq)}`,
-      `- **Fee di rifinanziamento**: ${pct(feePct, 2)} del nuovo debito`,
-      ``,
-      "Il nuovo finanziamento, al massimo della leva concessa, serve prima a rimborsare il debito esistente " +
-        'e a pagare le fee; quel che resta esce come dividendo straordinario allo sponsor. Lo sponsor recupera ' +
-        "parte del capitale prima dell'uscita, e l'IRR sale; in cambio l'azienda torna a essere molto indebitata.",
-      '',
-      'Calcola il nuovo debito massimo, il dividendo distribuibile e la quota di capitale iniziale gia\' recuperata.',
-    ].join('\n');
+    const brief = [tx('M8-08-DIVIDENDRECAP.2', { p0: eur(ebitdaY3), p1: eur(existDebt), p2: multiplo(maxLev), p3: eur(entryEq), p4: pct(feePct, 2) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['DIVIDEND RECAPITALIZATION (ANNO 3)'], { style: STILE_TITOLO }),
-      riga('A3', ['Dati Finanziari Anno 3', 'Valore (€)'], { style: STILE_TITOLO }),
+      riga('A1', [tx('M8-08-DIVIDENDRECAP.3')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M8-08-DIVIDENDRECAP.4'), tx('M8-08-DIVIDENDRECAP.5')], { style: STILE_TITOLO }),
       colonna('A4', [
-        'EBITDA Anno 3',
-        'Debito Finanziario Esistente Pre-Recap',
-        'Max Leverage Consentito (x)',
-        'Equity Iniziale Sponsor (Anno 0)',
-        'Fee di rifinanziamento, % del nuovo debito',
+        tx('M8-08-DIVIDENDRECAP.6'),
+        tx('M8-08-DIVIDENDRECAP.7'),
+        tx('M8-08-DIVIDENDRECAP.8'),
+        tx('M8-08-DIVIDENDRECAP.9'),
+        tx('M8-08-DIVIDENDRECAP.10'),
       ], { style: STILE_ETICHETTA }),
       colonna('B4', [ebitdaY3, existDebt], { style: STILE_INPUT }),
       colonna(B_MAX_LEV, [maxLev], { style: STILE_INPUT_MULTIPLO }),
       colonna(B_ENTRY_EQ, [entryEq], { style: STILE_INPUT }),
       [{ ref: B_FEE_PCT, content: feePct, style: { ...STILE_INPUT_PCT, numFmt: '0.00%' }, locked: true }],
 
-      riga('A10', ['Risultati della Recapitalization', 'Risultato'], { style: STILE_TITOLO }),
+      riga('A10', [tx('M8-08-DIVIDENDRECAP.11'), tx('M8-08-DIVIDENDRECAP.19')], { style: STILE_TITOLO }),
       colonna('A11', [
-        'Massimo Nuovo Debito Raccoglibile (€)',
-        'Dividendo Straordinario Estratto (€)',
-        'Quota Equity Iniziale Recuperata (%)',
+        tx('M8-08-DIVIDENDRECAP.12'),
+        tx('M8-08-DIVIDENDRECAP.13'),
+        tx('M8-08-DIVIDENDRECAP.14'),
       ], { style: STILE_ETICHETTA }),
       colonna(B_MAX_DEBT, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_DIVIDEND, [null], { style: STILE_FORMULA, locked: false }),
@@ -112,7 +100,7 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `In ${B_MAX_DEBT} il nuovo debito massimo che le banche concedono.`,
+        prompt: tx('M8-08-DIVIDENDRECAP.15', { B_MAX_DEBT }),
         target: `Model!${B_MAX_DEBT}`,
         atteso: maxDebt,
         referenzia: [B_EBITDA_Y3, B_MAX_LEV],
@@ -122,7 +110,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T2',
-        prompt: `In ${B_DIVIDEND} il dividendo straordinario che resta da distribuire dopo aver rimborsato il debito esistente e pagato le fee.`,
+        prompt: tx('M8-08-DIVIDENDRECAP.16', { B_DIVIDEND }),
         target: `Model!${B_DIVIDEND}`,
         atteso: dividend,
         referenzia: [B_MAX_DEBT, B_EXIST_DEBT, B_FEE_PCT],
@@ -132,7 +120,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T3',
-        prompt: `In ${B_CUMUL_RET} quale quota dell'equity investita lo sponsor si e' gia' ripreso con il dividendo.`,
+        prompt: tx('M8-08-DIVIDENDRECAP.17', { B_CUMUL_RET }),
         target: `Model!${B_CUMUL_RET}`,
         atteso: cumulRecovery,
         referenzia: [B_DIVIDEND, B_ENTRY_EQ],
@@ -152,7 +140,7 @@ export default defineTemplate({
       startAt: `Model!${B_MAX_DEBT}`,
       hints: [
         hint('H1', '=B4*B6', 10, 'T1'),
-        hint('H2', '=B11-B5-B11*B8: nuovo debito, meno quello rimborsato, meno le fee.', 10, 'T2'),
+        hint('H2', tx('M8-08-DIVIDENDRECAP.18'), 10, 'T2'),
         hint('H3', '=B12/B7', 10, 'T3'),
       ],
     };

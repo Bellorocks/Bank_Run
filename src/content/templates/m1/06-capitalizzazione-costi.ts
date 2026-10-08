@@ -39,6 +39,7 @@ import {
   pct,
 } from '../../authoring';
 
+import { tx } from '../../../i18n/content';
 // --- Geometria fissa del foglio. -------------------------------------------
 const RIGA_SPESA = 4;
 const RIGA_PERC = 5;
@@ -60,7 +61,9 @@ const PERCENTUALI_CAPITALIZZABILI = [0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65,
 export default defineTemplate({
   id: 'M1-06-CAPITALIZZAZIONE',
   module: 'M1',
-  title: 'Capitalizzazione dei costi di sviluppo',
+  get title() {
+    return tx('M1-06-CAPITALIZZAZIONE.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 230,
@@ -83,11 +86,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_QUOTA} calcola la quota di spesa di sviluppo capitalizzata: la spesa totale dell'anno ` +
-        `(${eur(speseSviluppo)}, in ${B_SPESA}) moltiplicata per la percentuale ritenuta capitalizzabile secondo ` +
-        `i criteri OIC (${pct(percCapitalizzabile)}, in ${B_PERC}). Riferisciti alle due celle, non scrivere i ` +
-        "numeri a mano: quella quota smette di essere un costo dell'anno a Conto Economico e diventa " +
-        "un'immobilizzazione immateriale a Stato Patrimoniale.",
+        tx('M1-06-CAPITALIZZAZIONE.2', { B_QUOTA, p1: eur(speseSviluppo), B_SPESA, p3: pct(percCapitalizzabile), B_PERC }),
       target: `Model!${B_QUOTA}`,
       atteso: quotaCapitalizzata,
       referenzia: [B_SPESA, B_PERC],
@@ -99,9 +98,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_AMMORT} calcola l'ammortamento annuo della quota capitalizzata: dividi la quota che hai ` +
-        `appena calcolato in ${B_QUOTA} per la vita utile del progetto in anni (${B_VITA}). Riferisciti alla ` +
-        'quota gia\' calcolata, non ricalcolarla moltiplicando di nuovo spesa per percentuale.',
+        tx('M1-06-CAPITALIZZAZIONE.3', { B_AMMORT, B_QUOTA, B_VITA }),
       target: `Model!${B_AMMORT}`,
       atteso: ammortamentoAnnuo,
       referenzia: [B_QUOTA, B_VITA],
@@ -113,11 +110,7 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        `In ${B_DISTORSIONE} calcola di quanto l'EBITDA che l'azienda riporta risulta piu' alto rispetto a ` +
-        "quello che avrebbe riportato se l'intera spesa di sviluppo fosse stata trattata come costo " +
-        "dell'esercizio, come vorrebbe un'ottica prudente da Quality of Earnings. Non ricostruire due EBITDA " +
-        "in due celle separate per poi sottrarli: la differenza e' un numero solo, ed e' esattamente la quota " +
-        `che hai capitalizzato sopra (${B_QUOTA}) — riferisciti solo a quella.`,
+        tx('M1-06-CAPITALIZZAZIONE.4', { B_DISTORSIONE, B_QUOTA }),
       target: `Model!${B_DISTORSIONE}`,
       atteso: distorsioneEbitda,
       referenzia: [B_QUOTA],
@@ -131,57 +124,38 @@ export default defineTemplate({
     return {
       templateId: 'M1-06-CAPITALIZZAZIONE',
       seed: rng.seed,
-      brief: [
-        "## Capitalizzare non fa sparire un costo, lo sposta",
-        '',
-        "Un'azienda ha speso quest'anno in ricerca e sviluppo di un nuovo prodotto. Non tutta questa " +
-          "spesa e' necessariamente un costo dell'esercizio: se il progetto soddisfa i criteri dell'OIC " +
-          "(dimostrabile fattibilita' tecnica, intenzione e capacita' di completarlo, benefici economici " +
-          "futuri attendibili...), la parte capitalizzabile puo' essere iscritta come immobilizzazione " +
-          "immateriale e ammortizzata sulla vita utile del progetto, invece di pesare tutta insieme sul " +
-          "Conto Economico dell'anno in cui e' stata sostenuta.",
-        '',
-        `Qui sotto trovi la spesa totale dell'anno (${eur(speseSviluppo)}), la percentuale che i criteri ` +
-          `OIC permettono di capitalizzare (${pct(percCapitalizzabile)}) e la vita utile del progetto ` +
-          `(${vitaUtile} anni).`,
-        '',
-        "**Il punto delicato** e' l'ultimo task. Capitalizzare invece di spesare fa apparire un EBITDA " +
-          "piu' alto — non perche' l'azienda genera piu' cassa operativa quest'anno, ma solo perche' una " +
-          "parte del costo e' stata spostata sotto la riga, verso l'ammortamento dei prossimi anni. Un " +
-          "analista che valuta la qualita' dell'utile vuole sapere esattamente quanto vale questa " +
-          "distorsione: non due EBITDA da confrontare, un solo numero che la isola.",
-      ].join('\n'),
+      brief: [tx('M1-06-CAPITALIZZAZIONE.5', { p0: eur(speseSviluppo), p1: pct(percCapitalizzabile), vitaUtile })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Capitalizzazione dei costi di sviluppo'], { style: STILE_TITOLO }),
-            riga('A3', ['Voce', 'Valore'], { style: STILE_TITOLO }),
-            [{ ref: 'A4', content: "Spesa di sviluppo dell'anno (R&D), €", locked: true, style: STILE_ETICHETTA }],
+            riga('A1', [tx('M1-06-CAPITALIZZAZIONE.6')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M1-06-CAPITALIZZAZIONE.16'), tx('M1-06-CAPITALIZZAZIONE.17')], { style: STILE_TITOLO }),
+            [{ ref: 'A4', content: tx('M1-06-CAPITALIZZAZIONE.7'), locked: true, style: STILE_ETICHETTA }],
             [{ ref: B_SPESA, content: speseSviluppo, locked: true, style: STILE_INPUT }],
-            [{ ref: 'A5', content: 'Quota capitalizzabile secondo i criteri OIC', locked: true, style: STILE_ETICHETTA }],
+            [{ ref: 'A5', content: tx('M1-06-CAPITALIZZAZIONE.8'), locked: true, style: STILE_ETICHETTA }],
             [{ ref: B_PERC, content: percCapitalizzabile, locked: true, style: STILE_INPUT_PCT }],
-            [{ ref: 'A6', content: 'Vita utile del progetto (anni)', locked: true, style: STILE_ETICHETTA }],
+            [{ ref: 'A6', content: tx('M1-06-CAPITALIZZAZIONE.9'), locked: true, style: STILE_ETICHETTA }],
             [{ ref: B_VITA, content: vitaUtile, locked: true, style: STILE_INPUT }],
-            riga('A8', ['Riepilogo'], { style: STILE_TITOLO }),
+            riga('A8', [tx('M1-06-CAPITALIZZAZIONE.18')], { style: STILE_TITOLO }),
             [
               {
                 ref: 'A9',
-                content: "Quota di spesa capitalizzata (immobilizzazione immateriale), €",
+                content: tx('M1-06-CAPITALIZZAZIONE.10'),
                 locked: true,
                 style: STILE_ETICHETTA,
               },
               { ref: B_QUOTA, content: null, locked: false, style: STILE_FORMULA },
               {
                 ref: 'A10',
-                content: 'Ammortamento annuo della quota capitalizzata, €',
+                content: tx('M1-06-CAPITALIZZAZIONE.11'),
                 locked: true,
                 style: STILE_ETICHETTA,
               },
               { ref: B_AMMORT, content: null, locked: false, style: STILE_FORMULA },
               {
                 ref: 'A11',
-                content: "Effetto sull'EBITDA riportato rispetto a un trattamento interamente a Conto Economico, €",
+                content: tx('M1-06-CAPITALIZZAZIONE.12'),
                 locked: true,
                 style: STILE_ETICHETTA,
               },
@@ -193,12 +167,11 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', `=${B_SPESA}*${B_PERC}: la spesa totale per la percentuale capitalizzabile.`, 8, 'T1'),
-        hint('H2', `=${B_QUOTA}/${B_VITA}: la quota capitalizzata divisa per gli anni di vita utile.`, 8, 'T2'),
+        hint('H1', tx('M1-06-CAPITALIZZAZIONE.13', { B_SPESA, B_PERC }), 8, 'T1'),
+        hint('H2', tx('M1-06-CAPITALIZZAZIONE.14', { B_QUOTA, B_VITA }), 8, 'T2'),
         hint(
           'H3',
-          `=${B_QUOTA}: capitalizzare non fa sparire il costo, lo sposta fuori dal Conto Economico di ` +
-            "quest'anno. L'EBITDA riportato e' piu' alto esattamente della quota che non e' passata a costo.",
+          tx('M1-06-CAPITALIZZAZIONE.15', { B_QUOTA }),
           10,
           'T3',
         ),

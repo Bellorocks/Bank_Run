@@ -32,6 +32,7 @@ import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 import type { Task } from '../../types';
 
+import { sectorName, tx } from '../../../i18n/content';
 // Stili locali: gli input qui hanno decimali (centesimi, chilogrammi con due
 // cifre) che gli stili standard di authoring.ts non prevedono, quindi si
 // costruiscono ad hoc sulla stessa convenzione (blu = input, nero = formula).
@@ -44,7 +45,9 @@ const STILE_LIBERA: CellStyle = { fontColor: MODEL_COLORS.formula };
 export default defineTemplate({
   id: 'M0A-08-FORMATI',
   module: 'M0-A',
-  title: 'Il vestito del numero',
+  get title() {
+    return tx('M0A-08-FORMATI.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 240,
@@ -75,7 +78,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        'In B5 calcola i ricavi totali: la somma di Ricavi Italia e Ricavi estero. Poi formatta il risultato come valuta, due decimali e simbolo €: la scorciatoia e\' Ctrl+Maiusc+4.',
+        tx('M0A-08-FORMATI.2'),
       target: 'Model!B5',
       atteso: ricaviTotali,
       referenzia: ['B3', 'B4'],
@@ -87,7 +90,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        'In B9 calcola il margine EBITDA: EBITDA diviso Ricavi. Il risultato che Excel salva e\' una frazione (0,18, non 18): e\' il formato percentuale, non un moltiplicatore per 100, a farla leggere come 18%. Applicalo con Ctrl+Maiusc+5.',
+        tx('M0A-08-FORMATI.3'),
       target: 'Model!B9',
       atteso: margineAtteso,
       referenzia: ['B7', 'B8'],
@@ -99,7 +102,7 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        'In B13 somma Lotto A e Lotto B per la quantita\' totale. Su un numero a quattro cifre il separatore delle migliaia si legge a colpo d\'occhio: applicalo con Ctrl+Maiusc+1 (due decimali, raggruppamento sulle migliaia).',
+        tx('M0A-08-FORMATI.4'),
       target: 'Model!B13',
       atteso: quantitaTotale,
       referenzia: ['B11', 'B12'],
@@ -117,7 +120,7 @@ export default defineTemplate({
             kind: 'numberFormat' as const,
             expected: DEFAULT_FORMATS.valuta,
             message:
-              'Il numero e\' giusto ma manca il vestito: qui serve il formato valuta (Ctrl+Maiusc+4), due decimali e il simbolo €.',
+              tx('M0A-08-FORMATI.5'),
           },
         ],
       },
@@ -129,7 +132,7 @@ export default defineTemplate({
             kind: 'numberFormat' as const,
             expected: DEFAULT_FORMATS.percentuale,
             message:
-              'Il numero e\' giusto ma manca il vestito: qui serve la percentuale (Ctrl+Maiusc+5), non la frazione nuda.',
+              tx('M0A-08-FORMATI.6'),
           },
         ],
       },
@@ -141,7 +144,7 @@ export default defineTemplate({
             kind: 'numberFormat' as const,
             expected: DEFAULT_FORMATS.numero2dec,
             message:
-              'Il numero e\' giusto ma manca il vestito: qui serve il separatore delle migliaia con due decimali (Ctrl+Maiusc+1).',
+              tx('M0A-08-FORMATI.7'),
           },
         ],
       },
@@ -150,46 +153,19 @@ export default defineTemplate({
     return {
       templateId: 'M0A-08-FORMATI',
       seed: rng.seed,
-      brief: [
-        '## Il numero non cambia, cambia il vestito',
-        '',
-        'Una cella puo\' contenere davvero il numero `0,18` e mostrare in facciata `18%`, oppure',
-        'contenere `8300000` e mostrare `8.300.000,00 €`. Il valore salvato non si tocca: e\' il',
-        '**formato** — un\'etichetta separata attaccata alla cella — a decidere come lo leggi. Lo',
-        'stesso numero, tre vestiti diversi: e\' il motivo per cui due celle che sembrano diverse',
-        'possono sommarsi senza sorprese, e due celle che sembrano uguali possono nascondere due',
-        'valori diversi.',
-        '',
-        `Qui sotto trovi i ricavi di un'azienda del settore ${sector} spezzati in Italia`,
-        `(${eur(ricaviItalia, 2)}) ed estero (${eur(ricaviEstero, 2)}). Il totale va scritto`,
-        'come valuta.',
-        '',
-        `L'EBITDA (${eur(ebitda)}) diviso i ricavi (${eur(ricaviMargine)}) da\' un margine che Excel`,
-        `salva come ${num(margineAtteso, 4)} e che il formato percentuale mostra come ${pct(margineAtteso, 0)}.`,
-        'Se lo lasci senza formato leggerai uno zero virgola qualcosa, e in una call e\' li\' che si',
-        'perde un secondo di troppo.',
-        '',
-        `Infine due lotti di magazzino, ${num(lottoA, 2)} e ${num(lottoB, 2)} unita\': sommali, e`,
-        'sul totale a quattro cifre il punto delle migliaia fa la differenza fra leggerlo e contarlo.',
-        '',
-        'Tre scorciatoie da imparare adesso, non da cercare ogni volta nel menu Home:',
-        '',
-        '- **Ctrl+Maiusc+1** — numero con due decimali e separatore delle migliaia',
-        '- **Ctrl+Maiusc+4** — valuta',
-        '- **Ctrl+Maiusc+5** — percentuale',
-      ].join('\n'),
+      brief: [tx('M0A-08-FORMATI.8', { sector: sectorName(sector), p1: eur(ricaviItalia, 2), p2: eur(ricaviEstero, 2), p3: eur(ebitda), p4: eur(ricaviMargine), p5: num(margineAtteso, 4), p6: pct(margineAtteso, 0), p7: num(lottoA, 2), p8: num(lottoB, 2) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Formati numerici'], { style: STILE_TITOLO }),
-            blocco('A3', [['Ricavi Italia (€)'], ['Ricavi estero (€)'], ['Ricavi totali']], {
+            riga('A1', [tx('M0A-08-FORMATI.9')], { style: STILE_TITOLO }),
+            blocco('A3', [[tx('M0A-08-FORMATI.10')], [tx('M0A-08-FORMATI.11')], [tx('M0A-08-FORMATI.12')]], {
               style: STILE_ETICHETTA,
             }),
             blocco('B3', [[ricaviItalia], [ricaviEstero]], { style: STILE_INPUT_VALUTA }),
-            blocco('A7', [['EBITDA (€)'], ['Ricavi (€)'], ['Margine EBITDA']], { style: STILE_ETICHETTA }),
+            blocco('A7', [[tx('M0A-08-FORMATI.13')], [tx('M0A-08-FORMATI.14')], [tx('M0A-08-FORMATI.15')]], { style: STILE_ETICHETTA }),
             blocco('B7', [[ebitda], [ricaviMargine]], { style: STILE_INPUT_VALUTA }),
-            blocco('A11', [['Lotto A (unita\')'], ['Lotto B (unita\')'], ['Quantita\' totale']], {
+            blocco('A11', [[tx('M0A-08-FORMATI.16')], [tx('M0A-08-FORMATI.17')], [tx('M0A-08-FORMATI.18')]], {
               style: STILE_ETICHETTA,
             }),
             blocco('B11', [[lottoA], [lottoB]], { style: STILE_INPUT_NUM2 }),
@@ -204,14 +180,14 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', 'Somma B3 e B4. Poi Ctrl+Maiusc+4: due decimali e simbolo € arrivano insieme.', 8, 'T1'),
+        hint('H1', tx('M0A-08-FORMATI.19'), 8, 'T1'),
         hint(
           'H2',
-          'B7 diviso B8, senza moltiplicare per 100: e\' il formato percentuale a spostare la virgola sullo schermo, non la formula.',
+          tx('M0A-08-FORMATI.20'),
           8,
           'T2',
         ),
-        hint('H3', 'Somma B11 e B12. Poi Ctrl+Maiusc+1 per il separatore delle migliaia con due decimali.', 8, 'T3'),
+        hint('H3', tx('M0A-08-FORMATI.21'), 8, 'T3'),
       ],
       parScore: par(tasks, { letturaSecondi: 55 }),
       startAt: 'Model!B5',

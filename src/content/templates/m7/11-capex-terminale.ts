@@ -68,6 +68,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
 const B_CAPEX_GREZZO = 'B4'; // Capex proiettato per l'ultimo anno esplicito, non normalizzato (dato, bloccato)
 const B_DA = 'B5'; // D&A dell'ultimo anno esplicito, proxy del capex di mantenimento (dato, bloccato)
@@ -79,7 +80,9 @@ const B_FCF_NORM = 'B10'; // T2: FCF normalizzato per il terminal value
 export default defineTemplate({
   id: 'M7-11-CAPEXTERMINALE',
   module: 'M7',
-  title: 'Normalizzazione del capex nel terminal value',
+  get title() {
+    return tx('M7-11-CAPEXTERMINALE.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 260,
@@ -126,11 +129,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_CAPEX_NORM} calcola il capex NORMALIZZATO da usare nel terminal value: la stessa ` +
-        `convenzione di M3-04 (capex di mantenimento ≈ D&A), qui applicata all'anno "stilizzato" della ` +
-        `perpetuita'. Nel lungo periodo un'azienda in regime stazionario non puo' continuare a espandere ` +
-        `la propria capacita' produttiva per sempre: il capex deve convergere verso il D&A dell'ultimo ` +
-        `anno esplicito (${B_DA}). Usa direttamente quella cella come stima, senza copiare il numero a mano.`,
+        tx('M7-11-CAPEXTERMINALE.2', { B_CAPEX_NORM, B_DA }),
       target: `Model!${B_CAPEX_NORM}`,
       atteso: capexNormalizzato,
       referenzia: [B_DA],
@@ -142,17 +141,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_FCF_NORM} calcola il FCF normalizzato per il terminal value: il FCF dell'ultimo anno ` +
-        `esplicito PRIMA della normalizzazione (${B_FCF_PRIMA} — gia' calcolato col capex grezzo, non ` +
-        `toccarlo) PIU' la differenza fra il capex grezzo (${B_CAPEX_GREZZO}) e il capex normalizzato ` +
-        `appena calcolato in T1 (${B_CAPEX_NORM} — NON ricalcolarlo da zero). ` +
-        `Formula: FCF normalizzato = ${B_FCF_PRIMA} + (${B_CAPEX_GREZZO} − ${B_CAPEX_NORM}). ` +
-        "Il senso: quel FCF di partenza aveva gia' sottratto il capex GREZZO, piu' alto di quanto " +
-        "servirebbe in regime stazionario; questa formula gli \"restituisce\" esattamente la fetta di " +
-        "capex in eccesso. ATTENZIONE all'ordine della sottrazione dentro la parentesi: capex grezzo " +
-        `MENO capex normalizzato (${B_CAPEX_GREZZO} − ${B_CAPEX_NORM}), mai il contrario — invertirlo ` +
-        'toglierebbe cassa invece di restituirla, sottostimando ulteriormente il FCF terminale invece di ' +
-        'correggerlo. Usa le tre celle date, senza copiare i numeri a mano.',
+        tx('M7-11-CAPEXTERMINALE.3', { B_FCF_NORM, B_FCF_PRIMA, B_CAPEX_GREZZO, B_CAPEX_NORM }),
       target: `Model!${B_FCF_NORM}`,
       atteso: fcfNormalizzato,
       referenzia: [B_FCF_PRIMA, B_CAPEX_GREZZO, B_CAPEX_NORM],
@@ -166,52 +155,20 @@ export default defineTemplate({
     return {
       templateId: 'M7-11-CAPEXTERMINALE',
       seed: rng.seed,
-      brief: [
-        '## Normalizzazione del capex nel terminal value',
-        '',
-        "M3-04 ha insegnato a scomporre il capex TOTALE di un anno in capex di mantenimento (proxy: " +
-          "converge verso il D&A) e capex di crescita (il resto, discrezionale). Qui riprendiamo lo " +
-          "STESSO proxy — capex di mantenimento ≈ D&A — ma per un problema diverso: normalizzare il " +
-          "capex dell'ultimo anno esplicito prima di usarlo per costruire il terminal value (M7-09).",
-        '',
-        "**Perche' serve.** Il Gordon growth (M7-09) assume che oltre l'ultimo anno esplicito l'azienda " +
-          "cresca per sempre a un tasso g basso e costante — un regime stazionario. Ma un'azienda in " +
-          "regime stazionario non puo' continuare a ESPANDERE la propria capacita' produttiva " +
-          "all'infinito: nel lungo periodo il capex deve limitarsi a rimpiazzare cio' che si consuma, " +
-          "cioe' convergere verso il D&A. Se invece si portasse nel terminal value il capex GREZZO " +
-          "proiettato per l'ultimo anno esplicito — magari ancora alto perche' quell'anno un progetto di " +
-          "espansione era ancora in corso — il FCF terminale (e quindi il Terminal Value, che di norma " +
-          "pesa la maggioranza della valutazione) verrebbe sistematicamente SOTTOSTIMATO.",
-        '',
-        '> **Capex normalizzato (per il terminal value) = D&A dell\'ultimo anno esplicito**',
-        '> **FCF normalizzato = FCF prima della normalizzazione + (Capex grezzo − Capex normalizzato)**',
-        '',
-        "Il FCF \"prima della normalizzazione\" e' gia' stato calcolato sottraendo il capex GREZZO, piu' " +
-          "alto. Per ottenere il FCF che si sarebbe avuto in regime stazionario, gli si \"restituisce\" " +
-          "esattamente la differenza fra i due capex: quanto in piu' era stato sottratto rispetto a " +
-          "quanto si sarebbe dovuto sottrarre.",
-        '',
-        `**I dati**, gia' pronti come assunzioni: capex grezzo dell'ultimo anno esplicito ${eurM(capexGrezzo)}, ` +
-          `D&A dell'ultimo anno esplicito ${eurM(da)}, FCF dell'ultimo anno esplicito prima della ` +
-          `normalizzazione ${eurM(fcfPrima)}.`,
-        '',
-        "Calcola prima il capex normalizzato, poi usalo per normalizzare il FCF. Questo livello si ferma " +
-          "qui: il FCF normalizzato che ottieni e' l'input pulito che andrebbe al numeratore della " +
-          'formula di Gordon (M7-09), non ricalcoli qui il Terminal Value stesso.',
-      ].join('\n'),
+      brief: [tx('M7-11-CAPEXTERMINALE.4', { p0: eurM(capexGrezzo), p1: eurM(da), p2: eurM(fcfPrima) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Normalizzazione del capex nel terminal value'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M7-11-CAPEXTERMINALE.5')], { style: STILE_TITOLO }),
 
-            riga('A3', ["Dati di partenza (ultimo anno esplicito)"], { style: STILE_TITOLO }),
+            riga('A3', [tx('M7-11-CAPEXTERMINALE.6')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'Capex grezzo, non normalizzato, €',
+                tx('M7-11-CAPEXTERMINALE.7'),
                 'D&A, €',
-                'FCF prima della normalizzazione del capex, €',
+                tx('M7-11-CAPEXTERMINALE.8'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -221,12 +178,12 @@ export default defineTemplate({
               { ref: B_FCF_PRIMA, content: fcfPrima, style: STILE_INPUT, locked: true },
             ],
 
-            riga('A8', ['Normalizzazione per il terminal value'], { style: STILE_TITOLO }),
+            riga('A8', [tx('M7-11-CAPEXTERMINALE.9')], { style: STILE_TITOLO }),
             colonna(
               'A9',
               [
-                'Capex normalizzato, €',
-                'FCF normalizzato, €',
+                tx('M7-11-CAPEXTERMINALE.10'),
+                tx('M7-11-CAPEXTERMINALE.11'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -240,15 +197,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_DA}: il capex normalizzato per il terminal value e' semplicemente il D&A dell'ultimo ` +
-            "anno, stessa convenzione di M3-04.",
+          tx('M7-11-CAPEXTERMINALE.12', { B_DA }),
           8,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_FCF_PRIMA}+(${B_CAPEX_GREZZO}-${B_CAPEX_NORM}): il FCF di partenza piu' la differenza ` +
-            "fra capex grezzo e capex normalizzato — non il contrario.",
+          tx('M7-11-CAPEXTERMINALE.13', { B_FCF_PRIMA, B_CAPEX_GREZZO, B_CAPEX_NORM }),
           10,
           'T2',
         ),

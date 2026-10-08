@@ -62,6 +62,7 @@ import { roundTo } from '../../../rng/distributions';
 import type { CellStyle } from '../../../engine/types';
 import type { CellSpec, Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 /** Input testuale (settore, SI/NO): stesso blu degli input numerici, senza formato numerico. */
 const STILE_INPUT_TESTO: CellStyle = { fontColor: MODEL_COLORS.input };
 
@@ -84,7 +85,9 @@ const PROB_STESSO_SETTORE = 0.55;
 export default defineTemplate({
   id: 'M5-01-SELEZIONEPEER',
   module: 'M5',
-  title: 'Selezione dei peer: chi e\' davvero comparabile',
+  get title() {
+    return tx('M5-01-SELEZIONEPEER.title');
+  },
   rank: 1,
   mode: 'GUIDED',
   estimatedSeconds: 300,
@@ -113,7 +116,7 @@ export default defineTemplate({
       const sizeComparabile = fatturato >= targetFatturato * SIZE_LO && fatturato <= targetFatturato * SIZE_HI;
       const comparabile = stessoSettore && sizeComparabile;
       return {
-        label: `Peer ${i + 1}`,
+        label: tx('M5-01-SELEZIONEPEER.2', { p0: i + 1 }),
         settore,
         fatturato,
         stessoSettore,
@@ -151,12 +154,7 @@ export default defineTemplate({
     const t1: Task = {
       id: 'T1',
       prompt:
-        `Nella colonna F valuta, riga per riga, se il candidato e' DAVVERO comparabile: serve ` +
-        `che ENTRAMBI i criteri siano soddisfatti, stesso settore del target (colonna D di questa ` +
-        `riga = "SI") E size comparabile (colonna E di questa riga = "SI"). Parti da ` +
-        `F${CAND_ROW_FIRST} (= AND(D${CAND_ROW_FIRST}="SI",E${CAND_ROW_FIRST}="SI")) e trascinala ` +
-        `fino a F${CAND_ROW_LAST}: deve restare la STESSA formula, solo traslata di riga — un peer ` +
-        "che soddisfa un solo criterio su due non e' comparabile.",
+        tx('M5-01-SELEZIONEPEER.3', { CAND_ROW_FIRST, CAND_ROW_LAST }),
       targetCell: `Model!${rangeComparabile}`,
       check: [
         { kind: 'consistentRow', range: `Model!${rangeComparabile}` },
@@ -171,8 +169,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T2',
         prompt:
-          `In B${SUMMARY_ROW} conta quanti peer sono DAVVERO comparabili: usa COUNTIF sul range ` +
-          `${rangeComparabile}, contando le celle che valgono TRUE.`,
+          tx('M5-01-SELEZIONEPEER.4', { SUMMARY_ROW, rangeComparabile }),
         target: `Model!B${SUMMARY_ROW}`,
         atteso: numComparabili,
         referenzia: cellsComparabile,
@@ -188,45 +185,22 @@ export default defineTemplate({
     return {
       templateId: 'M5-01-SELEZIONEPEER',
       seed: rng.seed,
-      brief: [
-        "## Un peer vale solo se somiglia davvero al target",
-        '',
-        "Un multiplo di mercato osservato su una societa' quotata comparabile (un \"peer\") si applica " +
-          "alla metrica del target per ottenere un valore implicito. Ma quel numero vale solo quanto " +
-          "vale il peer da cui arriva: operare nello stesso settore non basta. Un peer dieci volte piu' " +
-          "grande — o piu' piccolo — del target e' quotato con dinamiche di rischio, liquidita' e " +
-          "crescita diverse: il suo multiplo diluisce il segnale invece di rafforzarlo.",
-        '',
-        `Il target opera nel settore **${cap(targetSettore)}** e fattura **${eur(targetFatturato)}**. ` +
-          'Il team di ricerca ha gia\' marcato ogni candidato su due criteri:',
-        '',
-        "- **Stesso settore**: SI se il candidato opera nello stesso settore del target.",
-        `- **Size comparabile**: SI se il fatturato del candidato e' compreso fra ${multiplo(SIZE_LO)} e ` +
-          `${multiplo(SIZE_HI)} quello del target (fra ${eur(targetFatturato * SIZE_LO)} e ` +
-          `${eur(targetFatturato * SIZE_HI)}).`,
-        '',
-        "Questi due criteri sono gia' calcolati in tabella: non devi ricalcolarli. Il tuo lavoro e' " +
-          "COMBINARLI nel modo giusto — un candidato entra nel comp set solo se supera ENTRAMBI, mai " +
-          'uno a scelta.',
-        '',
-        `Nella tabella sotto trovi ${num(nCandidati)} candidati. Costruisci prima la colonna ` +
-          '"Comparabile" riga per riga, poi conta quanti candidati superano davvero il filtro.',
-      ].join('\n'),
+      brief: [tx('M5-01-SELEZIONEPEER.5', { p0: cap(targetSettore), p1: eur(targetFatturato), p2: multiplo(SIZE_LO), p3: multiplo(SIZE_HI), p4: eur(targetFatturato * SIZE_LO), p5: eur(targetFatturato * SIZE_HI), p6: num(nCandidati) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ["Selezione dei peer: chi e' davvero comparabile"], { style: STILE_TITOLO }),
+            riga('A1', [tx('M5-01-SELEZIONEPEER.6')], { style: STILE_TITOLO }),
 
-            riga(`A${PROFILE_TITLE_ROW}`, ['Profilo del target'], { style: STILE_TITOLO }),
-            colonna(`A${R_SETTORE_TARGET}`, ['Settore target', 'Fatturato target, €'], { style: STILE_ETICHETTA }),
+            riga(`A${PROFILE_TITLE_ROW}`, [tx('M5-01-SELEZIONEPEER.7')], { style: STILE_TITOLO }),
+            colonna(`A${R_SETTORE_TARGET}`, [tx('M5-01-SELEZIONEPEER.8'), tx('M5-01-SELEZIONEPEER.9')], { style: STILE_ETICHETTA }),
             blocco(`B${R_SETTORE_TARGET}`, [[cap(targetSettore)]], { style: STILE_INPUT_TESTO }),
             blocco(`B${R_FATTURATO_TARGET}`, [[targetFatturato]], { style: STILE_INPUT }),
 
-            riga(`A${TABLE_TITLE_ROW}`, ['Candidati peer'], { style: STILE_TITOLO }),
+            riga(`A${TABLE_TITLE_ROW}`, [tx('M5-01-SELEZIONEPEER.10')], { style: STILE_TITOLO }),
             riga(
               `A${HEADER_ROW}`,
-              ['Peer', 'Settore', 'Fatturato, €', 'Stesso settore', 'Size comparabile', 'Comparabile'],
+              [tx('M5-01-SELEZIONEPEER.16'), tx('M5-01-SELEZIONEPEER.17'), tx('M5-01-SELEZIONEPEER.18'), tx('M5-01-SELEZIONEPEER.11'), tx('M5-01-SELEZIONEPEER.12'), tx('M5-01-SELEZIONEPEER.19')],
               { style: STILE_TITOLO },
             ),
             colonna(
@@ -246,17 +220,17 @@ export default defineTemplate({
             ),
             blocco(
               `D${CAND_ROW_FIRST}`,
-              candidati.map((c) => [c.stessoSettore ? 'SI' : 'NO']),
+              candidati.map((c) => [c.stessoSettore ? tx('common.tok.si') : tx('common.tok.no')]),
               { style: STILE_INPUT_TESTO },
             ),
             blocco(
               `E${CAND_ROW_FIRST}`,
-              candidati.map((c) => [c.sizeComparabile ? 'SI' : 'NO']),
+              candidati.map((c) => [c.sizeComparabile ? tx('common.tok.si') : tx('common.tok.no')]),
               { style: STILE_INPUT_TESTO },
             ),
             cellsComparabileSpec,
 
-            colonna(`A${SUMMARY_ROW}`, ['Numero di peer davvero comparabili'], { style: STILE_ETICHETTA }),
+            colonna(`A${SUMMARY_ROW}`, [tx('M5-01-SELEZIONEPEER.13')], { style: STILE_ETICHETTA }),
             [{ ref: `B${SUMMARY_ROW}`, content: null, locked: false, style: STILE_TOTALE }],
           ],
           {
@@ -269,13 +243,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=AND(D${CAND_ROW_FIRST}="SI",E${CAND_ROW_FIRST}="SI") — poi trascina fino a F${CAND_ROW_LAST} senza piu' toccarla.`,
+          tx('M5-01-SELEZIONEPEER.14', { CAND_ROW_FIRST, CAND_ROW_LAST }),
           10,
           'T1',
         ),
         hint(
           'H2',
-          "Se una cella nel mezzo mostra un risultato che non ti convince, controllane la formula con F2: e' li' che si nasconde il ritocco a mano.",
+          tx('M5-01-SELEZIONEPEER.15'),
           6,
           'T1',
         ),

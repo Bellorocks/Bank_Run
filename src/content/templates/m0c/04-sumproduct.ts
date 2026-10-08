@@ -34,27 +34,30 @@ import {
 import { triangular, roundTo } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
-const PRODOTTI = [
-  'Filtri aria industriali',
-  'Cinghie di trasmissione',
-  'Pompe idrauliche compatte',
-  'Sensori di prossimita\'',
-  'Quadri elettrici modulari',
-  'Motoriduttori',
-  'Compressori portatili',
-  'Regolatori di pressione',
-  'Attuatori pneumatici',
-  'Valvole di sicurezza',
-  'Giunti flessibili',
-  'Centraline di controllo',
-] as const;
+import { tx } from '../../../i18n/content';
+const PRODOTTI = () => ([
+  tx('M0C-04-SUMPRODUCT.1'),
+  tx('M0C-04-SUMPRODUCT.2'),
+  tx('M0C-04-SUMPRODUCT.3'),
+  tx('M0C-04-SUMPRODUCT.4'),
+  tx('M0C-04-SUMPRODUCT.5'),
+  tx('M0C-04-SUMPRODUCT.motoriduttori'),
+  tx('M0C-04-SUMPRODUCT.6'),
+  tx('M0C-04-SUMPRODUCT.7'),
+  tx('M0C-04-SUMPRODUCT.8'),
+  tx('M0C-04-SUMPRODUCT.9'),
+  tx('M0C-04-SUMPRODUCT.10'),
+  tx('M0C-04-SUMPRODUCT.11'),
+] as const);
 
-const CANALI = ['Retail', 'Grossisti', 'Export'] as const;
+const CANALI = () => ([tx('M0C-04-SUMPRODUCT.retail'), tx('M0C-04-SUMPRODUCT.grossisti'), tx('M0C-04-SUMPRODUCT.export')] as const);
 
 export default defineTemplate({
   id: 'M0C-04-SUMPRODUCT',
   module: 'M0-C',
-  title: 'Un prodotto per riga, una somma sola',
+  get title() {
+    return tx('M0C-04-SUMPRODUCT.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 260,
@@ -65,17 +68,17 @@ export default defineTemplate({
     const r = rng.fork('dati');
 
     const n = r.int(6, 10);
-    const prodotti = r.shuffle(PRODOTTI).slice(0, n);
-    const canali = prodotti.map(() => r.pick(CANALI));
+    const prodotti = r.shuffle(PRODOTTI()).slice(0, n);
+    const canali = prodotti.map(() => r.pick(CANALI()));
     const quantita = prodotti.map(() => r.int(20, 480));
     const prezzi = prodotti.map(() => roundTo(triangular(r, 15, 60, 250), 0.5));
 
     // Il canale bersaglio del task 2: deve comparire ma non deve coprire tutte
     // le righe, altrimenti il conteggio condizionale collassa nel banale "tutte".
-    let canaleTarget: (typeof CANALI)[number] = canali[0];
+    let canaleTarget: (ReturnType<typeof CANALI>)[number] = canali[0];
     let conteggioTarget = canali.filter((c) => c === canaleTarget).length;
     if (conteggioTarget === n) {
-      const altri = CANALI.filter((c) => c !== canaleTarget);
+      const altri = CANALI().filter((c) => c !== canaleTarget);
       canali[n - 1] = r.pick(altri);
       canaleTarget = canali[0];
       conteggioTarget = canali.filter((c) => c === canaleTarget).length;
@@ -97,9 +100,7 @@ export default defineTemplate({
     const t1: Task = {
       id: 'T1',
       prompt:
-        `In B${t1Row} calcola il fatturato totale delle ${num(n)} linee di prodotto: la somma, riga per riga, ` +
-        `di quantita' per prezzo unitario. Non aggiungere una colonna di supporto con i prodotti gia' ` +
-        'calcolati: fallo con una sola formula su tutta la tabella.',
+        tx('M0C-04-SUMPRODUCT.13', { t1Row, p1: num(n) }),
       targetCell: `Model!B${t1Row}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -115,9 +116,7 @@ export default defineTemplate({
     const t2: Task = {
       id: 'T2',
       prompt:
-        `In B${t2Row} conta quante linee di prodotto sono state vendute sul canale "${canaleTarget}". ` +
-        'Non usare COUNTIF: costruisci il conteggio con SUMPRODUCT, come hai appena fatto per il ' +
-        'fatturato — un confronto che diventa un array di VERO/FALSO, trasformato in 1 e 0, e sommato.',
+        tx('M0C-04-SUMPRODUCT.14', { t2Row, canaleTarget }),
       targetCell: `Model!B${t2Row}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -125,7 +124,7 @@ export default defineTemplate({
           kind: 'value',
           expected: conteggioTarget,
           message:
-            `Il conteggio non torna: deve essere il numero di righe di ${rangeCanali} uguali a "${canaleTarget}".`,
+            tx('M0C-04-SUMPRODUCT.15', { rangeCanali, canaleTarget }),
         },
         { kind: 'mustReference', cells: [`B${DATA_START}`, `B${dataEnd}`] },
         { kind: 'mustUseFunction', functions: ['SUMPRODUCT'] },
@@ -140,35 +139,15 @@ export default defineTemplate({
     return {
       templateId: 'M0C-04-SUMPRODUCT',
       seed: rng.seed,
-      brief: [
-        '## Il prodotto di due colonne, senza una terza',
-        '',
-        `Sei in due diligence commerciale su una societa' target. Il registro vendite del mese elenca`,
-        `${num(n)} linee di prodotto, con le unita' vendute e il prezzo medio per pezzo di ciascuna.`,
-        '',
-        'Il **fatturato totale** e\' la somma di quantita\' per prezzo, riga per riga. Potresti scrivere',
-        'una colonna E con `=C4*D4` copiata in basso, poi sommarla: funziona, ma lascia nel modello',
-        'una colonna che nessuno ti chiedera\' mai di vedere in un report. **`SUMPRODUCT`** fa la',
-        'stessa cosa in un colpo solo: moltiplica due intervalli elemento per elemento e somma i',
-        'risultati, senza bisogno di appoggiarsi da nessuna parte.',
-        '',
-        '`SUMPRODUCT(quantita, prezzi)` — due intervalli della stessa forma, separati da una virgola.',
-        '',
-        'SUMPRODUCT ha pero\' un secondo mestiere, meno ovvio del primo: sa **contare**. Un confronto',
-        'come `B4:B13="Retail"` non restituisce un numero: restituisce un array di VERO e FALSO, uno',
-        'per riga. Moltiplicarlo per `1` lo trasforma in un array di 1 e 0. Sommare quell\'array —',
-        'cioe\' `SUMPRODUCT((B4:B13="Retail")*1)` — da\' esattamente il numero di righe che soddisfano',
-        'la condizione: lo stesso risultato di `COUNTIF(B4:B13,"Retail")`, ma costruito con gli stessi',
-        'mattoni — array, prodotto, somma — che hai appena usato per il fatturato.',
-      ].join('\n'),
+      brief: [tx('M0C-04-SUMPRODUCT.16', { p0: num(n) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Registro vendite del mese'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M0C-04-SUMPRODUCT.17')], { style: STILE_TITOLO }),
             riga(
               `A${HEADER_ROW}`,
-              ['Linea di prodotto', 'Canale', "Quantita' (pz)", 'Prezzo unitario (€/pz)'],
+              [tx('M0C-04-SUMPRODUCT.18'), tx('M0C-04-SUMPRODUCT.26'), tx('M0C-04-SUMPRODUCT.19'), tx('M0C-04-SUMPRODUCT.20')],
               { style: STILE_TITOLO },
             ),
             colonna(`A${DATA_START}`, prodotti, { style: STILE_ETICHETTA }),
@@ -176,9 +155,9 @@ export default defineTemplate({
             colonna(`C${DATA_START}`, quantita, { style: STILE_INPUT }),
             colonna(`D${DATA_START}`, prezzi, { style: { ...STILE_INPUT, numFmt: '#,##0.0' } }),
 
-            riga(`A${riepilogoRow}`, ['Riepilogo'], { style: STILE_TITOLO }),
-            blocco(`A${t1Row}`, [['Fatturato totale (€)']], { style: STILE_ETICHETTA }),
-            blocco(`A${t2Row}`, [[`Linee vendute su canale "${canaleTarget}"`]], { style: STILE_ETICHETTA }),
+            riga(`A${riepilogoRow}`, [tx('M0C-04-SUMPRODUCT.27')], { style: STILE_TITOLO }),
+            blocco(`A${t1Row}`, [[tx('M0C-04-SUMPRODUCT.21')]], { style: STILE_ETICHETTA }),
+            blocco(`A${t2Row}`, [[tx('M0C-04-SUMPRODUCT.22', { canaleTarget })]], { style: STILE_ETICHETTA }),
 
             areaLibera([`B${t1Row}`, `B${t2Row}`]),
           ],
@@ -189,17 +168,17 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `SUMPRODUCT(${rangeQuantita},${rangePrezzi}): moltiplica ogni riga di quantita' per la riga corrispondente di prezzo e somma tutto, senza bisogno di una colonna in piu'.`,
+          tx('M0C-04-SUMPRODUCT.23', { rangeQuantita, rangePrezzi }),
           12,
           'T1',
         ),
         hint(
           'H2',
-          `SUMPRODUCT((${rangeCanali}="${canaleTarget}")*1): il confronto produce VERO/FALSO per ogni riga, il *1 lo trasforma in 1/0, SUMPRODUCT somma quell'array.`,
+          tx('M0C-04-SUMPRODUCT.24', { rangeCanali, canaleTarget }),
           14,
           'T2',
         ),
-        hint('H3', `${eur(fatturatoTotale)} e' il fatturato atteso: se il tuo numero e' diverso, controlla di aver preso gli stessi ${num(n)} righe per entrambi gli intervalli.`, 8, 'T1'),
+        hint('H3', tx('M0C-04-SUMPRODUCT.25', { p0: eur(fatturatoTotale), p1: num(n) }), 8, 'T1'),
       ],
       parScore: par(tasks, { letturaSecondi: 70 }),
       startAt: `Model!B${t1Row}`,

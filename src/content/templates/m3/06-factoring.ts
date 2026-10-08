@@ -69,6 +69,7 @@ import {
 } from '../../authoring';
 import { roundTo } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
 const B_CREDITI_RIPORTATI = 'B4'; // Crediti commerciali riportati, GIA' netti dal factoring (dato, bloccato)
 const B_RIMANENZE = 'B5'; // Rimanenze (dato, bloccato)
@@ -83,7 +84,9 @@ const B_NWC_NORM = 'B14'; // T2
 export default defineTemplate({
   id: 'M3-06-FACTORING',
   module: 'M3',
-  title: 'Factoring: il debito mascherato da circolante',
+  get title() {
+    return tx('M3-06-FACTORING.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 280,
@@ -134,13 +137,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_CREDITI_VERI} calcola i crediti commerciali "veri": quelli che l'azienda avrebbe in ` +
-        "bilancio se durante l'anno NON avesse ceduto nulla al factor. Il dato che vedi in " +
-        `${B_CREDITI_RIPORTATI} e' GIA' quello riportato in bilancio, cioe' GIA' netto dei crediti ` +
-        "ceduti (spariscono dall'attivo appena ceduti al factor, e incassati subito). Per confrontare " +
-        "il NWC di quest'azienda su basi omogenee con una che non fa factoring, un analista li " +
-        `RIAGGIUNGE: somma ai crediti riportati (${B_CREDITI_RIPORTATI}) i crediti ceduti al factor ` +
-        `durante l'anno (${B_CREDITI_CEDUTI}).`,
+        tx('M3-06-FACTORING.2', { B_CREDITI_VERI, B_CREDITI_RIPORTATI, B_CREDITI_CEDUTI }),
       target: `Model!${B_CREDITI_VERI}`,
       atteso: creditiVeriAtteso,
       referenzia: [B_CREDITI_RIPORTATI, B_CREDITI_CEDUTI],
@@ -152,10 +149,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_NWC_NORM} calcola il NWC normalizzato, cioe' SENZA l'effetto del factoring: e' lo ` +
-        "stesso identico calcolo che conosci da M3-01 (crediti + rimanenze - debiti), applicato pero' " +
-        `ai crediti "veri" appena riaggiunti (${B_CREDITI_VERI}), non a quelli riportati in bilancio. ` +
-        `Somma le rimanenze (${B_RIMANENZE}) e sottrai i debiti commerciali (${B_DEBITI}).`,
+        tx('M3-06-FACTORING.3', { B_NWC_NORM, B_CREDITI_VERI, B_RIMANENZE, B_DEBITI }),
       target: `Model!${B_NWC_NORM}`,
       atteso: nwcNormalizzato,
       referenzia: [B_CREDITI_VERI, B_RIMANENZE, B_DEBITI],
@@ -169,60 +163,19 @@ export default defineTemplate({
     return {
       templateId: 'M3-06-FACTORING',
       seed: rng.seed,
-      brief: [
-        '## Factoring: quando il NWC migliora perche\' l\'azienda si e\' solo indebitata altrove',
-        '',
-        "Il factoring e' la cessione di una parte dei crediti commerciali a uno specialista (il " +
-          "\"factor\"), dietro una commissione, per incassare subito invece di aspettare la scadenza " +
-          "naturale del credito. Appena ceduti, quei crediti spariscono dall'attivo di bilancio: il NWC " +
-          "riportato si riduce, il DSO riportato si accorcia, il cash conversion cycle riportato " +
-          "migliora — tutti indicatori che, guardati senza fare domande, raccontano un'azienda piu' " +
-          "efficiente.",
-        '',
-        "**Il punto e' che non lo e' diventata affatto.** I clienti pagano esattamente quando pagavano " +
-          "prima; il ciclo operativo VERO dell'azienda non e' cambiato di una virgola. Cio' che e' " +
-          "cambiato e' solo CHI anticipa la cassa: prima l'azienda aspettava il cliente, ora si fa " +
-          "anticipare da un factor, pagando una commissione per il servizio. E' economicamente un " +
-          "FINANZIAMENTO — un prestito garantito dai crediti — travestito da miglioramento operativo. " +
-          "Per questo il factoring si descrive spesso come **debito mascherato da circolante**: un " +
-          "analista che confrontasse due aziende sui loro NWC/CCC riportati, senza sapere che una fa " +
-          "factoring e l'altra no, concluderebbe che la prima ha un ciclo operativo strutturalmente " +
-          "migliore — quando in realta' ha solo spostato un pezzo di debito fuori dalla vista.",
-        '',
-        "Ecco i dati di quest'azienda a fine periodo. Il bilancio riporta gia', per costruzione, i " +
-          "crediti NETTI dai crediti ceduti al factor:",
-        '',
-        `- Crediti commerciali riportati in bilancio (gia' netti dal factoring), ${eur(creditiRiportati)}`,
-        `- Rimanenze, ${eur(rimanenze)}`,
-        `- Debiti commerciali, ${eur(debiti)}`,
-        '',
-        "Durante l'anno l'azienda ha ceduto al factor crediti commerciali per " +
-          `${eur(creditiCeduti)}, pagando una commissione annua di ${eur(commissioneFactoring)}. In ` +
-          `termini economici, una commissione di ${eur(commissioneFactoring)} su ${eur(creditiCeduti)} ` +
-          `di crediti ceduti equivale a un costo implicito di circa ${pct(tassoImplicito)} l'anno su ` +
-          "quell'importo — non troppo lontano, concettualmente, da un tasso di interesse. E' esattamente " +
-          "questo costo esplicito a tradire la vera natura finanziaria dell'operazione: una vera " +
-          "riduzione del ciclo operativo (clienti che pagano prima, magazzino che gira piu' in fretta) " +
-          "non costerebbe nulla ogni anno.",
-        '',
-        "Per confrontare il NWC di quest'azienda su basi omogenee con una che non fa factoring, un " +
-          "analista in due diligence RIAGGIUNGE i crediti ceduti — esattamente come M3-05 normalizzava " +
-          "la stagionalita' con una media su 12 mesi, qui si normalizza una scelta di finanziamento. " +
-          "Calcola prima i crediti commerciali \"veri\" (task 1), poi il NWC normalizzato che ne deriva " +
-          "(task 2).",
-      ].join('\n'),
+      brief: [tx('M3-06-FACTORING.4', { p0: eur(creditiRiportati), p1: eur(rimanenze), p2: eur(debiti), p3: eur(creditiCeduti), p4: eur(commissioneFactoring), p5: eur(commissioneFactoring), p6: eur(creditiCeduti), p7: pct(tassoImplicito) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Factoring: il debito mascherato da circolante'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M3-06-FACTORING.5')], { style: STILE_TITOLO }),
 
-            riga('A3', ['Dati di bilancio riportati (a fine periodo, gia\' netti dal factoring)'], {
+            riga('A3', [tx('M3-06-FACTORING.6')], {
               style: STILE_TITOLO,
             }),
             colonna(
               'A4',
-              ['Crediti commerciali riportati, €', 'Rimanenze, €', 'Debiti commerciali, €'],
+              [tx('M3-06-FACTORING.7'), tx('M3-06-FACTORING.17'), tx('M3-06-FACTORING.8')],
               { style: STILE_ETICHETTA },
             ),
             [
@@ -231,10 +184,10 @@ export default defineTemplate({
               { ref: B_DEBITI, content: debiti, style: STILE_INPUT, locked: true },
             ],
 
-            riga('A8', ['Effetto del factoring durante l\'anno'], { style: STILE_TITOLO }),
+            riga('A8', [tx('M3-06-FACTORING.9')], { style: STILE_TITOLO }),
             colonna(
               'A9',
-              ['Crediti ceduti al factor, €', 'Commissione di factoring annua, €'],
+              [tx('M3-06-FACTORING.10'), tx('M3-06-FACTORING.11')],
               { style: STILE_ETICHETTA },
             ),
             [
@@ -242,10 +195,10 @@ export default defineTemplate({
               { ref: B_COMMISSIONE, content: commissioneFactoring, style: STILE_INPUT, locked: true },
             ],
 
-            riga('A12', ['Normalizzazione: il NWC senza l\'effetto del factoring'], { style: STILE_TITOLO }),
-            [{ ref: 'A13', content: 'Crediti commerciali "veri" (riaggiunti), €', locked: true, style: STILE_ETICHETTA }],
+            riga('A12', [tx('M3-06-FACTORING.12')], { style: STILE_TITOLO }),
+            [{ ref: 'A13', content: tx('M3-06-FACTORING.13'), locked: true, style: STILE_ETICHETTA }],
             [{ ref: B_CREDITI_VERI, content: null, locked: false, style: STILE_FORMULA }],
-            [{ ref: 'A14', content: 'NWC normalizzato (senza factoring), €', locked: true, style: STILE_ETICHETTA }],
+            [{ ref: 'A14', content: tx('M3-06-FACTORING.14'), locked: true, style: STILE_ETICHETTA }],
             [{ ref: B_NWC_NORM, content: null, locked: false, style: STILE_TOTALE }],
           ],
           { colWidths: { A: 460, B: 150 }, frozenRows: 1 },
@@ -255,15 +208,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_CREDITI_RIPORTATI}+${B_CREDITI_CEDUTI}: crediti riportati (gia' netti) piu' crediti ` +
-            "ceduti al factor, per ricostruire il totale come se il factoring non ci fosse mai stato.",
+          tx('M3-06-FACTORING.15', { B_CREDITI_RIPORTATI, B_CREDITI_CEDUTI }),
           8,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_CREDITI_VERI}+${B_RIMANENZE}-${B_DEBITI}: stesso calcolo NWC = crediti + rimanenze - ` +
-            "debiti di M3-01, applicato ai crediti riaggiunti.",
+          tx('M3-06-FACTORING.16', { B_CREDITI_VERI, B_RIMANENZE, B_DEBITI }),
           8,
           'T2',
         ),

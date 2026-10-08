@@ -55,15 +55,16 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 const MESI_ITALIANI = [
   'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
   'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre',
 ] as const;
 
-const AZIONI = [
-  'la chiusura di una sede secondaria',
-  'la rinegoziazione di un contratto di fornitura chiave',
-] as const;
+const AZIONI = () => ([
+  tx('M2-09-RUNRATE.1'),
+  tx('M2-09-RUNRATE.2'),
+] as const);
 
 // Mesi di esecuzione ammessi: 2-10, ESCLUSO 7 (produrrebbe mesi-trascorsi = 6,
 // esattamente meta' anno — il caso in cui raddoppiare ingenuamente l'effetto
@@ -84,7 +85,9 @@ const B_EBITDA_NORM = 'B14'; // T2
 export default defineTemplate({
   id: 'M2-09-RUNRATE',
   module: 'M2',
-  title: 'Run-rate vs pro-forma: annualizzare solo cio\' che e\' gia\' successo',
+  get title() {
+    return tx('M2-09-RUNRATE.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 260,
@@ -93,7 +96,7 @@ export default defineTemplate({
 
   generate: (rng) => {
     const rAzione = rng.fork('azione');
-    const azioneLabel = rAzione.pick(AZIONI);
+    const azioneLabel = rAzione.pick(AZIONI());
 
     const rTempo = rng.fork('tempistica');
     const meseEsecuzione = rTempo.pick(MESI_ESECUZIONE_AMMESSI);
@@ -119,12 +122,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_RETTIFICA} calcola la rettifica di run-rate: il risparmio annualizzato PIENO ` +
-        `(${B_RISPARMIO_MENSILE} × 12) meno l'effetto gia' contabilizzato nell'EBITDA riportato ` +
-        `(${B_RISPARMIO_MENSILE} × mesi gia' trascorsi, ${B_MESI_TRASCORSI}) — cioe' la parte mancante ` +
-        "dell'effetto pieno che ancora non e' dentro l'EBITDA riportato, da AGGIUNGERE. NON usare in " +
-        `nessun modo ${B_RISPARMIO_SPERATO}: quel risparmio e' solo sperato da un piano non ancora ` +
-        "approvato, non un'azione gia' eseguita — un QoE serio lo scarta sempre, non lo annualizza.",
+        tx('M2-09-RUNRATE.4', { B_RETTIFICA, B_RISPARMIO_MENSILE, B_MESI_TRASCORSI, B_RISPARMIO_SPERATO }),
       target: `Model!${B_RETTIFICA}`,
       atteso: rettifica,
       referenzia: [B_RISPARMIO_MENSILE, B_MESI_TRASCORSI],
@@ -136,8 +134,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_EBITDA_NORM} calcola l'EBITDA normalizzato: l'EBITDA riportato (${B_EBITDA_RIP}) piu' la ` +
-        `rettifica di run-rate appena calcolata (${B_RETTIFICA}).`,
+        tx('M2-09-RUNRATE.5', { B_EBITDA_NORM, B_EBITDA_RIP, B_RETTIFICA }),
       target: `Model!${B_EBITDA_NORM}`,
       atteso: ebitdaNormalizzato,
       referenzia: [B_EBITDA_RIP, B_RETTIFICA],
@@ -151,47 +148,21 @@ export default defineTemplate({
     return {
       templateId: 'M2-09-RUNRATE',
       seed: rng.seed,
-      brief: [
-        "## Run-rate: annualizzare solo cio' che e' gia' successo",
-        '',
-        'Un QoE serio distingue due cose che si assomigliano ma non sono la stessa cosa:',
-        '',
-        "- **Run-rate legittimo** — un'azione GIA' ESEGUITA durante l'anno (una sede chiusa, un " +
-          "contratto rinegoziato). Il suo effetto pieno esiste gia', a regime: nell'EBITDA riportato ne " +
-          "compare pero' solo una PARTE, perche' l'azione non era attiva fin dal 1° gennaio. " +
-          "Annualizzarla e' legittimo: non si inventa nulla, si mostra solo l'effetto vero di una " +
-          'decisione gia\' presa.',
-        "- **Pro-forma aspirazionale** — un risparmio SPERATO da un piano non ancora approvato. Non e' " +
-          "ancora successo, e potrebbe non succedere mai: un QoE serio non lo include, in nessuna forma.",
-        '',
-        `**L'azione.** Quest'anno l'azienda ha completato ${azioneLabel}, a ${meseNome}. Il risparmio di ` +
-          `costi generato e' di ${eur(risparmioMensile)} al MESE (dato direttamente: non serve dedurlo ` +
-          "da un risparmio annuo).",
-        '',
-        `Da ${meseNome} (incluso) a fine anno sono trascorsi ${num(mesiTrascorsi)} mesi: e' la parte ` +
-          `dell'anno in cui il risparmio e' GIA' dentro l'EBITDA riportato di ${eur(ebitdaRiportato)}. I ` +
-          "mesi PRIMA dell'esecuzione non hanno beneficiato del risparmio — quella parte mancante e' " +
-          'esattamente cio\' che la rettifica di run-rate deve aggiungere.',
-        '',
-        `**Attenzione, un dato-trappola.** Il management ha anche indicato un risparmio aggiuntivo ` +
-          `sperato di ${eur(risparmioSperato)}, da un piano di efficientamento che il CdA non ha ancora ` +
-          "approvato. Non e' un'azione eseguita: e' un'aspirazione manageriale. NON entra in nessuna " +
-          "formula di questo livello — e' qui apposta perche' tu impari a riconoscerlo e scartarlo.",
-      ].join('\n'),
+      brief: [tx('M2-09-RUNRATE.6', { azioneLabel, meseNome, p2: eur(risparmioMensile), p3: num(mesiTrascorsi), p4: eur(ebitdaRiportato), p5: eur(risparmioSperato) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Run-rate: annualizzare un\'azione gia\' eseguita'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M2-09-RUNRATE.7')], { style: STILE_TITOLO }),
 
-            riga('A3', ['Dati di partenza'], { style: STILE_TITOLO }),
+            riga('A3', [tx('M2-09-RUNRATE.8')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'EBITDA riportato (da bilancio), €',
-                "Risparmio mensile generato dall'azione gia' eseguita, €/mese",
-                "Azione gia' eseguita durante l'anno",
-                "Mesi gia' trascorsi dall'esecuzione (inclusa) a fine anno",
+                tx('M2-09-RUNRATE.9'),
+                tx('M2-09-RUNRATE.10'),
+                tx('M2-09-RUNRATE.11'),
+                tx('M2-09-RUNRATE.12'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -202,20 +173,20 @@ export default defineTemplate({
             [{ ref: B_AZIONE_DESCR, content: `${azioneLabel}, a ${meseNome}`, style: STILE_ETICHETTA, locked: true }],
             [{ ref: B_MESI_TRASCORSI, content: mesiTrascorsi, style: STILE_INPUT, locked: true }],
 
-            riga('A9', ["Attenzione — un dato che NON devi usare"], { style: STILE_TITOLO }),
+            riga('A9', [tx('M2-09-RUNRATE.13')], { style: STILE_TITOLO }),
             colonna(
               'A10',
-              ["Risparmio aggiuntivo sperato da un piano di efficientamento NON ancora approvato dal CdA, €"],
+              [tx('M2-09-RUNRATE.14')],
               { style: STILE_ETICHETTA },
             ),
             [{ ref: B_RISPARMIO_SPERATO, content: risparmioSperato, style: STILE_INPUT, locked: true }],
 
-            riga('A12', ['Normalizzazione'], { style: STILE_TITOLO }),
+            riga('A12', [tx('M2-09-RUNRATE.19')], { style: STILE_TITOLO }),
             colonna(
               'A13',
               [
-                "Rettifica run-rate: parte mancante dell'effetto pieno, da aggiungere, €",
-                'EBITDA normalizzato, €',
+                tx('M2-09-RUNRATE.15'),
+                tx('M2-09-RUNRATE.16'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -229,16 +200,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_RISPARMIO_MENSILE}*12-${B_RISPARMIO_MENSILE}*${B_MESI_TRASCORSI}: il risparmio ` +
-            "annualizzato pieno meno quanto e' gia' dentro l'EBITDA riportato per i mesi gia' trascorsi " +
-            "dall'esecuzione. Non tocca mai il dato sperato in B10.",
+          tx('M2-09-RUNRATE.17', { B_RISPARMIO_MENSILE, B_MESI_TRASCORSI }),
           10,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_EBITDA_RIP}+${B_RETTIFICA}: EBITDA riportato piu' la rettifica di run-rate appena ` +
-            'calcolata.',
+          tx('M2-09-RUNRATE.18', { B_EBITDA_RIP, B_RETTIFICA }),
           8,
           'T2',
         ),

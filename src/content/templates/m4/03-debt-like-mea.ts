@@ -56,17 +56,18 @@ import {
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
-const POOL_DEBTLIKE = [
-  "Earn-out da pagare al venditore per il raggiungimento degli obiettivi post-closing",
-  "Contenzioso legale in corso, valore atteso gia' ponderato per la probabilita' di soccombenza stimata",
-  "Dividendi deliberati dall'assemblea e non ancora pagati ai soci",
-  "Debiti finanziari residui verso i soci (finanziamento soci fruttifero)",
-] as const;
+import { tx } from '../../../i18n/content';
+const POOL_DEBTLIKE = () => ([
+  tx('M4-03-DEBTLIKEMEA.1'),
+  tx('M4-03-DEBTLIKEMEA.2'),
+  tx('M4-03-DEBTLIKEMEA.3'),
+  tx('M4-03-DEBTLIKEMEA.4'),
+] as const);
 
-const POOL_NONDEBTLIKE = [
-  'Debiti verso fornitori scaduti da oltre 60 giorni',
-  "Debiti verso l'erario per IVA di periodo, in scadenza regolare",
-] as const;
+const POOL_NONDEBTLIKE = () => ([
+  tx('M4-03-DEBTLIKEMEA.5'),
+  tx('M4-03-DEBTLIKEMEA.6'),
+] as const);
 
 interface Voce {
   readonly descrizione: string;
@@ -85,7 +86,9 @@ const DATA_START = 8;
 export default defineTemplate({
   id: 'M4-03-DEBTLIKEMEA',
   module: 'M4',
-  title: "Debt-like da M&A: earn-out, contenziosi, dividendi, soci",
+  get title() {
+    return tx('M4-03-DEBTLIKEMEA.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 260,
@@ -107,8 +110,8 @@ export default defineTemplate({
     const n = r.int(4, 5);
     const kDebtLike = n - 1;
 
-    const descrizioniDebtLike = r.shuffle([...POOL_DEBTLIKE]).slice(0, kDebtLike);
-    const descrizioneNonDebtLike = r.pick([...POOL_NONDEBTLIKE]);
+    const descrizioniDebtLike = r.shuffle([...POOL_DEBTLIKE()]).slice(0, kDebtLike);
+    const descrizioneNonDebtLike = r.pick([...POOL_NONDEBTLIKE()]);
 
     const vociDebtLike: Voce[] = descrizioniDebtLike.map((descrizione) => ({
       descrizione,
@@ -148,15 +151,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T1',
         prompt:
-          `In ${C_T1} calcola il totale delle poste debt-like specifiche dell'operazione: la somma dei ` +
-          `SOLI importi con Tipo = "debt-like" nell'elenco qui sopra (${rifTipo}:B${DATA_END} per il ` +
-          `tipo, ${rifImporti}:C${DATA_END} per gli importi). La voce "${descrizioneNonDebtLike}" e' ` +
-          'etichettata "non debt-like" e va lasciata fuori: essere scaduta o comunque poco rassicurante ' +
-          "non la trasforma in un finanziamento — resta un debito commerciale ordinario, gia' materia di " +
-          "capitale circolante, non di net debt. Sommare l'intero elenco includendo anche quella riga non " +
-          "e' solo impreciso ma un errore concettuale grave: gonfieresti il net debt e quindi ridurresti " +
-          "l'equity value in modo ingiustificato. Serve una funzione che sommi solo le righe che " +
-          'rispettano il criterio.',
+          tx('M4-03-DEBTLIKEMEA.9', { C_T1, rifTipo, DATA_END, rifImporti, descrizioneNonDebtLike }),
         target: `Model!${C_T1}`,
         atteso: totaleDebtLike,
         referenzia: [rifTipo, rifImporti],
@@ -173,11 +168,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${C_T2} calcola il Net Debt aggiustato: il Net Debt di base (${B_NETDEBT_BASE}) piu' il ` +
-        `totale delle poste debt-like specifiche dell'operazione appena isolato (${C_T1}). Ognuna di ` +
-        "quelle poste e' un'obbligazione economica reale verso terzi (o verso i soci) che riduce quanto " +
-        "resta agli azionisti: si aggiungono al net debt di base con segno positivo, esattamente come il " +
-        'debito finanziario lordo.',
+        tx('M4-03-DEBTLIKEMEA.10', { C_T2, B_NETDEBT_BASE, C_T1 }),
       target: `Model!${C_T2}`,
       atteso: netDebtAggiustato,
       referenzia: [B_NETDEBT_BASE, C_T1],
@@ -190,49 +181,26 @@ export default defineTemplate({
     return {
       templateId: 'M4-03-DEBTLIKEMEA',
       seed: rng.seed,
-      brief: [
-        "## Debt-like da M&A: non tutto cio' che preoccupa e' debito",
-        '',
-        "Oltre al debito finanziario \"classico\" (mutui, bond, leasing), un'operazione di M&A porta quasi " +
-          "sempre alla luce poste specifiche della transazione stessa — impegni che diventano un debito " +
-          "della NewCo proprio perche' la proprieta' sta cambiando: un earn-out promesso al venditore, un " +
-          'contenzioso legale ereditato, dividendi gia\' deliberati ma non ancora pagati, un finanziamento ' +
-          "residuo verso i soci uscenti. Tutte queste sono **debt-like**: obbligazioni economiche reali che " +
-          "riducono l'equity value tanto quanto un mutuo bancario, anche se non compaiono come \"debiti " +
-          'finanziari" in senso stretto.',
-        '',
-        "Il rischio non e' dimenticarle: e' il contrario. Un elenco di poste sospette contiene quasi sempre " +
-          "anche qualcosa che SEMBRA allarmante ma non lo e'. Un debito verso fornitori scaduto da 60 " +
-          "giorni suona come un campanello d'allarme, ma resta cio' che era prima di scadere: un debito " +
-          "commerciale della normale gestione operativa, gia' oggetto del capitale circolante. Essere in " +
-          "ritardo cambia l'urgenza del pagamento, non la sua natura: non diventa un finanziamento solo " +
-          "perche' e' scaduto.",
-        '',
-        `Il Net Debt di base di questa operazione, gia' calcolato, e' ${eur(netDebtBase)}. Qui sotto trovi ` +
-          `${num(n)} poste specifiche dell'operazione, ciascuna etichettata Tipo = "debt-like" oppure ` +
-          'Tipo = "non debt-like", in ordine sparso. Il totale di TUTTE le poste, distrattore incluso, e\' ' +
-          `${eur(totaleElencoCompleto)} — ma solo una parte di quel numero va aggiunta al net debt. Isola ` +
-          'prima le righe giuste, poi somma.',
-      ].join('\n'),
+      brief: [tx('M4-03-DEBTLIKEMEA.11', { p0: eur(netDebtBase), p1: num(n), p2: eur(totaleElencoCompleto) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga(`A${ROW_TITOLO}`, ["Debt-like da M&A: earn-out, contenziosi, dividendi, soci"], { style: STILE_TITOLO }),
-            riga(`A${ROW_SEZ1}`, ['Dati di partenza'], { style: STILE_TITOLO }),
-            colonna(`A${ROW_NETDEBT_BASE}`, ['Net Debt di base (gia\' calcolato), €'], { style: STILE_ETICHETTA }),
+            riga(`A${ROW_TITOLO}`, [tx('M4-03-DEBTLIKEMEA.12')], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ1}`, [tx('M4-03-DEBTLIKEMEA.13')], { style: STILE_TITOLO }),
+            colonna(`A${ROW_NETDEBT_BASE}`, [tx('M4-03-DEBTLIKEMEA.14')], { style: STILE_ETICHETTA }),
             [{ ref: B_NETDEBT_BASE, content: netDebtBase, style: STILE_INPUT, locked: true }],
 
-            riga(`A${ROW_SEZ2}`, ["Poste specifiche dell'operazione da classificare"], { style: STILE_TITOLO }),
-            riga(`A${ROW_HEADER}`, ['Voce', 'Tipo', 'Importo (€)'], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ2}`, [tx('M4-03-DEBTLIKEMEA.15')], { style: STILE_TITOLO }),
+            riga(`A${ROW_HEADER}`, [tx('M4-03-DEBTLIKEMEA.22'), tx('M4-03-DEBTLIKEMEA.23'), tx('M4-03-DEBTLIKEMEA.16')], { style: STILE_TITOLO }),
             colonna(`A${DATA_START}`, voci.map((v) => v.descrizione), { style: STILE_ETICHETTA }),
-            colonna(`B${DATA_START}`, voci.map((v) => v.tipo), { style: STILE_ETICHETTA }),
+            colonna(`B${DATA_START}`, voci.map((v) => (v.tipo === 'debt-like' ? tx('M4-03-DEBTLIKEMEA.tok.debtlike') : tx('M4-03-DEBTLIKEMEA.8'))), { style: STILE_ETICHETTA }),
             colonna(`C${DATA_START}`, voci.map((v) => v.importo), { style: STILE_INPUT }),
 
-            riga(`A${ROW_SEZ3}`, ['Net Debt aggiustato'], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ3}`, [tx('M4-03-DEBTLIKEMEA.17')], { style: STILE_TITOLO }),
             colonna(
               `A${ROW_T1}`,
-              ["Totale poste debt-like specifiche dell'operazione, €", 'Net Debt aggiustato, €'],
+              [tx('M4-03-DEBTLIKEMEA.18'), tx('M4-03-DEBTLIKEMEA.19')],
               { style: STILE_ETICHETTA },
             ),
             [{ ref: C_T1, content: null, locked: false, style: STILE_FORMULA }],
@@ -245,15 +213,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=SUMIF(${rifTipo}:B${DATA_END},"debt-like",${rifImporti}:C${DATA_END}): somma solo gli importi ` +
-            'delle righe con Tipo uguale a "debt-like", ignorando la riga "non debt-like".',
+          tx('M4-03-DEBTLIKEMEA.20', { rifTipo, DATA_END, rifImporti }),
           12,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_NETDEBT_BASE}+${C_T1}: Net Debt di base piu' il totale delle poste debt-like appena ` +
-            'isolato. Sono tutte obbligazioni aggiuntive: si sommano con segno positivo.',
+          tx('M4-03-DEBTLIKEMEA.21', { B_NETDEBT_BASE, C_T1 }),
           8,
           'T2',
         ),

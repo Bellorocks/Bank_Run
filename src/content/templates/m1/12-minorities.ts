@@ -59,6 +59,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
 
 // Scenario A — controllata consolidata integralmente.
@@ -78,7 +79,9 @@ const B_CARICO_FIN = 'B18'; // T3
 export default defineTemplate({
   id: 'M1-12-MINORITIES',
   module: 'M1',
-  title: 'Minorities e metodo del patrimonio netto',
+  get title() {
+    return tx('M1-12-MINORITIES.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -118,10 +121,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${A_QUOTA_TERZI} calcola la quota di utile di pertinenza DEI TERZI (minority interest) sulla ` +
-        `controllata. La controllata e' consolidata al 100% (${A_UTILE_CTRL} e' gia' il suo utile intero), ` +
-        `ma il gruppo ne possiede solo ${A_PCT_GRUPPO}: la quota che spetta a chi possiede il resto — i ` +
-        `terzi — e' l'utile della controllata moltiplicato per (1 - percentuale del gruppo).`,
+        tx('M1-12-MINORITIES.2', { A_QUOTA_TERZI, A_UTILE_CTRL, A_PCT_GRUPPO }),
       target: `Model!${A_QUOTA_TERZI}`,
       atteso: quotaTerzi,
       referenzia: [A_UTILE_CTRL, A_PCT_GRUPPO],
@@ -132,10 +132,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${A_QUOTA_GRUPPO} calcola l'utile di pertinenza DEL GRUPPO: l'utile consolidato complessivo ` +
-        `(${A_UTILE_CONS}, che include gia' la controllata al 100%) meno la quota di terzi appena ` +
-        `calcolata (${A_QUOTA_TERZI}). E' cosi' che il consolidamento integrale "toglie" ai terzi la loro ` +
-        'fetta dopo aver sommato tutto.',
+        tx('M1-12-MINORITIES.3', { A_QUOTA_GRUPPO, A_UTILE_CONS, A_QUOTA_TERZI }),
       target: `Model!${A_QUOTA_GRUPPO}`,
       atteso: quotaGruppo,
       referenzia: [A_UTILE_CONS, A_QUOTA_TERZI],
@@ -146,14 +143,7 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        `In ${B_CARICO_FIN} calcola il valore di carico FINALE della partecipazione con il metodo del ` +
-        `patrimonio netto (equity method). Questa partecipata NON e' controllata (${B_PCT_GRUPPO}, sotto ` +
-        "la soglia di controllo) e quindi NON si consolida mai riga per riga: si porta a bilancio solo " +
-        `come valore della partecipazione, che si aggiorna cosi': carico iniziale (${B_CARICO0}) PIU' la ` +
-        `quota di utile maturato dal gruppo (utile della partecipata ${B_UTILE_PART} moltiplicato per ` +
-        `${B_PCT_GRUPPO} — il carico SALE anche se non e' arrivata cassa) MENO i dividendi incassati ` +
-        `nell'anno (${B_DIVIDENDI} — un dividendo qui e' un disinvestimento della partecipazione, non un ` +
-        'provento a Conto Economico, e quindi il carico SCENDE).',
+        tx('M1-12-MINORITIES.4', { B_CARICO_FIN, B_PCT_GRUPPO, B_CARICO0, B_UTILE_PART, B_DIVIDENDI }),
       target: `Model!${B_CARICO_FIN}`,
       atteso: caricoFinale,
       referenzia: [B_CARICO0, B_UTILE_PART, B_PCT_GRUPPO, B_DIVIDENDI],
@@ -166,53 +156,20 @@ export default defineTemplate({
     return {
       templateId: 'M1-12-MINORITIES',
       seed: rng.seed,
-      brief: [
-        '## Due situazioni diverse, non da confondere',
-        '',
-        "Questo livello mette una accanto all'altra due meccaniche di consolidamento che si assomigliano " +
-          "nel nome — entrambe parlano di \"quanto possiedo\" — ma sono concettualmente opposte:",
-        '',
-        '**Scenario A — Controllata (consolidamento integrale).** Il gruppo la CONTROLLA, quindi la ' +
-          "consolida al 100%: ogni ricavo e costo della controllata finisce nel bilancio del gruppo per " +
-          "intero, come se fosse suo. Ma se il gruppo non la possiede al 100%, una parte di quell'utile " +
-          "spetta a chi possiede il resto — i **terzi** (minority interest). Il gruppo consolida tutto e " +
-          'POI toglie la fetta dei terzi.',
-        '',
-        '**Scenario B — Partecipata (metodo del patrimonio netto / equity method).** Il gruppo NON la ' +
-          "controlla (la quota posseduta e' sotto la soglia di controllo): non la consolida MAI riga per " +
-          "riga. In bilancio compare come una singola riga — il valore della partecipazione — che si " +
-          "aggiorna ogni anno in base a quanto la partecipata guadagna e quanto distribuisce.",
-        '',
-        `**Scenario A.** La controllata ha realizzato un utile di ${eur(utileControllata)} (gia' al ` +
-          `100%, e' cosi' che viene consolidata). Il gruppo ne possiede il ${pct(percentualeGruppoA)}; ` +
-          "il resto e' dei terzi. L'utile consolidato complessivo del gruppo, che include gia' l'intero " +
-          `utile della controllata, e' ${eur(utileConsolidato)}.`,
-        '',
-        `**Scenario B.** Il valore di carico iniziale della partecipazione e' ${eur(caricoIniziale)}. Il ` +
-          `gruppo ne possiede il ${pct(percentualeGruppoB)} — sotto la soglia di controllo. Nell'anno la ` +
-          `partecipata ha realizzato un utile di ${eur(utilePartecipata)} e ha distribuito dividendi per ` +
-          `${eur(dividendiRicevuti)}, incassati dal gruppo.`,
-        '',
-        "**Il punto piu' delicato dello Scenario B**: nel metodo del patrimonio netto, la quota di utile " +
-          "maturato FA SALIRE il carico della partecipazione (il gruppo si e' arricchito, anche se non ha " +
-          "visto un euro di cassa in piu'), mentre i dividendi incassati FANNO SCENDERE il carico — sono " +
-          "trattati come un disinvestimento, un rientro di cio' che era gia' dentro la partecipazione, non " +
-          "come un provento a Conto Economico. E' l'opposto di come si tratterebbe un dividendo incassato " +
-          "da un investimento qualsiasi, ed e' proprio per questo che va imparato con attenzione.",
-      ].join('\n'),
+      brief: [tx('M1-12-MINORITIES.5', { p0: eur(utileControllata), p1: pct(percentualeGruppoA), p2: eur(utileConsolidato), p3: eur(caricoIniziale), p4: pct(percentualeGruppoB), p5: eur(utilePartecipata), p6: eur(dividendiRicevuti) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Minorities e metodo del patrimonio netto'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M1-12-MINORITIES.6')], { style: STILE_TITOLO }),
 
-            riga('A3', ['Scenario A — Controllata (consolidamento integrale)'], { style: STILE_TITOLO }),
+            riga('A3', [tx('M1-12-MINORITIES.7')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'Utile della controllata (100%), €',
-                'Percentuale posseduta dal gruppo',
-                "Utile consolidato del gruppo (include gia' la controllata al 100%), €",
+                tx('M1-12-MINORITIES.8'),
+                tx('M1-12-MINORITIES.9'),
+                tx('M1-12-MINORITIES.10'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -221,21 +178,21 @@ export default defineTemplate({
               { ref: A_PCT_GRUPPO, content: percentualeGruppoA, style: STILE_INPUT_PCT, locked: true },
               { ref: A_UTILE_CONS, content: utileConsolidato, style: STILE_INPUT, locked: true },
             ],
-            riga('A7', ['Ripartizione dell\'utile consolidato'], { style: STILE_ETICHETTA }),
-            colonna('A8', ['Quota di pertinenza di terzi (minority interest)', 'Quota di pertinenza del gruppo'], {
+            riga('A7', [tx('M1-12-MINORITIES.11')], { style: STILE_ETICHETTA }),
+            colonna('A8', [tx('M1-12-MINORITIES.12'), tx('M1-12-MINORITIES.13')], {
               style: STILE_ETICHETTA,
             }),
             [{ ref: A_QUOTA_TERZI, content: null, locked: false, style: STILE_TOTALE }],
             [{ ref: A_QUOTA_GRUPPO, content: null, locked: false, style: STILE_TOTALE }],
 
-            riga('A12', ['Scenario B — Partecipata (metodo del patrimonio netto)'], { style: STILE_TITOLO }),
+            riga('A12', [tx('M1-12-MINORITIES.14')], { style: STILE_TITOLO }),
             colonna(
               'A13',
               [
-                'Valore di carico iniziale della partecipazione, €',
-                'Percentuale posseduta dal gruppo (sotto la soglia di controllo)',
-                "Utile della partecipata nell'anno, €",
-                "Dividendi ricevuti dalla partecipata nell'anno, €",
+                tx('M1-12-MINORITIES.15'),
+                tx('M1-12-MINORITIES.16'),
+                tx('M1-12-MINORITIES.17'),
+                tx('M1-12-MINORITIES.18'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -248,7 +205,7 @@ export default defineTemplate({
             [
               {
                 ref: 'A18',
-                content: 'Valore di carico finale della partecipazione',
+                content: tx('M1-12-MINORITIES.19'),
                 locked: true,
                 style: STILE_ETICHETTA,
               },
@@ -262,19 +219,19 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${A_UTILE_CTRL}*(1-${A_PCT_GRUPPO}): utile della controllata per la percentuale NON posseduta dal gruppo.`,
+          tx('M1-12-MINORITIES.20', { A_UTILE_CTRL, A_PCT_GRUPPO }),
           10,
           'T1',
         ),
         hint(
           'H2',
-          `=${A_UTILE_CONS}-${A_QUOTA_TERZI}: utile consolidato meno la quota gia' calcolata dei terzi.`,
+          tx('M1-12-MINORITIES.21', { A_UTILE_CONS, A_QUOTA_TERZI }),
           8,
           'T2',
         ),
         hint(
           'H3',
-          `=${B_CARICO0}+${B_UTILE_PART}*${B_PCT_GRUPPO}-${B_DIVIDENDI}: carico iniziale, piu' la quota di utile maturato, meno i dividendi incassati (un disinvestimento, non un provento).`,
+          tx('M1-12-MINORITIES.22', { B_CARICO0, B_UTILE_PART, B_PCT_GRUPPO, B_DIVIDENDI }),
           15,
           'T3',
         ),

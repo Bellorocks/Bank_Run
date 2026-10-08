@@ -38,18 +38,21 @@ import { MODEL_COLORS } from '../../../styles/palette';
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { CellStyle } from '../../../engine/types';
 
+import { tx } from '../../../i18n/content';
 /** Il prezzo risolto: due decimali, colore da formula. Non c'e' un formato standard pronto in authoring.ts. */
 const STILE_FORMULA_PREZZO: CellStyle = {
   fontColor: MODEL_COLORS.formula,
   numFmt: '#,##0.00',
 };
 
-const CANALI = ['Canale retail', 'Canale grande distribuzione', 'Canale export'] as const;
+const CANALI = () => ([tx('M0F-03-GOALSEEK.1'), tx('M0F-03-GOALSEEK.2'), tx('M0F-03-GOALSEEK.3')] as const);
 
 export default defineTemplate({
   id: 'M0F-03-GOALSEEK',
   module: 'M0-F',
-  title: "Risolvere all'indietro",
+  get title() {
+    return tx('M0F-03-GOALSEEK.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 360,
@@ -59,14 +62,14 @@ export default defineTemplate({
   generate: (rng) => {
     const r = rng.fork('dati');
 
-    const costi = CANALI.map(() => roundTo(triangular(r, 15, 45, 150), 1));
-    const margini = CANALI.map(() => roundTo(triangular(r, 0.12, 0.22, 0.38), 0.001));
+    const costi = CANALI().map(() => roundTo(triangular(r, 15, 45, 150), 1));
+    const margini = CANALI().map(() => roundTo(triangular(r, 0.12, 0.22, 0.38), 0.001));
     // Stessa aritmetica che scrivera' il giocatore: prezzo = costo / (1 - margine).
     const prezzi = costi.map((c, i) => c / (1 - margini[i]));
 
     const RIGA_HEADER = 3;
     const RIGA_PRIMO = 4;
-    const RIGA_ULTIMO = RIGA_PRIMO + CANALI.length - 1; // 6
+    const RIGA_ULTIMO = RIGA_PRIMO + CANALI().length - 1; // 6
 
     const rangePrezzo = `Model!D${RIGA_PRIMO}:D${RIGA_ULTIMO}`;
     const rangeVerifica = `Model!E${RIGA_PRIMO}:E${RIGA_ULTIMO}`;
@@ -75,9 +78,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T1',
         prompt:
-          `In D${RIGA_PRIMO} trova il prezzo di vendita per il primo canale (${CANALI[0]}) che realizza ` +
-          `esattamente il margine obiettivo scritto in C${RIGA_PRIMO}, partendo dal costo unitario in B${RIGA_PRIMO}. ` +
-          "Non tentare numeri a caso: usa l'equazione risolta nel testo, prezzo = costo / (1 - margine).",
+          tx('M0F-03-GOALSEEK.5', { RIGA_PRIMO, p1: CANALI()[0] }),
         target: `Model!D${RIGA_PRIMO}`,
         atteso: prezzi[0],
         referenzia: [`B${RIGA_PRIMO}`, `C${RIGA_PRIMO}`],
@@ -88,8 +89,7 @@ export default defineTemplate({
       {
         id: 'T2',
         prompt:
-          `Riempi D${RIGA_PRIMO}:D${RIGA_ULTIMO} copiando quella stessa formula sugli altri due canali: ` +
-          "ogni riga guarda solo il proprio costo e il proprio margine obiettivo, nessun ritocco a mano.",
+          tx('M0F-03-GOALSEEK.6', { RIGA_PRIMO, RIGA_ULTIMO }),
         targetCell: rangePrezzo,
         check: [
           { kind: 'consistentRow' as const, range: rangePrezzo },
@@ -101,10 +101,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T3',
         prompt:
-          `In E${RIGA_PRIMO} verifica il prezzo appena trovato: ricalcola il margine che produce davvero, ` +
-          `(prezzo meno costo) diviso prezzo. Se l'algebra e' giusta deve tornare identico al margine ` +
-          `obiettivo in C${RIGA_PRIMO} — e' esattamente cio' che il campo "Imposta cella" di Ricerca ` +
-          'obiettivo controllerebbe da solo, se il gioco lo avesse gia\' implementato.',
+          tx('M0F-03-GOALSEEK.7', { RIGA_PRIMO }),
         target: `Model!E${RIGA_PRIMO}`,
         atteso: margini[0],
         referenzia: [`D${RIGA_PRIMO}`, `B${RIGA_PRIMO}`],
@@ -114,7 +111,7 @@ export default defineTemplate({
       }),
       {
         id: 'T4',
-        prompt: `Riempi anche E${RIGA_PRIMO}:E${RIGA_ULTIMO} allo stesso modo.`,
+        prompt: tx('M0F-03-GOALSEEK.8', { RIGA_PRIMO, RIGA_ULTIMO }),
         targetCell: rangeVerifica,
         check: [
           { kind: 'consistentRow' as const, range: rangeVerifica },
@@ -125,70 +122,34 @@ export default defineTemplate({
       },
     ];
 
-    const elencoCanali = CANALI.map(
-      (nome, i) => `- **${nome}**: costo unitario ${eur(costi[i])}, margine obiettivo ${pct(margini[i])}`,
+    const elencoCanali = CANALI().map(
+      (nome, i) => tx('M0F-03-GOALSEEK.9', { nome, p1: eur(costi[i]), p2: pct(margini[i]) }),
     ).join('\n');
 
     return {
       templateId: 'M0F-03-GOALSEEK',
       seed: rng.seed,
-      brief: [
-        "## Risolvere all'indietro",
-        '',
-        'Di solito una formula parte dagli input e arriva a un risultato. Qui il problema e\' al',
-        "contrario: conosci il risultato che vuoi — un margine lordo preciso — e devi trovare",
-        "l'input — il prezzo — che lo produce.",
-        '',
-        "In Excel vero esiste uno strumento pensato apposta per questo: **Ricerca obiettivo**",
-        '(Goal Seek), sotto **Dati > Analisi di simulazione > Ricerca obiettivo**. Si compilano tre',
-        'campi — **Imposta cella** (la formula che vuoi portare a un certo valore), **A valore**',
-        '(il numero che vuoi vedere li\'), **Cambiando cella** (l\'unica cella che Excel puo\' muovere',
-        "per arrivarci) — ed Excel prova prezzi diversi finche' il margine calcolato non torna",
-        'quello richiesto.',
-        '',
-        "*(Questo trainer non genera ancora l'interfaccia di Ricerca obiettivo: e' una funzionalita'",
-        "del motore di gioco non ancora implementata. Il concetto si allena comunque, e qui e'",
-        "persino piu' rapido farlo a mano — la relazione fra prezzo e margine e' lineare, quindi",
-        "due righe di algebra bastano dove un solver dovrebbe iterare.)*",
-        '',
-        "## L'algebra",
-        '',
-        'Il margine lordo si definisce cosi\': `margine = (prezzo - costo) / prezzo`. Vuoi il prezzo',
-        'che porta quel margine a un obiettivo M, conoscendo il costo C. Risolvi per il prezzo:',
-        '',
-        '`M = (P - C) / P`  →  `M·P = P - C`  →  `C = P - M·P = P·(1 - M)`  →  `P = C / (1 - M)`',
-        '',
-        "Questa e' la formula che scriverai: non un numero trovato per tentativi, un'equazione",
-        "risolta una volta sola, valida per qualunque costo e qualunque margine obiettivo.",
-        '',
-        '## Il caso',
-        '',
-        'Il CFO del target ha fissato margini obiettivo diversi per i tre canali di vendita, e ti',
-        "ha dato il costo unitario di produzione di ciascuno. Devi ricostruire il listino: il",
-        'prezzo che, applicato a quel costo, realizza esattamente il margine richiesto.',
-        '',
-        elencoCanali,
-      ].join('\n'),
+      brief: [tx('M0F-03-GOALSEEK.10', { elencoCanali })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ["Listino obiettivo: il prezzo che manca"], { style: STILE_TITOLO }),
+            riga('A1', [tx('M0F-03-GOALSEEK.11')], { style: STILE_TITOLO }),
             riga(
               `A${RIGA_HEADER}`,
-              ['Canale', 'Costo unitario (€)', 'Margine obiettivo', 'Prezzo di vendita', 'Margine realizzato'],
+              [tx('M0F-03-GOALSEEK.20'), tx('M0F-03-GOALSEEK.12'), tx('M0F-03-GOALSEEK.13'), tx('M0F-03-GOALSEEK.14'), tx('M0F-03-GOALSEEK.15')],
               { style: STILE_TITOLO },
             ),
-            colonna(`A${RIGA_PRIMO}`, [...CANALI], { style: STILE_ETICHETTA }),
+            colonna(`A${RIGA_PRIMO}`, [...CANALI()], { style: STILE_ETICHETTA }),
             colonna(`B${RIGA_PRIMO}`, costi, { style: STILE_INPUT }),
             colonna(`C${RIGA_PRIMO}`, margini, { style: STILE_INPUT_PCT }),
-            CANALI.map((_, i) => ({
+            CANALI().map((_, i) => ({
               ref: `D${RIGA_PRIMO + i}`,
               content: null,
               locked: false,
               style: STILE_FORMULA_PREZZO,
             })),
-            CANALI.map((_, i) => ({
+            CANALI().map((_, i) => ({
               ref: `E${RIGA_PRIMO + i}`,
               content: null,
               locked: false,
@@ -206,18 +167,18 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `Margine = (prezzo - costo) / prezzo. Isola il prezzo: prezzo = costo / (1 - margine). In D${RIGA_PRIMO} scrivi =B${RIGA_PRIMO}/(1-C${RIGA_PRIMO}).`,
+          tx('M0F-03-GOALSEEK.16', { RIGA_PRIMO }),
           12,
           'T1',
         ),
-        hint('H2', `Copia D${RIGA_PRIMO}, seleziona ${rangePrezzo.replace('Model!', '')}, incolla (o Ctrl+D).`, 8, 'T2'),
+        hint('H2', tx('M0F-03-GOALSEEK.17', { RIGA_PRIMO, p1: rangePrezzo.replace('Model!', '') }), 8, 'T2'),
         hint(
           'H3',
-          `In E${RIGA_PRIMO} scrivi =(D${RIGA_PRIMO}-B${RIGA_PRIMO})/D${RIGA_PRIMO}: deve tornare identico a C${RIGA_PRIMO}.`,
+          tx('M0F-03-GOALSEEK.18', { RIGA_PRIMO }),
           10,
           'T3',
         ),
-        hint('H4', `Copia E${RIGA_PRIMO}, seleziona ${rangeVerifica.replace('Model!', '')}, incolla (o Ctrl+D).`, 8, 'T4'),
+        hint('H4', tx('M0F-03-GOALSEEK.19', { RIGA_PRIMO, p1: rangeVerifica.replace('Model!', '') }), 8, 'T4'),
       ],
       parScore: par(tasks, { letturaSecondi: 90 }),
       startAt: `Model!D${RIGA_PRIMO}`,

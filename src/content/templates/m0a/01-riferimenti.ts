@@ -27,10 +27,13 @@ import {
 } from '../../authoring';
 import { revenue } from '../../../rng/finance';
 
+import { tx } from '../../../i18n/content';
 export default defineTemplate({
   id: 'M0A-01-RIFERIMENTI',
   module: 'M0-A',
-  title: 'Il nome delle celle',
+  get title() {
+    return tx('M0A-01-RIFERIMENTI.title');
+  },
   rank: 1,
   mode: 'GUIDED',
   estimatedSeconds: 120,
@@ -49,7 +52,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T1',
         prompt:
-          'In B4 calcola il margine: ricavi meno costi. Comincia col segno = e raggiungi le due celle con le frecce.',
+          tx('M0A-01-RIFERIMENTI.2'),
         target: 'Model!B4',
         atteso: margine,
         referenzia: ['B2', 'B3'],
@@ -60,7 +63,7 @@ export default defineTemplate({
       {
         id: 'T2',
         prompt:
-          'In B6 scrivi il nome della cella che contiene i ricavi: la lettera della colonna e il numero della riga. Come testo, senza il segno =.',
+          tx('M0A-01-RIFERIMENTI.3'),
         targetCell: 'Model!B6',
         check: [{ kind: 'text' as const, expected: 'B2' }],
         skills: ['xl.grid'],
@@ -69,7 +72,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T3',
         prompt:
-          'In B8 calcola il margine dopo l\'aumento di ricavi previsto in B7. Non risommare tutto da capo: parti dal margine che hai gia\' calcolato.',
+          tx('M0A-01-RIFERIMENTI.4'),
         target: 'Model!B8',
         atteso: margine + aumento,
         referenzia: ['B4', 'B7'],
@@ -82,31 +85,16 @@ export default defineTemplate({
     return {
       templateId: 'M0A-01-RIFERIMENTI',
       seed: rng.seed,
-      brief: [
-        '## Il tuo primo foglio',
-        '',
-        'Ogni cella ha un nome: la colonna, poi la riga. Quella in alto a sinistra si chiama `A1`.',
-        '',
-        `Qui dentro ci sono i ricavi (${eur(ricavi)}) e i costi (${eur(costi)}) di una piccola azienda.`,
-        'Non ti serve sapere altro di finanza per questo livello.',
-        '',
-        'Una **formula** comincia sempre con `=`. Se scrivi `10+5` Excel legge del testo; se scrivi',
-        '`=10+5` Excel calcola. La differenza e\' tutta li\'.',
-        '',
-        'Ma il motivo per cui esiste un foglio di calcolo non e\' fare somme: e\' che una formula',
-        'punta a **un\'altra cella**, e quando quella cambia il risultato si aggiorna da solo.',
-        'Nell\'ultimo task punterai a una cella che e\' a sua volta una formula. E\' cosi\' che si',
-        'costruisce un modello: a strati, non riscrivendo tutto ogni volta.',
-      ].join('\n'),
+      brief: [tx('M0A-01-RIFERIMENTI.5', { p0: eur(ricavi), p1: eur(costi) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Conto economico semplificato'], { style: STILE_TITOLO }),
-            blocco('A2', [['Ricavi'], ['Costi'], ['Margine']], { style: STILE_ETICHETTA }),
-            blocco('A6', [['Il nome della cella dei ricavi']], { style: STILE_ETICHETTA }),
-            blocco('A7', [['Aumento di ricavi previsto']], { style: STILE_ETICHETTA }),
-            blocco('A8', [['Margine dopo l\'aumento']], { style: STILE_ETICHETTA }),
+            riga('A1', [tx('M0A-01-RIFERIMENTI.6')], { style: STILE_TITOLO }),
+            blocco('A2', [[tx('M0A-01-RIFERIMENTI.13')], [tx('M0A-01-RIFERIMENTI.14')], [tx('M0A-01-RIFERIMENTI.15')]], { style: STILE_ETICHETTA }),
+            blocco('A6', [[tx('M0A-01-RIFERIMENTI.7')]], { style: STILE_ETICHETTA }),
+            blocco('A7', [[tx('M0A-01-RIFERIMENTI.8')]], { style: STILE_ETICHETTA }),
+            blocco('A8', [[tx('M0A-01-RIFERIMENTI.9')]], { style: STILE_ETICHETTA }),
             // Gli input sono blu: e' la convenzione di mestiere che il grader
             // verifichera' dal rank 3, ma la si vede applicata fin da qui.
             blocco('B2', [[ricavi], [costi]], { style: STILE_INPUT }),
@@ -118,9 +106,9 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', 'Batti `=`, sali su B2 con la freccia, batti `-`, scendi su B3, premi Invio.', 8, 'T1'),
-        hint('H2', 'Lettera della colonna, poi numero della riga. Senza `=`, o Excel prova a calcolare.', 8, 'T2'),
-        hint('H3', 'B4 contiene gia\' il margine: ti basta sommarci B7.', 8, 'T3'),
+        hint('H1', tx('M0A-01-RIFERIMENTI.10'), 8, 'T1'),
+        hint('H2', tx('M0A-01-RIFERIMENTI.11'), 8, 'T2'),
+        hint('H3', tx('M0A-01-RIFERIMENTI.12'), 8, 'T3'),
       ],
       parScore: par(tasks, { letturaSecondi: 40 }),
       startAt: 'Model!B4',

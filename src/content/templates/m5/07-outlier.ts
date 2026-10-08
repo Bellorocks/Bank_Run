@@ -50,27 +50,24 @@ import { roundTo, triangular } from '../../../rng/distributions';
 import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 
+import { tx } from '../../../i18n/content';
 /** Output di una formula che restituisce un multiplo: nero, "x". */
 const STILE_FORMULA_MULTIPLO: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: '0.0x' };
 
 /** Le due storie plausibili dietro un peer che va escluso, non solo osservato. */
-const OUTLIER_REASONS = [
-  "e' stato acquisito da un concorrente poche settimane fa: il multiplo pagato riflette un premio " +
-    "di controllo per rilevare il 100% delle azioni, non un prezzo di mercato ordinario per una " +
-    'quota di minoranza quotata — le due cose non sono comparabili',
-  "ha sospeso la quotazione per mesi in attesa di un'operazione straordinaria: l'ultimo prezzo " +
-    "disponibile e' precedente alla sospensione e non riflette le condizioni di mercato correnti",
-] as const;
+const OUTLIER_REASONS = () => ([
+  tx('M5-07-OUTLIER.1'),
+  tx('M5-07-OUTLIER.2'),
+] as const);
 
 /** Note neutre per i peer da tenere: nessun evento che li renda non comparabili. */
-const NOTE_NORMALI = [
-  'Quotata, flottante ampio, nessun evento straordinario nel periodo',
-  'Business e dimensioni comparabili, dati di mercato aggiornati',
-  'Stesso segmento, mix geografico simile, nessuna operazione in corso',
-  'Coperta da 6 analisti, prezzo liquido e aggiornato',
-] as const;
-const NOTA_ALTA_LEGITTIMA =
-  'Multiplo nella parte alta del range: crescita sopra la media del settore, nessun evento straordinario';
+const NOTE_NORMALI = () => ([
+  tx('M5-07-OUTLIER.3'),
+  tx('M5-07-OUTLIER.4'),
+  tx('M5-07-OUTLIER.5'),
+  tx('M5-07-OUTLIER.6'),
+] as const);
+const NOTA_ALTA_LEGITTIMA = () => (tx('M5-07-OUTLIER.7'));
 
 /** Mediana aritmetica: valore centrale se n dispari, media dei due centrali se pari. */
 function mediana(valori: readonly number[]): number {
@@ -82,7 +79,9 @@ function mediana(valori: readonly number[]): number {
 export default defineTemplate({
   id: 'M5-07-OUTLIER',
   module: 'M5',
-  title: 'Escludere un outlier: mai "il numero che non mi piace"',
+  get title() {
+    return tx('M5-07-OUTLIER.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -109,7 +108,7 @@ export default defineTemplate({
     const fattoreOutlier = triangular(rOutlier, 2.0, 2.4, 3.0);
     const multiploOutlier = roundTo(mediaNormali * fattoreOutlier, 0.1);
     const insertIdx = rOutlier.int(0, n - 1);
-    const motivoOutlier = rOutlier.pick(OUTLIER_REASONS);
+    const motivoOutlier = rOutlier.pick(OUTLIER_REASONS());
 
     const multipli: number[] = [];
     const note: string[] = [];
@@ -120,7 +119,7 @@ export default defineTemplate({
         note.push(motivoOutlier.charAt(0).toUpperCase() + motivoOutlier.slice(1));
       } else {
         multipli.push(normali[ni]);
-        note.push(rOutlier.pick(NOTE_NORMALI));
+        note.push(rOutlier.pick(NOTE_NORMALI()));
         ni++;
       }
     }
@@ -130,7 +129,7 @@ export default defineTemplate({
     for (let i = 0; i < n; i++) {
       if (i !== insertIdx && (maxNormale < 0 || multipli[i] > multipli[maxNormale])) maxNormale = i;
     }
-    note[maxNormale] = NOTA_ALTA_LEGITTIMA;
+    note[maxNormale] = NOTA_ALTA_LEGITTIMA();
     const peerLabels = multipli.map((_x, i) => `Peer ${i + 1}`);
 
     const medianaCompleta = mediana(multipli);
@@ -151,9 +150,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T1',
         prompt:
-          `In B${R_MEDIANA} calcola la MEDIANA di TUTTI i ${num(n)} multipli del comp set (${rangeMultipli}), ` +
-          "outlier incluso — nessuna esclusione qui: la mediana, come visto nel livello precedente, " +
-          "non ha bisogno di rimuovere un peer anomalo per restarne quasi immune. Una sola funzione: MEDIAN.",
+          tx('M5-07-OUTLIER.9', { R_MEDIANA, p1: num(n), rangeMultipli }),
         target: `Model!B${R_MEDIANA}`,
         atteso: medianaCompleta,
         referenzia: [`B${DATA_START}`, `B${dataEnd}`],
@@ -168,9 +165,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T2',
         prompt:
-          `Prima segna "NO" nella colonna Includi (${rangeIncludi}) per il solo peer che le note rendono non ` +
-          `comparabile. Poi in B${R_MEDIA_PULITA} la media "pulita": la media dei soli multipli con Includi = "SI", ` +
-          'con una funzione a criterio.',
+          tx('M5-07-OUTLIER.10', { rangeIncludi, R_MEDIA_PULITA }),
         target: `Model!B${R_MEDIA_PULITA}`,
         atteso: mediaPulita,
         referenzia: [`C${DATA_START}`, `C${dataEnd}`, `B${DATA_START}`, `B${dataEnd}`],
@@ -186,30 +181,13 @@ export default defineTemplate({
     return {
       templateId: 'M5-07-OUTLIER',
       seed: rng.seed,
-      brief: [
-        '## Escludere un outlier: mai "il numero che non mi piace"',
-        '',
-        "M5-06 ha mostrato che la mediana resiste a un outlier senza doverlo toccare. Ma a volte un " +
-          "peer non va solo pesato di meno nella sintesi: va escluso del tutto dal comp set. La " +
-          "differenza tra queste due mosse e' tutta nella motivazione.",
-        '',
-        "Escludere un peer non e' mai una scelta fatta a occhio sul numero che stona. E' una scelta " +
-          "che richiede una nota difendibile — scritta da qualche parte, cosi' che chiunque riapra il " +
-          "modello possa leggerla e giudicarla — non un giudizio implicito nella testa di chi ha " +
-          "costruito il foglio.",
-        '',
-        `Il comp set di oggi ha ${num(n)} peer, ognuno con una nota dell'analista che l'ha selezionato. ` +
-          "Uno solo ha un motivo documentato per uscire dal campione; un altro ha un multiplo alto ma " +
-          "nessuna ragione per essere escluso. La colonna Includi parte tutta a \"SI\": la decisione e' tua.",
-        '',
-        'Costruisci le due sintesi: la mediana su tutto l\'elenco, e la media "pulita" solo sui peer inclusi.',
-      ].join('\n'),
+      brief: [tx('M5-07-OUTLIER.11', { p0: num(n) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Escludere un outlier: mai "il numero che non mi piace"'], { style: STILE_TITOLO }),
-            riga(`A${HEADER_ROW}`, ['Peer', 'Multiplo EV/EBITDA, x', 'Includi nel comp set', "Nota dell'analista"], {
+            riga('A1', [tx('M5-07-OUTLIER.12')], { style: STILE_TITOLO }),
+            riga(`A${HEADER_ROW}`, [tx('M5-07-OUTLIER.21'), tx('M5-07-OUTLIER.13'), tx('M5-07-OUTLIER.14'), tx('M5-07-OUTLIER.15')], {
               style: STILE_TITOLO,
             }),
             colonna(`A${DATA_START}`, peerLabels, { style: STILE_ETICHETTA }),
@@ -218,13 +196,13 @@ export default defineTemplate({
               multipli.map((m) => [m]),
               { style: STILE_INPUT_MULTIPLO },
             ),
-            multipli.map((_, i) => ({ ref: `C${DATA_START + i}`, content: 'SI', locked: false })),
+            multipli.map((_, i) => ({ ref: `C${DATA_START + i}`, content: tx('common.tok.si'), locked: false })),
             colonna(`D${DATA_START}`, note, { style: STILE_ETICHETTA }),
 
-            riga(`A${riepilogoRow}`, ['Sintesi del comp set'], { style: STILE_TITOLO }),
+            riga(`A${riepilogoRow}`, [tx('M5-07-OUTLIER.16')], { style: STILE_TITOLO }),
             colonna(
               `A${R_MEDIANA}`,
-              ['Mediana di tutti i multipli, x', 'Media "pulita" (solo Includi = SI), x'],
+              [tx('M5-07-OUTLIER.17'), tx('M5-07-OUTLIER.18')],
               { style: STILE_ETICHETTA },
             ),
             [{ ref: `B${R_MEDIANA}`, content: null, locked: false, style: STILE_FORMULA_MULTIPLO }],
@@ -235,11 +213,10 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', `=MEDIAN(${rangeMultipli}): l'outlier resta dentro, la mediana lo assorbe.`, 8, 'T1'),
+        hint('H1', tx('M5-07-OUTLIER.19', { rangeMultipli }), 8, 'T1'),
         hint(
           'H2',
-          'Leggi le note, non i numeri: si esclude il peer il cui prezzo non e\' un prezzo di mercato ordinario ' +
-            `(acquisizione o sospensione), non quello col multiplo piu' alto. Poi =AVERAGEIF(${rangeIncludi},"SI",${rangeMultipli}).`,
+          tx('M5-07-OUTLIER.20', { rangeIncludi, rangeMultipli }),
           12,
           'T2',
         ),

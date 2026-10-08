@@ -35,6 +35,7 @@ import {
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 const B_REV_BASE = 'B4';
 const B_MRG_BASE = 'B5';
 const B_DEBT = 'B6';
@@ -54,7 +55,9 @@ const B_ESITO = 'B20'; // T4
 export default defineTemplate({
   id: 'M10-04-STRESSTEST',
   module: 'M10',
-  title: 'Stress test di credito: shock su ricavi, margini e tassi',
+  get title() {
+    return tx('M10-04-STRESSTEST.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 360,
@@ -90,32 +93,19 @@ export default defineTemplate({
     const dscrStress = cfadsStress / (intStress + mandAmort);
     const esito = dscrStress < minDscr ? 'BREACH' : 'OK';
 
-    const brief = [
-      'Le banche vogliono sapere se il debito regge una recessione. Applica lo scenario avverso.',
-      '',
-      `- **Ricavi base**: ${eur(revBase)}, margine EBITDA ${pct(mrgBase)}`,
-      `- **Debito**: ${eur(debt)}, quota capitale annua ${eur(mandAmort)}`,
-      `- **Conversione EBITDA in cassa per il servizio del debito**: ${pct(conv, 0)}`,
-      `- **Scenario**: ricavi ${pct(revShock, 0)}, margine ${pct(mrgShock)} (punti percentuali), tasso stressato ${pct(rateStress, 2)}`,
-      `- **Covenant**: DSCR minimo ${multiplo(minDscr)}`,
-      '',
-      "Attenzione allo shock sul margine: e' in **punti percentuali**, si somma al margine, non lo moltiplica.",
-      '',
-      "Calcola EBITDA, interessi e DSCR sotto stress, poi l'esito del test: \"BREACH\" se il DSCR stressato " +
-        'scende sotto il covenant, altrimenti "OK".',
-    ].join('\n');
+    const brief = [tx('M10-04-STRESSTEST.2', { p0: eur(revBase), p1: pct(mrgBase), p2: eur(debt), p3: eur(mandAmort), p4: pct(conv, 0), p5: pct(revShock, 0), p6: pct(mrgShock), p7: pct(rateStress, 2), p8: multiplo(minDscr) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['STRESS TEST DI CREDITO (RECESSION SCENARIO)'], { style: STILE_TITOLO }),
-      riga('A3', ['Dati baseline', 'Valore'], { style: STILE_TITOLO }),
+      riga('A1', [tx('M10-04-STRESSTEST.3')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M10-04-STRESSTEST.4'), tx('M10-04-STRESSTEST.24')], { style: STILE_TITOLO }),
       colonna(
         'A4',
         [
-          'Ricavi baseline (€)',
-          'Margine EBITDA baseline',
-          'Debito (€)',
-          'Quota capitale annua (€)',
-          'Conversione EBITDA in cassa (CFADS / EBITDA)',
+          tx('M10-04-STRESSTEST.5'),
+          tx('M10-04-STRESSTEST.6'),
+          tx('M10-04-STRESSTEST.7'),
+          tx('M10-04-STRESSTEST.8'),
+          tx('M10-04-STRESSTEST.9'),
         ],
         { style: STILE_ETICHETTA },
       ),
@@ -124,18 +114,18 @@ export default defineTemplate({
       colonna(B_DEBT, [debt, mandAmort], { style: STILE_INPUT }),
       [{ ref: B_CONV, content: conv, style: { ...STILE_INPUT_PCT, numFmt: '0%' }, locked: true }],
 
-      riga('A10', ['Scenario di stress e covenant', 'Valore'], { style: STILE_TITOLO }),
+      riga('A10', [tx('M10-04-STRESSTEST.10'), tx('M10-04-STRESSTEST.25')], { style: STILE_TITOLO }),
       colonna(
         'A11',
-        ['Shock ricavi', 'Shock margine EBITDA (punti %)', "Tasso d'interesse stressato", 'DSCR minimo (covenant)'],
+        [tx('M10-04-STRESSTEST.11'), tx('M10-04-STRESSTEST.12'), tx('M10-04-STRESSTEST.13'), tx('M10-04-STRESSTEST.14')],
         { style: STILE_ETICHETTA },
       ),
       colonna(B_REV_SHOCK, [revShock, mrgShock], { style: STILE_INPUT_PCT }),
       [{ ref: B_RATE_STRESS, content: rateStress, style: { ...STILE_INPUT_PCT, numFmt: '0.00%' }, locked: true }],
       [{ ref: B_MIN_DSCR, content: minDscr, style: STILE_INPUT_MULTIPLO, locked: true }],
 
-      riga('A16', ['Metriche sotto stress', 'Risultato'], { style: STILE_TITOLO }),
-      colonna('A17', ['EBITDA stressato (€)', 'Interessi stressati (€)', 'DSCR stressato (x)', 'Esito del test'], {
+      riga('A16', [tx('M10-04-STRESSTEST.15'), tx('M10-04-STRESSTEST.26')], { style: STILE_TITOLO }),
+      colonna('A17', [tx('M10-04-STRESSTEST.16'), tx('M10-04-STRESSTEST.17'), tx('M10-04-STRESSTEST.18'), tx('M10-04-STRESSTEST.19')], {
         style: STILE_ETICHETTA,
       }),
       colonna(B_EBITDA_STRESS, [null], { style: STILE_FORMULA, locked: false }),
@@ -146,7 +136,7 @@ export default defineTemplate({
 
     const t4: Task = {
       id: 'T4',
-      prompt: `In ${B_ESITO} l'esito del test, deciso da una formula: "BREACH" o "OK".`,
+      prompt: tx('M10-04-STRESSTEST.20', { B_ESITO }),
       targetCell: `Model!${B_ESITO}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -161,7 +151,7 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `In ${B_EBITDA_STRESS} l'EBITDA nello scenario di stress: ricavi colpiti dallo shock, margine ridotto.`,
+        prompt: tx('M10-04-STRESSTEST.21', { B_EBITDA_STRESS }),
         target: `Model!${B_EBITDA_STRESS}`,
         atteso: ebitdaStress,
         referenzia: [B_REV_BASE, B_REV_SHOCK, B_MRG_BASE, B_MRG_SHOCK],
@@ -171,7 +161,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T2',
-        prompt: `In ${B_INT_STRESS} gli interessi al tasso stressato.`,
+        prompt: tx('M10-04-STRESSTEST.22', { B_INT_STRESS }),
         target: `Model!${B_INT_STRESS}`,
         atteso: intStress,
         referenzia: [B_DEBT, B_RATE_STRESS],
@@ -181,7 +171,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T3',
-        prompt: `In ${B_DSCR_STRESS} il DSCR sotto stress: la cassa per il servizio del debito diviso interessi e quota capitale.`,
+        prompt: tx('M10-04-STRESSTEST.23', { B_DSCR_STRESS }),
         target: `Model!${B_DSCR_STRESS}`,
         atteso: dscrStress,
         referenzia: [B_EBITDA_STRESS, B_CONV, B_INT_STRESS, B_MAND_AMORT],

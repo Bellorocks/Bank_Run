@@ -40,6 +40,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
 const B_EBITDA_RIP = 'B4'; // EBITDA riportato (dato, bloccato)
 const B_IMPORTO = 'B5'; // Plus/minusvalenza da cessione, importo assoluto (dato, bloccato)
@@ -50,7 +51,9 @@ const B_EBITDA_NORM = 'B9'; // T2
 export default defineTemplate({
   id: 'M2-06-PLUSMINUSVALENZE',
   module: 'M2',
-  title: 'Plusvalenze e minusvalenze: quando il segno si ribalta',
+  get title() {
+    return tx('M2-06-PLUSMINUSVALENZE.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 220,
@@ -78,17 +81,12 @@ export default defineTemplate({
     const ebitdaNormalizzato = ebitdaRiportato + rettifica;
 
     const labelImporto = isPlusvalenza
-      ? "Plusvalenza da cessione di un cespite, one-off, gia' inclusa nell'EBITDA riportato sopra, €"
-      : "Minusvalenza da cessione di un cespite, one-off, gia' inclusa nell'EBITDA riportato sopra, €";
+      ? tx('M2-06-PLUSMINUSVALENZE.2')
+      : tx('M2-06-PLUSMINUSVALENZE.3');
 
     const t1Prompt = isPlusvalenza
-      ? `In ${B_RETTIFICA} calcola la rettifica QoE dovuta alla plusvalenza da cessione (${B_IMPORTO}). ` +
-        "Attenzione al segno: questo NON e' un costo da riaggiungere, e' un guadagno da TOGLIERE — la " +
-        "formula ha un segno meno. La plusvalenza e' un provento one-off che ha gia' GONFIATO l'EBITDA " +
-        'riportato, esattamente come farebbe un qualunque ricavo non ricorrente: va rimossa, non aggiunta.'
-      : `In ${B_RETTIFICA} calcola la rettifica QoE dovuta alla minusvalenza da cessione (${B_IMPORTO}). ` +
-        "E' il caso \"normale\" gia' visto nei livelli precedenti: una perdita one-off ha GONFIATO i costi " +
-        "(quindi SGONFIATO l'EBITDA riportato), percio' si RIAGGIUNGE con segno positivo.";
+      ? tx('M2-06-PLUSMINUSVALENZE.4', { B_RETTIFICA, B_IMPORTO })
+      : tx('M2-06-PLUSMINUSVALENZE.5', { B_RETTIFICA, B_IMPORTO });
 
     const t1 = taskFormula({
       id: 'T1',
@@ -104,9 +102,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_EBITDA_NORM} calcola l'EBITDA normalizzato: l'EBITDA riportato (${B_EBITDA_RIP}) piu' la ` +
-        `rettifica (${B_RETTIFICA}). La rettifica in ${B_RETTIFICA} porta gia' il segno corretto — qui e' ` +
-        'sempre una somma, in entrambi gli scenari possibili di questo livello.',
+        tx('M2-06-PLUSMINUSVALENZE.6', { B_EBITDA_NORM, B_EBITDA_RIP, B_RETTIFICA }),
       target: `Model!${B_EBITDA_NORM}`,
       atteso: ebitdaNormalizzato,
       referenzia: [B_EBITDA_RIP, B_RETTIFICA],
@@ -119,58 +115,34 @@ export default defineTemplate({
 
     const scenarioBrief = isPlusvalenza
       ? [
-          `In questo livello l'azienda ha venduto un cespite durante l'anno, realizzando una ` +
-            `**plusvalenza** di ${eur(importo)} che e' finita dentro l'EBITDA riportato di ` +
-            `${eur(ebitdaRiportato)}.`,
+          tx('M2-06-PLUSMINUSVALENZE.7', { p0: eur(importo), p1: eur(ebitdaRiportato) }),
           '',
-          "Attenzione, perche' e' il punto in cui quasi tutti sbagliano: una plusvalenza NON e' un " +
-            "costo da riaggiungere. E' un GUADAGNO una tantum che non si ripetera' — un provento " +
-            "straordinario che ha gonfiato l'EBITDA riportato esattamente come farebbe un ricavo non " +
-            'ricorrente qualsiasi. Va TOLTO: la rettifica e\' **negativa**.',
+          tx('M2-06-PLUSMINUSVALENZE.8'),
         ]
       : [
-          `In questo livello l'azienda ha invece registrato una **minusvalenza** di ${eur(importo)} dalla ` +
-            `cessione di un cespite, gia' dentro l'EBITDA riportato di ${eur(ebitdaRiportato)}.`,
+          tx('M2-06-PLUSMINUSVALENZE.9', { p0: eur(importo), p1: eur(ebitdaRiportato) }),
           '',
-          "E' il caso \"normale\" che hai gia' incontrato: una perdita one-off ha gonfiato i costi " +
-            "(quindi sgonfiato l'EBITDA riportato) e va RIAGGIUNTA — rettifica **positiva**. Lo trovi qui " +
-            "per completezza, cosi' non impari \"cessione di cespite = sempre segno meno\": il vero punto " +
-            "di questo livello e' l'altro scenario, quello della plusvalenza da togliere. Guarda sempre " +
-            "se e' un guadagno o una perdita, non il tipo di operazione.",
+          tx('M2-06-PLUSMINUSVALENZE.10'),
         ];
 
     return {
       templateId: 'M2-06-PLUSMINUSVALENZE',
       seed: rng.seed,
-      brief: [
-        '## Cessione di un cespite: il segno dipende da guadagno o perdita, non dal fatto in se',
-        '',
-        "Finora in questo modulo hai sempre incontrato rettifiche **positive**: un costo one-off gia' " +
-          "dentro l'EBITDA riportato si riaggiunge. Qui incontri l'altra faccia della stessa regola:",
-        '',
-        '> **EBITDA normalizzato = EBITDA riportato + Σ rettifiche**',
-        '',
-        "- un **costo** one-off che ha gonfiato i costi (sgonfiato l'EBITDA riportato) si RIAGGIUNGE: " +
-          'rettifica **positiva**.',
-        "- un **ricavo/provento** one-off che ha gonfiato l'EBITDA riportato si TOGLIE: rettifica " +
-          '**negativa**.',
-        '',
-        ...scenarioBrief,
-      ].join('\n'),
+      brief: [tx('M2-06-PLUSMINUSVALENZE.11'), ...scenarioBrief].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Plusvalenze e minusvalenze da cessione'], { style: STILE_TITOLO }),
-            riga('A3', ['Dati di partenza'], { style: STILE_TITOLO }),
-            colonna('A4', ['EBITDA riportato (da bilancio), €', labelImporto], { style: STILE_ETICHETTA }),
+            riga('A1', [tx('M2-06-PLUSMINUSVALENZE.12')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M2-06-PLUSMINUSVALENZE.13')], { style: STILE_TITOLO }),
+            colonna('A4', [tx('M2-06-PLUSMINUSVALENZE.14'), labelImporto], { style: STILE_ETICHETTA }),
             [
               { ref: B_EBITDA_RIP, content: ebitdaRiportato, style: STILE_INPUT, locked: true },
               { ref: B_IMPORTO, content: importo, style: STILE_INPUT, locked: true },
             ],
 
-            riga('A7', ['Normalizzazione'], { style: STILE_TITOLO }),
-            colonna('A8', ['Rettifica QoE, €', 'EBITDA normalizzato, €'], { style: STILE_ETICHETTA }),
+            riga('A7', [tx('M2-06-PLUSMINUSVALENZE.20')], { style: STILE_TITOLO }),
+            colonna('A8', [tx('M2-06-PLUSMINUSVALENZE.15'), tx('M2-06-PLUSMINUSVALENZE.16')], { style: STILE_ETICHETTA }),
             [{ ref: B_RETTIFICA, content: null, locked: false, style: STILE_FORMULA }],
             [{ ref: B_EBITDA_NORM, content: null, locked: false, style: STILE_FORMULA }],
           ],
@@ -182,17 +154,14 @@ export default defineTemplate({
         hint(
           'H1',
           isPlusvalenza
-            ? `=-${B_IMPORTO}: la plusvalenza e' un guadagno one-off da togliere, non un costo da ` +
-              'riaggiungere. Segno meno davanti al riferimento.'
-            : `=${B_IMPORTO}: la minusvalenza e' una perdita one-off da riaggiungere, come i costi gia' ` +
-              'visti prima. Nessun segno meno.',
+            ? tx('M2-06-PLUSMINUSVALENZE.17', { B_IMPORTO })
+            : tx('M2-06-PLUSMINUSVALENZE.18', { B_IMPORTO }),
           8,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_EBITDA_RIP}+${B_RETTIFICA}: EBITDA riportato piu' la rettifica, che porta gia' il segno ` +
-            'corretto qualunque sia lo scenario.',
+          tx('M2-06-PLUSMINUSVALENZE.19', { B_EBITDA_RIP, B_RETTIFICA }),
           8,
           'T2',
         ),

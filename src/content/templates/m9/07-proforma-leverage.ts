@@ -29,6 +29,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // Geometria fissa
 const B_ACQ_EBITDA = 'B4'; // EBITDA Acquirer (dato)
 const B_TGT_EBITDA = 'B5'; // EBITDA Target (dato)
@@ -47,7 +48,9 @@ const B_CAPACITA = 'B18'; // T4: debito aggiuntivo sostenibile = B12*B15 - B16
 export default defineTemplate({
   id: 'M9-07-PROFORMALEVERAGE',
   module: 'M9',
-  title: 'Leverage pro-forma: sostenibilità della struttura di capitale',
+  get title() {
+    return tx('M9-07-PROFORMALEVERAGE.title');
+  },
   rank: 4,
   mode: 'PRACTICE',
   estimatedSeconds: 360,
@@ -71,50 +74,34 @@ export default defineTemplate({
     const pfLev = combNd / combEbitda;
     const capacita = maxLev * combEbitda - combNd;
 
-    const brief = [
-      `Analizza la sostenibilità finanziaria e il grado di indebitamento (Leverage) della combined entity post-fusione.`,
-      ``,
-      `Dati di bilancio e transazione:`,
-      `- **EBITDA Acquirer**: ${eur(acqEbitda)} | **Debito Netto Acquirer**: ${eur(acqNd)}`,
-      `- **EBITDA Target**: ${eur(tgtEbitda)} | **Debito Netto Target**: ${eur(tgtNd)}`,
-      `- **Sinergie a Regime**: ${eur(synergies)}`,
-      `- **Nuovo Debito Bancario Emesso per il Deal**: ${eur(newDebt)}`,
-      `- **Massimo Leverage per Mantenere il Rating Investment Grade**: ${multiplo(maxLev)}`,
-      ``,
-      "Dopo il closing il gruppo porta con se' il debito di entrambe le societa' piu' quello acceso per " +
-        "pagare l'acquisizione. Le agenzie guardano il leverage combinato: sopra la soglia il rating " +
-        "scende e il costo del debito sale. Quanto spazio resta, in euro, prima di toccarla?",
-      '',
-      'Calcola EBITDA e debito netto combinati, il leverage pro-forma e il debito aggiuntivo ancora ' +
-        "sostenibile alla soglia (negativo se la soglia e' gia' superata).",
-    ].join('\n');
+    const brief = [tx('M9-07-PROFORMALEVERAGE.2', { p0: eur(acqEbitda), p1: eur(acqNd), p2: eur(tgtEbitda), p3: eur(tgtNd), p4: eur(synergies), p5: eur(newDebt), p6: multiplo(maxLev) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['SOSTENIBILITÀ & LEVERAGE PRO-FORMA M&A'], { style: STILE_TITOLO }),
-      riga('A3', ['EBITDA & Sinergie', 'Importo (€)'], { style: STILE_TITOLO }),
+      riga('A1', [tx('M9-07-PROFORMALEVERAGE.3')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M9-07-PROFORMALEVERAGE.4'), tx('M9-07-PROFORMALEVERAGE.5')], { style: STILE_TITOLO }),
       colonna('A4', [
-        'EBITDA Acquirer Standalone',
-        'EBITDA Target Standalone',
-        'Sinergie a Regime Annue',
+        tx('M9-07-PROFORMALEVERAGE.6'),
+        tx('M9-07-PROFORMALEVERAGE.7'),
+        tx('M9-07-PROFORMALEVERAGE.8'),
       ], { style: STILE_ETICHETTA }),
       colonna('B4', [acqEbitda, tgtEbitda, synergies], { style: STILE_INPUT }),
 
-      riga('A8', ['Struttura del Debito', 'Importo (€) / Multiplo'], { style: STILE_TITOLO }),
+      riga('A8', [tx('M9-07-PROFORMALEVERAGE.9'), tx('M9-07-PROFORMALEVERAGE.10')], { style: STILE_TITOLO }),
       colonna('A9', [
-        'Debito Netto Acquirer Standalone',
-        'Debito Netto Target Esistente',
-        'Nuovo Debito Emesso per Transazione',
-        'Massimo Leverage Consentito dalle Agenzie (x)',
+        tx('M9-07-PROFORMALEVERAGE.11'),
+        tx('M9-07-PROFORMALEVERAGE.12'),
+        tx('M9-07-PROFORMALEVERAGE.13'),
+        tx('M9-07-PROFORMALEVERAGE.14'),
       ], { style: STILE_ETICHETTA }),
       colonna('B9', [acqNd, tgtNd, newDebt], { style: STILE_INPUT }),
       colonna(B_MAX_LEV, [maxLev], { style: STILE_INPUT_MULTIPLO }),
 
-      riga('A14', ['Metriche Finanziarie Pro-Forma', 'Risultato'], { style: STILE_TITOLO }),
+      riga('A14', [tx('M9-07-PROFORMALEVERAGE.15'), tx('M9-07-PROFORMALEVERAGE.25')], { style: STILE_TITOLO }),
       colonna('A15', [
-        'EBITDA Combinato Pro-Forma (€)',
-        'Debito Netto Totale Combinato (€)',
-        'Leverage Ratio Pro-Forma (Net Debt / EBITDA)',
-        'Debito aggiuntivo sostenibile alla soglia (€)',
+        tx('M9-07-PROFORMALEVERAGE.16'),
+        tx('M9-07-PROFORMALEVERAGE.17'),
+        tx('M9-07-PROFORMALEVERAGE.18'),
+        tx('M9-07-PROFORMALEVERAGE.19'),
       ], { style: STILE_ETICHETTA }),
       colonna(B_COMB_EBITDA, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_COMB_ND, [null], { style: STILE_FORMULA, locked: false }),
@@ -125,7 +112,7 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `In ${B_COMB_EBITDA} l'EBITDA pro-forma del gruppo combinato, sinergie a regime incluse.`,
+        prompt: tx('M9-07-PROFORMALEVERAGE.20', { B_COMB_EBITDA }),
         target: `Model!${B_COMB_EBITDA}`,
         atteso: combEbitda,
         referenzia: [B_ACQ_EBITDA, B_TGT_EBITDA, B_SYNERGIES],
@@ -135,7 +122,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T2',
-        prompt: `In ${B_COMB_ND} il debito netto del gruppo dopo il closing.`,
+        prompt: tx('M9-07-PROFORMALEVERAGE.21', { B_COMB_ND }),
         target: `Model!${B_COMB_ND}`,
         atteso: combNd,
         referenzia: [B_ACQ_ND, B_TGT_ND, B_NEW_DEBT],
@@ -145,7 +132,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T3',
-        prompt: `In ${B_PF_LEV} il leverage pro-forma.`,
+        prompt: tx('M9-07-PROFORMALEVERAGE.22', { B_PF_LEV }),
         target: `Model!${B_PF_LEV}`,
         atteso: pfLev,
         referenzia: [B_COMB_ND, B_COMB_EBITDA],
@@ -155,7 +142,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T4',
-        prompt: `In ${B_CAPACITA} quanto debito in piu' il gruppo potrebbe portare restando esattamente alla soglia massima.`,
+        prompt: tx('M9-07-PROFORMALEVERAGE.23', { B_CAPACITA }),
         target: `Model!${B_CAPACITA}`,
         atteso: capacita,
         referenzia: [B_MAX_LEV, B_COMB_EBITDA, B_COMB_ND],
@@ -177,7 +164,7 @@ export default defineTemplate({
         hint('H1', '=SUM(B4:B6)', 10, 'T1'),
         hint('H2', '=SUM(B9:B11)', 10, 'T2'),
         hint('H3', '=B16/B15', 10, 'T3'),
-        hint('H4', '=B12*B15-B16: debito massimo alla soglia meno debito attuale.', 10, 'T4'),
+        hint('H4', tx('M9-07-PROFORMALEVERAGE.24'), 10, 'T4'),
       ],
     };
   },

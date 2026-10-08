@@ -36,10 +36,13 @@ import {
 } from '../../authoring';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 export default defineTemplate({
   id: 'M0E-03-PASTESPECIAL',
   module: 'M0-E',
-  title: 'Ctrl+Alt+V: valori e trasposizione',
+  get title() {
+    return tx('M0E-03-PASTESPECIAL.title');
+  },
   rank: 2,
   mode: 'SPEEDRUN',
   estimatedSeconds: 90,
@@ -67,18 +70,14 @@ export default defineTemplate({
     const t1: Task = {
       id: 'T1',
       prompt:
-        'B6 contiene una formula vera: guardala nella barra della formula. Copiala (Ctrl+C), poi vai su ' +
-        'D7 e incolla SOLO IL VALORE, non la formula: Ctrl+Alt+V per aprire Incolla speciale, poi il tasto ' +
-        "V (Valori), poi Invio. Se in D7 finisce di nuovo una formula non hai fatto l'esercizio, anche se il " +
-        'numero che vedi e\' quello giusto.',
+        tx('M0E-03-PASTESPECIAL.2'),
       targetCell: 'Model!D7',
       check: [
         {
           kind: 'value',
           expected: totale,
           message:
-            'D7 non contiene il numero atteso. Copia B6 e usa Ctrl+Alt+V poi V (Valori) poi Invio: non ' +
-            'digitare il numero a mano e non incollare la formula intera.',
+            tx('M0E-03-PASTESPECIAL.3'),
         },
       ],
       skills: ['spd.paste-special'],
@@ -88,18 +87,14 @@ export default defineTemplate({
     const t2: Task = {
       id: 'T2',
       prompt:
-        `La serie orizzontale in B11:F11 va incollata come colonna a partire da B14. Seleziona B11:F11, ` +
-        'copia (Ctrl+C), vai su B14, apri Incolla speciale (Ctrl+Alt+V), premi E (Trasponi), poi Invio. ' +
-        "Controlla B18, l'ultima cella della colonna: e' li' che una trasposizione mancata si vede, perche' " +
-        'senza il tasto E i cinque numeri finirebbero di nuovo in riga, non in colonna.',
+        tx('M0E-03-PASTESPECIAL.4'),
       targetCell: 'Model!B18',
       check: [
         {
           kind: 'value',
           expected: serie[4],
           message:
-            "B18 non e' l'ultimo numero della serie trasposta. Se e' vuota, la copia non e' arrivata fin " +
-            "li': manca il tasto E (Trasponi) nella sotto-keymap di Ctrl+Alt+V.",
+            tx('M0E-03-PASTESPECIAL.5'),
         },
       ],
       skills: ['spd.paste-special', 'spd.selection'],
@@ -111,42 +106,23 @@ export default defineTemplate({
     return {
       templateId: 'M0E-03-PASTESPECIAL',
       seed: rng.seed,
-      brief: [
-        '## Ctrl+Alt+V ha una sotto-keymap',
-        '',
-        'Un Incolla speciale non e\' un\'unica azione: e\' un menu che si apre e a cui rispondi con una',
-        'lettera sola, senza mai staccare le mani dalla tastiera. Le lettere sono quelle vere di Excel:',
-        '',
-        '- **V** — solo i valori, la formula sparisce e resta il numero',
-        '- **F** — solo le formule',
-        '- **T** — solo i formati',
-        '- **E** — trasponi: una riga diventa una colonna (o viceversa)',
-        '',
-        'Poi **Invio** conferma. Niente mouse: qui e\' spento del tutto, e\' la regola di ogni livello di',
-        'M0-E.',
-        '',
-        `Drill 1: B6 e' una formula che somma ${num(numA)} e ${num(numB)}. Il compito e' portarne SOLO il`,
-        'risultato altrove, senza portarsi dietro la formula: Ctrl+Alt+V, poi V, poi Invio.',
-        '',
-        'Drill 2: una riga di cinque numeri va ribaltata in una colonna. Ctrl+Alt+V, poi E, poi Invio.',
-        'Se dimentichi la E, Excel incolla la riga tale e quale: stessa forma, posto sbagliato.',
-      ].join('\n'),
+      brief: [tx('M0E-03-PASTESPECIAL.6', { p0: num(numA), p1: num(numB) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Ctrl+Alt+V: incolla speciale'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M0E-03-PASTESPECIAL.7')], { style: STILE_TITOLO }),
 
-            riga('A3', ['Drill 1 — incolla solo il valore'], { style: STILE_TITOLO }),
-            blocco('A4', [['Numero 1'], ['Numero 2'], ["Totale (e' una formula)"]], { style: STILE_ETICHETTA }),
+            riga('A3', [tx('M0E-03-PASTESPECIAL.8')], { style: STILE_TITOLO }),
+            blocco('A4', [[tx('M0E-03-PASTESPECIAL.9')], [tx('M0E-03-PASTESPECIAL.10')], [tx('M0E-03-PASTESPECIAL.11')]], { style: STILE_ETICHETTA }),
             blocco('B4', [[numA], [numB]], { style: STILE_INPUT }),
             blocco('B6', [['=B4+B5']], { style: STILE_FORMULA }),
-            blocco('A7', [['Incolla qui SOLO il valore ->']], { style: STILE_ETICHETTA }),
+            blocco('A7', [[tx('M0E-03-PASTESPECIAL.12')]], { style: STILE_ETICHETTA }),
 
-            riga('A10', ['Drill 2 — trasponi una riga in colonna'], { style: STILE_TITOLO }),
-            blocco('A11', [['Serie orizzontale']], { style: STILE_ETICHETTA }),
+            riga('A10', [tx('M0E-03-PASTESPECIAL.13')], { style: STILE_TITOLO }),
+            blocco('A11', [[tx('M0E-03-PASTESPECIAL.14')]], { style: STILE_ETICHETTA }),
             riga('B11', serie, { style: STILE_INPUT }),
-            blocco('A14', [['Incolla qui trasposta v']], { style: STILE_ETICHETTA }),
+            blocco('A14', [[tx('M0E-03-PASTESPECIAL.15')]], { style: STILE_ETICHETTA }),
 
             areaLibera(['D7', 'B14', 'B15', 'B16', 'B17', 'B18']),
           ],
@@ -157,18 +133,18 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          'Ctrl+C su B6, freccia fino a D7, poi Ctrl+Alt+V. Nel dialogo premi V (Valori), non Invio subito.',
+          tx('M0E-03-PASTESPECIAL.16'),
           8,
           'T1',
         ),
-        hint('H2', "Se dopo Invio la barra della formula su D7 mostra ancora \"=\", hai incollato Tutto (A) invece di Valori (V).", 6, 'T1'),
+        hint('H2', tx('M0E-03-PASTESPECIAL.17'), 6, 'T1'),
         hint(
           'H3',
-          'Seleziona B11:F11 con Maiusc+freccia destra x4, Ctrl+C, vai su B14, Ctrl+Alt+V, poi E, poi Invio.',
+          tx('M0E-03-PASTESPECIAL.18'),
           8,
           'T2',
         ),
-        hint('H4', "Senza E la riga resta una riga: controlla se i numeri sono finiti accanto a B14 invece che sotto.", 6, 'T2'),
+        hint('H4', tx('M0E-03-PASTESPECIAL.19'), 6, 'T2'),
       ],
       parScore: par(tasks, { letturaSecondi: 25 }),
       startAt: 'Model!B6',

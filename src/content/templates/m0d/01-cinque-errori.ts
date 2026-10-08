@@ -32,15 +32,16 @@ import {
   STILE_TITOLO,
 } from '../../authoring';
 
+import { tx } from '../../../i18n/content';
 /**
  * Le cinque celle-trappola, in ordine di riga. Ogni formula e' scelta per
  * produrre l'errore giusto in modo diretto, verificabile a colpo d'occhio
  * nella barra della formula una volta selezionata la cella (bloccata, quindi
  * leggibile ma non modificabile).
  */
-const TRAPPOLE = [
+const TRAPPOLE = () => ([
   {
-    riga: 'Costo unitario del venduto',
+    riga: tx('M0D-01-CINQUEERRORI.1'),
     // Riferimenti RELATIVI alla riga r che ospita la formula (r-1 e r+1), mai
     // indirizzi assoluti fissi: l'ordine delle trappole viene rimescolato ad
     // ogni seed (vedi generate()), quindi una formula scritta con "B2/B3"
@@ -51,51 +52,48 @@ const TRAPPOLE = [
     // formula sono sempre multipli di 3 a partire da 3: 3,6,9,12,15) e non si
     // sovrappongono mai fra trappole adiacenti, quindi restano sempre vuote.
     formula: (r: number) => `=B${r - 1}/B${r + 1}`,
-    nome: 'divisione',
+    nome: tx('M0D-01-CINQUEERRORI.17'),
     spiegazione:
-      "il denominatore e' una cella vuota, quindi vale zero. Ogni volta che un rapporto puo' avere " +
-      'un denominatore nullo (unita vendute, giorni, clienti attivi) questo errore e sempre in agguato.',
+      tx('M0D-01-CINQUEERRORI.2'),
   },
   {
-    riga: 'Fatturato del cliente CL-042, con rettifica',
+    riga: tx('M0D-01-CINQUEERRORI.3'),
     formula: (r: number) => `="CL-042"+B${r - 1}`,
-    nome: 'valore',
+    nome: tx('M0D-01-CINQUEERRORI.18'),
     spiegazione:
-      "si sta sommando un testo (il codice cliente, fra virgolette) a un numero. Excel non sa " +
-      "convertire \"CL-042\" in un numero, quindi si ferma.",
+      tx('M0D-01-CINQUEERRORI.4'),
   },
   {
-    riga: 'Posizione del fornitore Delta in anagrafica',
+    riga: tx('M0D-01-CINQUEERRORI.5'),
     formula: (r: number) => `=MATCH("Delta",B${r - 1}:D${r - 1},0)`,
-    nome: 'disponibile',
+    nome: tx('M0D-01-CINQUEERRORI.19'),
     spiegazione:
-      "MATCH cerca \"Delta\" nell'elenco fornitori e non lo trova: il valore cercato non e' " +
-      "disponibile nell'intervallo. E' l'errore piu' comune di ogni lookup (MATCH, INDEX/MATCH).",
+      tx('M0D-01-CINQUEERRORI.6'),
   },
   {
-    riga: 'Totale del trimestre',
+    riga: tx('M0D-01-CINQUEERRORI.7'),
     formula: (r: number) => `=SOMMA(B${r + 1}:C${r + 1})`,
-    nome: 'nome',
+    nome: tx('M0D-01-CINQUEERRORI.20'),
     spiegazione:
-      '"SOMMA" non esiste in questo motore (che parla inglese: la funzione si chiama SUM). Excel ' +
-      "non riconosce il nome e non prova nemmeno a indovinare cosa intendevi.",
+      tx('M0D-01-CINQUEERRORI.8'),
   },
   {
-    riga: 'Margine ripreso dal foglio di dettaglio',
+    riga: tx('M0D-01-CINQUEERRORI.9'),
     // Letterale puro, senza dipendenze da nessuna cella: l'unica delle cinque
     // formule per cui la posizione non conta affatto.
     formula: (_r: number) => '=#REF!',
-    nome: 'riferimento',
+    nome: tx('M0D-01-CINQUEERRORI.21'),
     spiegazione:
-      "questa e' la cicatrice che resta quando una formula puntava a una cella poi cancellata: " +
-      "Excel non sa piu' a cosa riferirsi e lo dice chiaro, invece di indovinare.",
+      tx('M0D-01-CINQUEERRORI.10'),
   },
-] as const;
+] as const);
 
 export default defineTemplate({
   id: 'M0D-01-CINQUEERRORI',
   module: 'M0-D',
-  title: 'I cinque errori',
+  get title() {
+    return tx('M0D-01-CINQUEERRORI.title');
+  },
   rank: 2,
   mode: 'AUDIT',
   estimatedSeconds: 210,
@@ -105,18 +103,16 @@ export default defineTemplate({
   generate: (rng) => {
     // Livello di puro riconoscimento: l'ordine delle cinque trappole cambia
     // col seed, cosi' non si impara "la terza riga e' sempre #N/A" a memoria.
-    const ordine = rng.shuffle(TRAPPOLE.map((_, i) => i));
+    const ordine = rng.shuffle(TRAPPOLE().map((_, i) => i));
 
-    const righeFoglio = ordine.map((idx) => TRAPPOLE[idx]);
+    const righeFoglio = ordine.map((idx) => TRAPPOLE()[idx]);
 
     const tasks = righeFoglio.map((t, i) => {
       const rigaCella = 3 + i * 3; // B3, B6, B9, B12, B15: una formula ogni tre righe, con spazio per etichetta+risposta
       return {
         id: `T${i + 1}`,
         prompt:
-          `Seleziona B${rigaCella} e leggi la barra della formula. Quale dei cinque errori restituisce? ` +
-          `Scrivi in C${rigaCella} il suo nome breve, cosi' come compare nella legenda del brief ` +
-          `(una sola parola, minuscolo: "riferimento", "valore", "divisione", "disponibile" o "nome").`,
+          tx('M0D-01-CINQUEERRORI.12', { rigaCella }),
         targetCell: `Model!C${rigaCella}`,
         check: [{ kind: 'text' as const, expected: t.nome, caseSensitive: false }],
         skills: ['xl.errors'],
@@ -124,30 +120,9 @@ export default defineTemplate({
       };
     });
 
-    const legenda = [
-      '| Errore Excel | Cosa significa | Nome breve da scrivere |',
-      '|---|---|---|',
-      '| `#DIV/0!` | una divisione ha il denominatore a zero | `divisione` |',
-      '| `#VALUE!` | un calcolo mescola un testo dove serviva un numero | `valore` |',
-      '| `#N/A` | una ricerca (MATCH, lookup) non trova il valore cercato | `disponibile` |',
-      '| `#NAME?` | un nome di funzione e scritto in modo che Excel non riconosce | `nome` |',
-      '| `#REF!` | la formula punta a una cella che non esiste piu | `riferimento` |',
-    ].join('\n');
+    const legenda = [tx('M0D-01-CINQUEERRORI.13')].join('\n');
 
-    const brief = [
-      '## I cinque errori',
-      '',
-      'Un foglio con cinque formule gia scritte, ciascuna rotta in un modo diverso. Non devi',
-      "ripararle: devi imparare a riconoscerle a colpo d'occhio, perche sono le stesse cinque",
-      'che incontrerai per tutto il resto della carriera.',
-      '',
-      legenda,
-      '',
-      'Per ogni riga: seleziona la cella con la formula (e bloccata, ma la puoi selezionare e',
-      'leggere nella barra della formula), capisci quale dei cinque errori vedi, e scrivi il suo',
-      "nome breve nella cella di risposta accanto. La causa e' sempre leggibile nella formula",
-      'stessa, se la guardi con attenzione prima di rispondere.',
-    ].join('\n');
+    const brief = [tx('M0D-01-CINQUEERRORI.14', { legenda })].join('\n');
 
     const celleFoglio = righeFoglio.flatMap((t, i) => {
       const r = 3 + i * 3;
@@ -165,7 +140,7 @@ export default defineTemplate({
         foglio(
           'Model',
           [
-            riga('A1', ['Cinque formule, cinque errori'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M0D-01-CINQUEERRORI.15')], { style: STILE_TITOLO }),
             celleFoglio,
             areaLibera(righeFoglio.map((_, i) => `C${3 + i * 3}`)),
           ],
@@ -176,7 +151,7 @@ export default defineTemplate({
       hints: righeFoglio.map((t, i) =>
         hint(
           `H${i + 1}`,
-          `In B${3 + i * 3}: ${t.spiegazione} Il nome breve da scrivere e' "${t.nome}".`,
+          tx('M0D-01-CINQUEERRORI.16', { p0: 3 + i * 3, p1: t.spiegazione, p2: t.nome }),
           8,
           `T${i + 1}`,
         ),

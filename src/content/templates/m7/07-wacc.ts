@@ -56,6 +56,7 @@ import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 const STILE_FORMULA_PCT: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: '0.0%' };
 
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
@@ -73,7 +74,9 @@ const TAX_RATE = 0.24;
 export default defineTemplate({
   id: 'M7-07-WACC',
   module: 'M7',
-  title: 'WACC: la media ponderata del costo del capitale',
+  get title() {
+    return tx('M7-07-WACC.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -114,13 +117,7 @@ export default defineTemplate({
     const t1: Task = {
       id: 'T1',
       prompt:
-        `In ${B_KD_AT} calcola il costo del debito DOPO le imposte: il costo del debito pre-tax ` +
-        `(${B_KD}) moltiplicato per (1 - aliquota fiscale) (${B_TAX}). ` +
-        'Formula: Kd after-tax = Kd × (1 - aliquota). Gli interessi passivi sul debito sono ' +
-        "deducibili dalle imposte: pagarli riduce l'utile imponibile, quindi riduce le imposte " +
-        "dovute. Il costo \"vero\" del debito per l'azienda e' percio' piu' basso del tasso nominale " +
-        "che paga ai creditori — questo e' lo scudo fiscale (tax shield). Usa le due celle date, " +
-        'senza copiare i numeri a mano.',
+        tx('M7-07-WACC.2', { B_KD_AT, B_KD, B_TAX }),
       targetCell: `Model!${B_KD_AT}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -130,8 +127,7 @@ export default defineTemplate({
           tolerance: 0.0001,
           toleranceMode: 'absolute',
           message:
-            'Il valore non torna: controlla che tu stia moltiplicando Kd per (1 - aliquota), non ' +
-            "per l'aliquota da sola (e non per (1 + aliquota)).",
+            tx('M7-07-WACC.3'),
         },
         { kind: 'mustReference', cells: [B_KD, B_TAX] },
         { kind: 'mustNotContainLiteral', except: [1] },
@@ -143,16 +139,7 @@ export default defineTemplate({
     const t2: Task = {
       id: 'T2',
       prompt:
-        `In ${B_WACC} calcola il WACC: la media ponderata fra il costo del capitale proprio ` +
-        `(${B_KE}) pesato per il peso equity (${B_WE}) e il costo del debito DOPO le imposte appena ` +
-        `calcolato in T1 (${B_KD_AT}) pesato per il peso debito (${B_WD}). ` +
-        'Formula: WACC = Ke × peso equity + Kd after-tax × peso debito. ' +
-        `IMPORTANTE: usa ${B_KD_AT} (il costo del debito DOPO le imposte, calcolato in T1), NON ` +
-        `${B_KD} (il tasso Kd nominale PRIMA delle imposte) — lo scudo fiscale sugli interessi ` +
-        "riduce il costo effettivo del debito per l'azienda, e il WACC deve pesare quel costo vero, " +
-        "non quello lordo. Il Ke, al contrario, entra senza aggiustamenti: i dividendi pagati agli " +
-        "azionisti non sono deducibili, quindi l'equity non ha un equivalente scudo fiscale. Usa le " +
-        'quattro celle date, senza copiare i numeri a mano.',
+        tx('M7-07-WACC.4', { B_WACC, B_KE, B_WE, B_KD_AT, B_WD, B_KD }),
       targetCell: `Model!${B_WACC}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -162,9 +149,7 @@ export default defineTemplate({
           tolerance: 0.0001,
           toleranceMode: 'absolute',
           message:
-            'Il valore non torna: controlla che tu stia usando il costo del debito DOPO le imposte ' +
-            `(${B_KD_AT}, da T1) e non Kd pre-tax (${B_KD}) direttamente, e che tu stia pesando Ke ` +
-            'per il peso equity e Kd after-tax per il peso debito (non il contrario).',
+            tx('M7-07-WACC.5', { B_KD_AT, B_KD }),
         },
         { kind: 'mustReference', cells: [B_KE, B_KD_AT, B_WE, B_WD] },
         { kind: 'mustNotContainLiteral', except: [] },
@@ -178,50 +163,21 @@ export default defineTemplate({
     return {
       templateId: 'M7-07-WACC',
       seed: rng.seed,
-      brief: [
-        '## WACC: la media ponderata del costo del capitale',
-        '',
-        "Il FCFF si sconta al WACC (Weighted Average Cost of Capital): il costo medio di TUTTO il " +
-          "capitale che finanzia l'azienda, non solo l'equity. E' una media ponderata fra il costo " +
-          'del capitale proprio (Ke, gia\' pronto da M7-06) e il costo del debito — ma il debito entra ' +
-          'DOPO un aggiustamento fiscale.',
-        '',
-        '**Perche\' il debito costa MENO del suo tasso nominale.** Gli interessi passivi sul debito ' +
-          "sono deducibili dalle imposte: pagarli riduce l'utile imponibile, quindi riduce le imposte " +
-          "dovute. Il costo \"vero\" del debito per l'azienda non e' il tasso Kd che paga ai " +
-          'creditori, ma quel tasso al netto di questo scudo fiscale (tax shield):',
-        '',
-        '> **Kd after-tax = Kd × (1 - aliquota)**',
-        '',
-        "Il Ke non ha un equivalente: i dividendi pagati agli azionisti non sono deducibili, quindi " +
-          "l'equity non genera nessuno scudo fiscale. Per questo il WACC pesa Ke al lordo, ma il " +
-          'debito solo DOPO averlo depurato:',
-        '',
-        '> **WACC = Ke × peso equity + Kd after-tax × peso debito**',
-        '',
-        "I pesi (E/(D+E) e D/(D+E), che sommano sempre a 1) sono la struttura di capitale TARGET " +
-          "dell'azienda — quanta parte del capitale complessivo e' finanziata da equity contro " +
-          'quanta da debito.',
-        '',
-        `**I dati**, gia' pronti come assunzioni: Ke aggiustato per il rischio paese (M7-06) ` +
-          `${pct(ke, 2)}, costo del debito pre-tax (Kd) ${pct(kd, 2)}, aliquota fiscale ` +
-          `${pct(TAX_RATE, 0)}, peso equity target E/(D+E) ${pct(weEquity, 0)}, peso debito target ` +
-          `D/(D+E) ${pct(weDebt, 0)}.`,
-      ].join('\n'),
+      brief: [tx('M7-07-WACC.6', { p0: pct(ke, 2), p1: pct(kd, 2), p2: pct(TAX_RATE, 0), p3: pct(weEquity, 0), p4: pct(weDebt, 0) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['WACC: la media ponderata del costo del capitale'], { style: STILE_TITOLO }),
-            riga('A3', ['Assunzioni'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M7-07-WACC.7')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M7-07-WACC.17')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'Ke aggiustato per il rischio paese (M7-06)',
-                'Kd: costo del debito pre-tax',
-                'Aliquota fiscale',
-                'Peso equity target E/(D+E)',
-                'Peso debito target D/(D+E)',
+                tx('M7-07-WACC.8'),
+                tx('M7-07-WACC.9'),
+                tx('M7-07-WACC.10'),
+                tx('M7-07-WACC.11'),
+                tx('M7-07-WACC.12'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -233,10 +189,10 @@ export default defineTemplate({
               { ref: B_WD, content: weDebt, style: STILE_INPUT_PCT, locked: true },
             ],
 
-            riga('A10', ['Costo del debito e WACC'], { style: STILE_TITOLO }),
+            riga('A10', [tx('M7-07-WACC.13')], { style: STILE_TITOLO }),
             colonna(
               'A11',
-              ['Kd dopo le imposte (after-tax)', 'WACC'],
+              [tx('M7-07-WACC.14'), tx('M7-07-WACC.18')],
               { style: STILE_ETICHETTA },
             ),
             [
@@ -251,15 +207,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_KD}*(1-${B_TAX}): Kd pre-tax moltiplicato per (1 - aliquota) (qui vale ` +
-            `${pct(kdAfterTax, 2)}).`,
+          tx('M7-07-WACC.15', { B_KD, B_TAX, p2: pct(kdAfterTax, 2) }),
           10,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_KE}*${B_WE}+${B_KD_AT}*${B_WD}: Ke per il peso equity, piu' il Kd after-tax (non ` +
-            `Kd pre-tax) per il peso debito (qui vale ${pct(wacc, 2)}).`,
+          tx('M7-07-WACC.16', { B_KE, B_WE, B_KD_AT, B_WD, p4: pct(wacc, 2) }),
           10,
           'T2',
         ),

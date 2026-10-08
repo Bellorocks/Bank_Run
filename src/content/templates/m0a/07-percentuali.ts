@@ -31,10 +31,13 @@ import {
 } from '../../authoring';
 import { SECTORS, ebitdaMargin, revenue } from '../../../rng/finance';
 
+import { contentNumberLocale, tx } from '../../../i18n/content';
 export default defineTemplate({
   id: 'M0A-07-PERCENTUALI',
   module: 'M0-A',
-  title: 'Il 1500% che non esiste',
+  get title() {
+    return tx('M0A-07-PERCENTUALI.title');
+  },
   rank: 1,
   mode: 'GUIDED',
   estimatedSeconds: 150,
@@ -61,23 +64,20 @@ export default defineTemplate({
       {
         id: 'T1',
         prompt:
-          `In B2 inserisci il margine obiettivo fissato dal CdA, ${pct(targetMargine)}: dentro la cella deve ` +
-          "esserci la frazione giusta, e a schermo deve vedersi come percentuale. B2 per ora non ha formato.",
+          tx('M0A-07-PERCENTUALI.2', { p0: pct(targetMargine) }),
         targetCell: 'Model!B2',
         check: [
           {
             kind: 'value' as const,
             expected: targetMargine,
             message:
-              `Se in B2 compare un numero enorme (tipo ${trappolaEsempio}) hai scritto le cifre e poi ` +
-              'applicato il formato: dentro la cella c\'e\' ancora il numero intero. Riscrivilo col simbolo %, ' +
-              'oppure come frazione, oppure scrivilo di nuovo adesso che la cella e\' gia\' in percentuale.',
+              tx('M0A-07-PERCENTUALI.3', { trappolaEsempio }),
           },
           {
             kind: 'numberFormat' as const,
             expected: '0%',
             accept: ['0.0%', '0.00%', '0.000%', '0.0000%'],
-            message: 'Il valore e\' giusto ma la cella non lo mostra come percentuale (Ctrl+Maiusc+5, o scrivilo col %).',
+            message: tx('M0A-07-PERCENTUALI.4'),
           },
         ],
         skills: ['xl.percentages'],
@@ -86,9 +86,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T2',
         prompt:
-          "In B7 calcola il margine realizzato nel trimestre appena chiuso: utile operativo diviso " +
-          "ricavi. Non stimarlo e non batterlo a mano: fai fare la divisione a Excel, e lascia che sia " +
-          "il formato percentuale a mostrartela gia' pronta.",
+          tx('M0A-07-PERCENTUALI.5'),
         target: 'Model!B7',
         atteso: margineRealizzato,
         referenzia: ['B6', 'B5'],
@@ -101,43 +99,17 @@ export default defineTemplate({
     return {
       templateId: 'M0A-07-PERCENTUALI',
       seed: rng.seed,
-      brief: [
-        '## La trappola del 1500%',
-        '',
-        'Una cella in formato percentuale non contiene "per cento": contiene un numero, e lo',
-        '**moltiplica per cento quando lo disegna a schermo**. Dentro c\'e\' 0,15, a schermo vedi 15%.',
-        '',
-        'Excel ti aiuta in due casi:',
-        '',
-        '- se scrivi `15%` **col simbolo**, salva 0,15 e mette da solo il formato percentuale;',
-        '- se la cella e\' **gia\'** in percentuale e scrivi `15`, capisce 15%.',
-        '',
-        'La trappola scatta quando il formato arriva **dopo**: scrivi `15` in una cella normale, poi premi',
-        'Ctrl+Maiusc+5, e la cella mostra **1500%**, perche\' dentro c\'e\' davvero 15. E\' un errore che si',
-        'vede benissimo, ed e\' per questo che quasi tutti lo fanno una volta e poi mai piu\'.',
-        '',
-        `Il CdA ha fissato per il prossimo anno un margine EBITDA obiettivo del **${pct(targetMargine)}**.`,
-        `B2 e\' una cella normale, senza formato: se scrivi "${num100(targetMargine)}" e poi la formatti,`,
-        `vedrai ${trappolaEsempio}.`,
-        '',
-        '## Quando la percentuale nasce da una formula',
-        '',
-        'C\'e\' un secondo modo, molto piu\' comune nei modelli veri, in cui una percentuale finisce in una',
-        'cella: non battuta a mano, ma **calcolata come rapporto fra due altre celle**. Il trimestre',
-        `appena chiuso ha fatturato ${eur(ricavi)} di ricavi e ${eur(utile)} di utile operativo. Il margine`,
-        'realizzato e\' quel rapporto — e siccome e\' Excel a farlo, la trappola del 1500% qui non puo\'',
-        'capitare: la divisione produce gia\' la frazione giusta.',
-      ].join('\n'),
+      brief: [tx('M0A-07-PERCENTUALI.6', { p0: pct(targetMargine), p1: num100(targetMargine), trappolaEsempio, p3: eur(ricavi), p4: eur(utile) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Margini in percentuale'], { style: STILE_TITOLO }),
-            blocco('A2', [['Margine EBITDA obiettivo (deciso dal CdA)']], { style: STILE_ETICHETTA }),
-            riga('A4', ['Trimestre appena chiuso'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M0A-07-PERCENTUALI.7')], { style: STILE_TITOLO }),
+            blocco('A2', [[tx('M0A-07-PERCENTUALI.8')]], { style: STILE_ETICHETTA }),
+            riga('A4', [tx('M0A-07-PERCENTUALI.9')], { style: STILE_TITOLO }),
             blocco(
               'A5',
-              [['Ricavi'], ['Utile operativo'], ["Margine realizzato (utile / ricavi)"]],
+              [[tx('M0A-07-PERCENTUALI.14')], [tx('M0A-07-PERCENTUALI.10')], [tx('M0A-07-PERCENTUALI.11')]],
               { style: STILE_ETICHETTA },
             ),
             blocco('B5', [[ricavi], [utile]], { style: STILE_INPUT }),
@@ -153,12 +125,11 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `Il modo piu' corto: scrivi ${num100(targetMargine)}% col simbolo, e Excel salva la frazione e ` +
-            'mette il formato in un colpo solo.',
+          tx('M0A-07-PERCENTUALI.12', { p0: num100(targetMargine) }),
           6,
           'T1',
         ),
-        hint('H2', "Non serve calcolare a mente: in B7 scrivi =B6/B5 e lascia fare il formato.", 6, 'T2'),
+        hint('H2', tx('M0A-07-PERCENTUALI.13'), 6, 'T2'),
       ],
       parScore: par(tasks, { letturaSecondi: 45 }),
       startAt: 'Model!B2',
@@ -168,5 +139,5 @@ export default defineTemplate({
 
 /** Le cifre della percentuale senza il simbolo %, cosi' come le legge chi cade nella trappola. */
 function num100(frazione: number): string {
-  return (frazione * 100).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return (frazione * 100).toLocaleString(contentNumberLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 }

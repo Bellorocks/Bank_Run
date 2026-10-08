@@ -40,6 +40,7 @@ import { roundTo, triangular } from '../../../rng/distributions';
 import type { Task } from '../../types';
 import type { CellStyle } from '../../../engine/types';
 
+import { tx } from '../../../i18n/content';
 const ANNI = 5;
 const COLONNE = ['C', 'D', 'E', 'F', 'G'] as const;
 const ULTIMA = COLONNE[ANNI - 1];
@@ -66,7 +67,9 @@ const STILE_FATTORE: CellStyle = { ...STILE_FORMULA, numFmt: '0.0000' };
 export default defineTemplate({
   id: 'M7-14-DCFCOMPLETO',
   module: 'M7',
-  title: 'DCF completo e reconciliation col mercato',
+  get title() {
+    return tx('M7-14-DCFCOMPLETO.title');
+  },
   rank: 4,
   mode: 'PRACTICE',
   estimatedSeconds: 600,
@@ -105,7 +108,7 @@ export default defineTemplate({
       const rg = `${COLONNE[0]}${row}:${ULTIMA}${row}`;
       return {
         id,
-        prompt: `Riga ${row}: ${cosa}. Una formula in ${COLONNE[0]}${row}, copiata fino a ${ULTIMA}${row}.`,
+        prompt: tx('M7-14-DCFCOMPLETO.2', { row, cosa, p2: COLONNE[0], ULTIMA }),
         targetCell: `Model!${rg}`,
         check: [
           { kind: 'mustBeFormula' },
@@ -134,54 +137,41 @@ export default defineTemplate({
 
     const c1 = COLONNE[0];
     const tasks: Task[] = [
-      rigaTask('T1', ROW_DF, "il fattore di sconto di ogni anno (flussi a fine anno), dall'anno in riga 11", df, [`${c1}${ROW_T}`, B_WACC]),
-      rigaTask('T2', ROW_PV, 'il valore attuale del free cash flow di ogni anno', pv, [`${c1}${ROW_FCF}`, `${c1}${ROW_DF}`]),
-      cella('T3', B_SUM_PV, `In ${B_SUM_PV} il valore attuale dei cinque anni espliciti.`, sumPv, [`${c1}${ROW_PV}`, `${ULTIMA}${ROW_PV}`]),
+      rigaTask('T1', ROW_DF, tx('M7-14-DCFCOMPLETO.3'), df, [`${c1}${ROW_T}`, B_WACC]),
+      rigaTask('T2', ROW_PV, tx('M7-14-DCFCOMPLETO.4'), pv, [`${c1}${ROW_FCF}`, `${c1}${ROW_DF}`]),
+      cella('T3', B_SUM_PV, tx('M7-14-DCFCOMPLETO.5', { B_SUM_PV }), sumPv, [`${c1}${ROW_PV}`, `${ULTIMA}${ROW_PV}`]),
       cella(
         'T4',
         B_TV,
-        `In ${B_TV} il terminal value a fine anno ${ANNI} con il modello di Gordon: il flusso dell'anno dopo, ` +
-          "capitalizzato al WACC meno la crescita perpetua.",
+        tx('M7-14-DCFCOMPLETO.6', { B_TV, ANNI }),
         tv,
         [`${ULTIMA}${ROW_FCF}`, B_G, B_WACC],
         [1],
       ),
-      cella('T5', B_PV_TV, `In ${B_PV_TV} il valore attuale del terminal value.`, pvTv, [B_TV, `${ULTIMA}${ROW_DF}`]),
-      cella('T6', B_EV, `In ${B_EV} l'Enterprise Value.`, ev, [B_SUM_PV, B_PV_TV]),
-      cella('T7', B_PESO_TV, `In ${B_PESO_TV} quanta parte dell'EV viene dal terminal value.`, pesoTv, [B_PV_TV, B_EV]),
+      cella('T5', B_PV_TV, tx('M7-14-DCFCOMPLETO.7', { B_PV_TV }), pvTv, [B_TV, `${ULTIMA}${ROW_DF}`]),
+      cella('T6', B_EV, tx('M7-14-DCFCOMPLETO.8', { B_EV }), ev, [B_SUM_PV, B_PV_TV]),
+      cella('T7', B_PESO_TV, tx('M7-14-DCFCOMPLETO.9', { B_PESO_TV }), pesoTv, [B_PV_TV, B_EV]),
       cella(
         'T8',
         B_RECON,
-        `In ${B_RECON} la reconciliation: di quanto l'EV implicito nei multipli di mercato (${B_EV_MKT}) si ` +
-          'discosta dal tuo DCF, in percentuale del DCF.',
+        tx('M7-14-DCFCOMPLETO.10', { B_RECON, B_EV_MKT }),
         recon,
         [B_EV_MKT, B_EV],
       ),
     ];
 
-    const brief = [
-      "Il comitato vuole il DCF della target, costruito dall'inizio. Hai i free cash flow dei prossimi cinque anni.",
-      '',
-      `- **WACC**: ${pct(wacc, 2)}`,
-      `- **Crescita perpetua oltre l'anno ${ANNI}**: ${pct(g, 2)}`,
-      `- **EV implicito nei multipli dei comparabili**: ${eur(evMkt)}`,
-      '',
-      'Sconta ogni flusso a fine anno, calcola il terminal value con Gordon e portalo a oggi, somma tutto. ' +
-        "Poi guarda due cose: quanto pesa il terminal value (se e' quasi tutto il valore, la stima dipende " +
-        'quasi solo da WACC e g) e quanto il DCF si allontana dal mercato. Uno scarto grande non vuol dire ' +
-        "che il mercato sbagli: vuol dire che vanno spiegate le ipotesi.",
-    ].join('\n');
+    const brief = [tx('M7-14-DCFCOMPLETO.11', { p0: pct(wacc, 2), ANNI, p2: pct(g, 2), p3: eur(evMkt) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['DCF — ENTERPRISE VALUE E RECONCILIATION'], { style: STILE_TITOLO }),
-      riga('A3', ['Ipotesi', 'Valore'], { style: STILE_TITOLO }),
-      colonna('A4', ['WACC', 'Crescita perpetua (g)', 'EV implicito nei comparabili (€)'], { style: STILE_ETICHETTA }),
+      riga('A1', [tx('M7-14-DCFCOMPLETO.12')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M7-14-DCFCOMPLETO.27'), tx('M7-14-DCFCOMPLETO.28')], { style: STILE_TITOLO }),
+      colonna('A4', [tx('M7-14-DCFCOMPLETO.29'), tx('M7-14-DCFCOMPLETO.13'), tx('M7-14-DCFCOMPLETO.14')], { style: STILE_ETICHETTA }),
       [{ ref: B_WACC, content: wacc, style: { ...STILE_INPUT_PCT, numFmt: '0.00%' }, locked: true }],
       [{ ref: B_G, content: g, style: { ...STILE_INPUT_PCT, numFmt: '0.00%' }, locked: true }],
       [{ ref: B_EV_MKT, content: evMkt, style: STILE_INPUT, locked: true }],
 
-      riga(`A${ROW_INTEST}`, ['Proiezione (€)', '', ...COLONNE.map((_, i) => `Anno ${i + 1}`)], { style: STILE_TITOLO }),
-      colonna(`A${ROW_FCF}`, ['Free cash flow', 'Anno (t)', 'Fattore di sconto', 'Valore attuale del FCF'], {
+      riga(`A${ROW_INTEST}`, [tx('M7-14-DCFCOMPLETO.15'), '', ...COLONNE.map((_, i) => `Anno ${i + 1}`)], { style: STILE_TITOLO }),
+      colonna(`A${ROW_FCF}`, [tx('M7-14-DCFCOMPLETO.16'), tx('M7-14-DCFCOMPLETO.17'), tx('M7-14-DCFCOMPLETO.18'), tx('M7-14-DCFCOMPLETO.19')], {
         style: STILE_ETICHETTA,
       }),
       riga(`${c1}${ROW_FCF}`, fcf, { style: STILE_INPUT }),
@@ -189,16 +179,16 @@ export default defineTemplate({
       COLONNE.map((c) => ({ ref: `${c}${ROW_DF}`, content: null, locked: false, style: STILE_FATTORE })),
       COLONNE.map((c) => ({ ref: `${c}${ROW_PV}`, content: null, locked: false, style: STILE_FORMULA })),
 
-      riga('A15', ['Valutazione', 'Valore'], { style: STILE_TITOLO }),
+      riga('A15', [tx('M7-14-DCFCOMPLETO.30'), tx('M7-14-DCFCOMPLETO.31')], { style: STILE_TITOLO }),
       colonna(
         'A16',
         [
-          'Somma PV dei FCF espliciti (€)',
-          `Terminal value a fine anno ${ANNI} (€)`,
-          'PV del terminal value (€)',
-          'Enterprise Value (€)',
-          "Peso del terminal value sull'EV",
-          'Scostamento EV di mercato vs DCF',
+          tx('M7-14-DCFCOMPLETO.20'),
+          tx('M7-14-DCFCOMPLETO.21', { ANNI }),
+          tx('M7-14-DCFCOMPLETO.22'),
+          tx('M7-14-DCFCOMPLETO.23'),
+          tx('M7-14-DCFCOMPLETO.24'),
+          tx('M7-14-DCFCOMPLETO.25'),
         ],
         { style: STILE_ETICHETTA },
       ),
@@ -219,7 +209,7 @@ export default defineTemplate({
       parScore: par(tasks, { letturaSecondi: 90 }),
       startAt: `Model!${c1}${ROW_DF}`,
       hints: [
-        hint('H1', `In ${c1}${ROW_DF}: =1/(1+$B$4)^${c1}${ROW_T}, copiata a destra.`, 15, 'T1'),
+        hint('H1', tx('M7-14-DCFCOMPLETO.26', { c1, ROW_DF, ROW_T }), 15, 'T1'),
         hint('H2', `In ${c1}${ROW_PV}: =${c1}${ROW_FCF}*${c1}${ROW_DF}.`, 10, 'T2'),
         hint('H3', `=${ULTIMA}${ROW_FCF}*(1+B5)/(B4-B5)`, 15, 'T4'),
         hint('H4', `=B17*${ULTIMA}${ROW_DF}; poi =B16+B18; poi =B18/B19.`, 10, 'T5'),

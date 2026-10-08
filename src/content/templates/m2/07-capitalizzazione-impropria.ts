@@ -45,6 +45,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
 const B_EBITDA_RIP = 'B4'; // EBITDA riportato (dato, bloccato)
 const B_CAPITALIZZATO = 'B5'; // Quota capitalizzata impropriamente quest'anno (dato, bloccato)
@@ -56,7 +57,9 @@ const B_EBITDA_NORM = 'B10'; // T2: EBITDA normalizzato
 export default defineTemplate({
   id: 'M2-07-CAPITALIZZAZIONEIMPROPRIA',
   module: 'M2',
-  title: 'Capitalizzazione impropria: il costo che non e\' sparito',
+  get title() {
+    return tx('M2-07-CAPITALIZZAZIONEIMPROPRIA.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 220,
@@ -83,14 +86,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_RETTIFICA} calcola la rettifica netta, sommando DUE componenti che vanno TOLTE entrambe ` +
-        `dall'EBITDA riportato (rettifica negativa su entrambe): la quota capitalizzata impropriamente ` +
-        `quest'anno (${eur(capitalizzatoImpropriamente)}, in ${B_CAPITALIZZATO}) — un costo che avrebbe ` +
-        "dovuto interamente pesare a Conto Economico e invece e' stato iscritto come immobilizzazione " +
-        `immateriale, quindi ha gonfiato l'EBITDA riportato — e il contributo pubblico one-off ` +
-        `(${eur(contributoPubblico)}, in ${B_CONTRIBUTO}), un provento non ricorrente che ha gonfiato ` +
-        "l'EBITDA riportato allo stesso modo. Non compensarle: sono due rettifiche NEGATIVE che si " +
-        'sommano, non una positiva e una negativa — cambia segno alla somma delle due, non a una sola.',
+        tx('M2-07-CAPITALIZZAZIONEIMPROPRIA.2', { B_RETTIFICA, p1: eur(capitalizzatoImpropriamente), B_CAPITALIZZATO, p3: eur(contributoPubblico), B_CONTRIBUTO }),
       target: `Model!${B_RETTIFICA}`,
       atteso: rettificaNetta,
       referenzia: [B_CAPITALIZZATO, B_CONTRIBUTO],
@@ -102,9 +98,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_EBITDA_NORM} calcola l'EBITDA normalizzato: l'EBITDA riportato (${B_EBITDA_RIP}) piu' la ` +
-        `rettifica netta che hai appena calcolato (${B_RETTIFICA}, gia' negativa). Non ricostruire le due ` +
-        "componenti qui: la rettifica netta le contiene gia' entrambe.",
+        tx('M2-07-CAPITALIZZAZIONEIMPROPRIA.3', { B_EBITDA_NORM, B_EBITDA_RIP, B_RETTIFICA }),
       target: `Model!${B_EBITDA_NORM}`,
       atteso: ebitdaNormalizzato,
       referenzia: [B_EBITDA_RIP, B_RETTIFICA],
@@ -118,46 +112,19 @@ export default defineTemplate({
     return {
       templateId: 'M2-07-CAPITALIZZAZIONEIMPROPRIA',
       seed: rng.seed,
-      brief: [
-        "## Capitalizzare non e' sempre legittimo",
-        '',
-        "In M1 hai visto un'azienda spostare legittimamente una quota di spesa R&D dal Conto Economico " +
-          "allo Stato Patrimoniale, secondo criteri OIC verificabili: fattibilita' tecnica dimostrabile, " +
-          "intenzione e capacita' di completare il progetto, benefici economici futuri attendibili. Qui la " +
-          "stessa mossa contabile — capitalizzare un costo invece di spesarlo — e' stata fatta SENZA " +
-          "nessuna di queste giustificazioni: un costo che secondo le regole avrebbe dovuto interamente " +
-          "pesare a Conto Economico e' stato invece iscritto come immobilizzazione immateriale. Il costo " +
-          "non e' sparito, e' stato nascosto sotto la riga — e l'EBITDA riportato ne esce artificialmente " +
-          "piu' alto.",
-        '',
-        `Qui sotto trovi l'EBITDA riportato (${eur(ebitdaRiportato)}) e due voci da rettificare, entrambe ` +
-          'con lo STESSO segno:',
-        '',
-        `- **quota capitalizzata impropriamente** (${eur(capitalizzatoImpropriamente)}): un costo che ` +
-          "avrebbe dovuto stare interamente a Conto Economico e non ci sta — l'EBITDA riportato e' PIU' " +
-          "ALTO di quanto dovrebbe essere. Si TOGLIE: rettifica **negativa**.",
-        `- **contributo pubblico one-off** (${eur(contributoPubblico)}): un provento non ricorrente, ` +
-          "incassato una tantum e contabilizzato come provento operativo, che non si ripetera' negli anni " +
-          "futuri. Come ogni provento one-off gia' visto in questo modulo, ha gonfiato l'EBITDA riportato: " +
-          "si TOGLIE anche questo. Rettifica **negativa**.",
-        '',
-        "**Attenzione**: le due rettifiche hanno motivazioni diverse (una e' un costo nascosto, l'altra " +
-          "un provento che non si ripetera') ma lo STESSO segno. Non compensarle tra loro: si sommano " +
-          "entrambe con segno negativo, e la rettifica netta e' piu' grande di ciascuna delle due prese " +
-          'singolarmente.',
-      ].join('\n'),
+      brief: [tx('M2-07-CAPITALIZZAZIONEIMPROPRIA.4', { p0: eur(ebitdaRiportato), p1: eur(capitalizzatoImpropriamente), p2: eur(contributoPubblico) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Capitalizzazione impropria di un costo'], { style: STILE_TITOLO }),
-            riga('A3', ['Dati di partenza'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M2-07-CAPITALIZZAZIONEIMPROPRIA.5')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M2-07-CAPITALIZZAZIONEIMPROPRIA.6')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'EBITDA riportato (da bilancio), €',
-                "Quota capitalizzata impropriamente quest'anno (avrebbe dovuto essere a CE), €",
-                'Contributo pubblico one-off, contabilizzato come provento operativo, €',
+                tx('M2-07-CAPITALIZZAZIONEIMPROPRIA.7'),
+                tx('M2-07-CAPITALIZZAZIONEIMPROPRIA.8'),
+                tx('M2-07-CAPITALIZZAZIONEIMPROPRIA.9'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -167,10 +134,10 @@ export default defineTemplate({
               { ref: B_CONTRIBUTO, content: contributoPubblico, style: STILE_INPUT, locked: true },
             ],
 
-            riga('A8', ['Normalizzazione'], { style: STILE_TITOLO }),
+            riga('A8', [tx('M2-07-CAPITALIZZAZIONEIMPROPRIA.14')], { style: STILE_TITOLO }),
             colonna(
               'A9',
-              ['Rettifica netta (entrambe le componenti tolte), €', 'EBITDA normalizzato, €'],
+              [tx('M2-07-CAPITALIZZAZIONEIMPROPRIA.10'), tx('M2-07-CAPITALIZZAZIONEIMPROPRIA.11')],
               { style: STILE_ETICHETTA },
             ),
             [{ ref: B_RETTIFICA, content: null, locked: false, style: STILE_FORMULA }],
@@ -183,16 +150,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=-(${B_CAPITALIZZATO}+${B_CONTRIBUTO}): entrambe le voci hanno gonfiato l'EBITDA riportato, ` +
-            "quindi entrambe si tolgono. Sommale prima, poi cambia segno all'intera somma — non sottrarre " +
-            "l'una dall'altra.",
+          tx('M2-07-CAPITALIZZAZIONEIMPROPRIA.12', { B_CAPITALIZZATO, B_CONTRIBUTO }),
           8,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_EBITDA_RIP}+${B_RETTIFICA}: la rettifica netta e' gia' negativa, quindi sommarla riduce ` +
-            "l'EBITDA riportato.",
+          tx('M2-07-CAPITALIZZAZIONEIMPROPRIA.13', { B_EBITDA_RIP, B_RETTIFICA }),
           8,
           'T2',
         ),

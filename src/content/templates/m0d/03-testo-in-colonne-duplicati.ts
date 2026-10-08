@@ -39,18 +39,19 @@ import {
 import { triangular, roundTo } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
-const FORNITORI = [
-  'Meccanica Bianchi S.r.l.',
-  'Officine Rossi S.p.A.',
-  'Trasporti Verdi & Figli',
-  'Elettroforniture Colombo',
-  'Imballaggi Ferrari S.r.l.',
-  'Logistica Romano',
-  'Utensileria Moretti',
-  'Componentistica Galli',
-  'Materiali Ricci S.p.A.',
-  'Servizi Industriali Conti',
-] as const;
+import { tx } from '../../../i18n/content';
+const FORNITORI = () => ([
+  tx('M0D-03-PULIZIADATI.1'),
+  tx('M0D-03-PULIZIADATI.2'),
+  tx('M0D-03-PULIZIADATI.3'),
+  tx('M0D-03-PULIZIADATI.4'),
+  tx('M0D-03-PULIZIADATI.5'),
+  tx('M0D-03-PULIZIADATI.6'),
+  tx('M0D-03-PULIZIADATI.7'),
+  tx('M0D-03-PULIZIADATI.8'),
+  tx('M0D-03-PULIZIADATI.9'),
+  tx('M0D-03-PULIZIADATI.10'),
+] as const);
 
 const N_UNICI = 7;
 const RIGA_INIZIO = 4;
@@ -58,7 +59,9 @@ const RIGA_INIZIO = 4;
 export default defineTemplate({
   id: 'M0D-03-PULIZIADATI',
   module: 'M0-D',
-  title: 'Il fornitore incollato due volte',
+  get title() {
+    return tx('M0D-03-PULIZIADATI.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 240,
@@ -68,7 +71,7 @@ export default defineTemplate({
   generate: (rng) => {
     const r = rng.fork('dati');
 
-    const nomi = r.shuffle(FORNITORI).slice(0, N_UNICI);
+    const nomi = r.shuffle(FORNITORI()).slice(0, N_UNICI);
     const importi = nomi.map(() => roundTo(triangular(r, 1500, 6000, 32000), 50));
     const unici = nomi.map((nome, i) => ({ nome, importo: importi[i] }));
 
@@ -101,11 +104,7 @@ export default defineTemplate({
     const t1: Task = {
       id: 'T1',
       prompt:
-        `Nell'elenco un fornitore e' stato incollato due volte, con lo stesso nome e ` +
-        `lo stesso importo: e' il classico errore di un copia-incolla da un export CRM ` +
-        `fatto scrollando due volte sullo stesso blocco. Trova la copia — quella piu' in ` +
-        `basso nell'elenco, non l'originale — e scrivi in B${rigaRispostaDup} il riferimento ` +
-        `della cella che contiene il suo nome (es. "A9"), come testo, senza il segno =.`,
+        tx('M0D-03-PULIZIADATI.12', { rigaRispostaDup }),
       targetCell: `Model!B${rigaRispostaDup}`,
       check: [{ kind: 'text', expected: refNomeDuplicato }],
       skills: ['xl.dedup'],
@@ -115,10 +114,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In B${rigaRispostaTotale} calcola il totale corretto delle fatture: la somma di ` +
-        `tutto l'elenco, meno l'importo del fornitore duplicato contato una volta di troppo. ` +
-        `Non cancellare la riga del doppione: in un modello vero si documenta la rettifica, non ` +
-        `si fa sparire la riga.`,
+        tx('M0D-03-PULIZIADATI.13', { rigaRispostaTotale }),
       target: `Model!B${rigaRispostaTotale}`,
       atteso: totaleCorretto,
       referenzia: [refPrimaRiga, refUltimaRiga, refImportoDuplicato],
@@ -130,8 +126,7 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        `In B${rigaRispostaConteggio} conta quante fatture sono davvero distinte: quante ` +
-        `righe ha l'elenco meno il doppione che hai gia' trovato.`,
+        tx('M0D-03-PULIZIADATI.14', { rigaRispostaConteggio }),
       target: `Model!B${rigaRispostaConteggio}`,
       atteso: N_UNICI,
       referenzia: [`A${RIGA_INIZIO}`, `A${rigaFine}`],
@@ -145,40 +140,13 @@ export default defineTemplate({
     return {
       templateId: 'M0D-03-PULIZIADATI',
       seed: rng.seed,
-      brief: [
-        '## Dati grezzi: due modi in cui un export ti mente',
-        '',
-        `Hai incollato nel foglio l'export delle fatture fornitori del CRM: ${num(elenco.length)} righe.`,
-        'Prima di sommare qualsiasi cosa, un dato incollato da fuori va sempre controllato: due',
-        "problemi sono cosi' comuni che Excel ci ha costruito sopra due comandi dedicati (Dati >",
-        '**Testo in colonne**, Dati > **Rimuovi duplicati**), che pero\' questa build non ha ancora.',
-        'Li alleni comunque, a mano, capendo cosa fanno davvero:',
-        '',
-        '- **Testo in colonne** prende una colonna dove piu\' informazioni sono finite incollate',
-        '  in un unico blocco di testo, separate da un carattere (virgola, punto e virgola, spazio),',
-        `  e le spezza in colonne distinte. Guarda B${num(rigaEsempioGrezzo)}, qui sotto: cosi'`,
-        '  arrivano i dati grezzi da molti CRM, nome e importo appiccicati con un `;`. In Excel',
-        '  vero selezioneresti la colonna, apriresti Testo in colonne, sceglieresti "delimitato" e',
-        '  il punto e virgola, e otterresti due colonne pulite.',
-        '- **Rimuovi duplicati** confronta le righe di una selezione e cancella le copie esatte,',
-        '  tenendone una sola. Qui sotto ce n\'e\' una: un fornitore compare due volte, stesso nome',
-        `  e stesso importo (${eur(duplicato.importo)}) — non e' un cliente che ha fatturato due`,
-        '  volte, e\' la stessa riga incollata per sbaglio due volte.',
-        '',
-        'Il problema non e\' estetico: quel doppione **gonfia il totale**. Se lo sommi cosi\' com\'e\',',
-        `ottieni ${eur(totaleGrezzo)}; il totale vero, con quel fornitore contato una volta sola, e\'`,
-        `${eur(totaleCorretto)}. La differenza — ${eur(duplicato.importo)} — e\' un numero che finirebbe`,
-        'in una fairness opinion o in un working capital adjustment senza che nessuno se ne accorga.',
-        '',
-        "Trova il doppione, poi correggi il totale senza cancellare niente: e' l'abitudine da",
-        "avere quando lavori su un file che non hai preparato tu, e non sai ancora di chi fidarti.",
-      ].join('\n'),
+      brief: [tx('M0D-03-PULIZIADATI.15', { p0: num(elenco.length), p1: num(rigaEsempioGrezzo), p2: eur(duplicato.importo), p3: eur(totaleGrezzo), p4: eur(totaleCorretto), p5: eur(duplicato.importo) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Fatture fornitori — export dal CRM'], { style: STILE_TITOLO }),
-            riga('A3', ['Fornitore', 'Importo fattura (€)'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M0D-03-PULIZIADATI.16')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M0D-03-PULIZIADATI.26'), tx('M0D-03-PULIZIADATI.17')], { style: STILE_TITOLO }),
             colonna(
               'A' + RIGA_INIZIO,
               elenco.map((e) => e.nome),
@@ -189,22 +157,22 @@ export default defineTemplate({
               elenco.map((e) => e.importo),
               { style: STILE_INPUT },
             ),
-            blocco('A' + rigaTotaleGrezzo, [['Totale grezzo (somma ingenua, doppione compreso)']], {
+            blocco('A' + rigaTotaleGrezzo, [[tx('M0D-03-PULIZIADATI.18')]], {
               style: STILE_ETICHETTA,
             }),
             blocco('B' + rigaTotaleGrezzo, [[totaleGrezzo]], { style: STILE_TOTALE }),
-            blocco('A' + rigaRispostaDup, [['Il fornitore duplicato e\' nella riga']], {
+            blocco('A' + rigaRispostaDup, [[tx('M0D-03-PULIZIADATI.19')]], {
               style: STILE_ETICHETTA,
             }),
-            blocco('A' + rigaRispostaTotale, [['Totale corretto (doppione contato una sola volta)']], {
+            blocco('A' + rigaRispostaTotale, [[tx('M0D-03-PULIZIADATI.20')]], {
               style: STILE_ETICHETTA,
             }),
-            blocco('A' + rigaRispostaConteggio, [['Fatture realmente distinte']], {
+            blocco('A' + rigaRispostaConteggio, [[tx('M0D-03-PULIZIADATI.21')]], {
               style: STILE_ETICHETTA,
             }),
             blocco(
               'A' + rigaEsempioGrezzo,
-              [["Cosi' arriva un CRM che non separa i campi (esempio, non fa parte dell'elenco):"]],
+              [[tx('M0D-03-PULIZIADATI.22')]],
               { style: STILE_ETICHETTA },
             ),
             blocco('B' + rigaEsempioGrezzo, [[esempioGrezzo]], { locked: true }),
@@ -217,17 +185,17 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          'Scorri la colonna A dall\'alto: quando un nome che hai gia\' visto riappare identico, con anche lo stesso importo nella colonna B, hai trovato la copia.',
+          tx('M0D-03-PULIZIADATI.23'),
           8,
           'T1',
         ),
         hint(
           'H2',
-          `SUM(B${RIGA_INIZIO}:B${rigaFine}) somma il doppione due volte: sottraici una volta l'importo della riga che hai trovato in T1.`,
+          tx('M0D-03-PULIZIADATI.24', { RIGA_INIZIO, rigaFine }),
           10,
           'T2',
         ),
-        hint('H3', 'COUNTA su tutta la colonna A conta anche la riga duplicata: togline una.', 8, 'T3'),
+        hint('H3', tx('M0D-03-PULIZIADATI.25'), 8, 'T3'),
       ],
       parScore: par(tasks, { letturaSecondi: 75 }),
       startAt: `Model!B${rigaRispostaDup}`,

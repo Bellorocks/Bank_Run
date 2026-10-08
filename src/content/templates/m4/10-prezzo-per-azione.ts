@@ -64,6 +64,7 @@ import {
 import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 
+import { tx } from '../../../i18n/content';
 // Stile locale: il prezzo per azione va a due decimali (un formato non
 // coperto da STILE_TOTALE, che e' senza decimali) — come il prezzo corrente
 // per azione in m4/09-convertibili.ts.
@@ -98,7 +99,9 @@ const B_T2 = `B${ROW_T2}`;
 export default defineTemplate({
   id: 'M4-10-PREZZOPERAZIONE',
   module: 'M4',
-  title: "Prezzo per azione: l'ultimo passo del bridge",
+  get title() {
+    return tx('M4-10-PREZZOPERAZIONE.title');
+  },
   rank: 4,
   mode: 'PRACTICE',
   estimatedSeconds: 260,
@@ -149,13 +152,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T1',
         prompt:
-          `In ${B_T1} calcola le azioni FULLY DILUTED: la somma delle azioni ordinarie in circolazione ` +
-          `(${B_AZIONI_ORD}) piu' le tre diluizioni gia' risolte nel modulo — da opzioni (${B_DIL_OPZIONI}, ` +
-          `Treasury Stock Method), da warrant (${B_DIL_WARRANT}, stesso metodo) e da bond convertibili ` +
-          `(${B_DIL_CONVERTIBILI}, if-converted test). Le quattro voci si sommano sempre e comunque: non ` +
-          "c'e' nessuna condizione da valutare qui, e' gia' stata risolta a monte in ciascuno dei tre " +
-          `livelli di provenienza — anche se ${B_DIL_CONVERTIBILI} vale zero (il bond puo' essere restato ` +
-          "debito, se il test if-converted non e' scattato), la formula non cambia: somma tutto, sempre.",
+          tx('M4-10-PREZZOPERAZIONE.2', { B_T1, B_AZIONI_ORD, B_DIL_OPZIONI, B_DIL_WARRANT, B_DIL_CONVERTIBILI }),
         target: `Model!${B_T1}`,
         atteso: azioniFullyDiluted,
         referenzia: [B_AZIONI_ORD, B_DIL_OPZIONI, B_DIL_WARRANT, B_DIL_CONVERTIBILI],
@@ -172,13 +169,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_T2} calcola il prezzo per azione: l'Equity Value di pertinenza del gruppo (${B_EQV}, il ` +
-        `risultato di M4-06) diviso le azioni fully diluted appena calcolate (${B_T1}). Questo e' il punto ` +
-        "in cui tutto il lavoro sulla diluizione del modulo si traduce in un numero: dividere per le azioni " +
-        "FULLY DILUTED invece che per le sole azioni ordinarie da' sempre un prezzo per azione piu' basso — " +
-        "e' un prezzo piu' onesto, perche' tiene conto di TUTTE le azioni che potrebbero materializzarsi. " +
-        "Ignorare la diluizione (dividere solo per le azioni ordinarie) significherebbe sovrastimare " +
-        "sistematicamente quanto vale ogni singola azione.",
+        tx('M4-10-PREZZOPERAZIONE.3', { B_T2, B_EQV, B_T1 }),
       target: `Model!${B_T2}`,
       atteso: prezzoPerAzione,
       referenzia: [B_EQV, B_T1],
@@ -192,51 +183,22 @@ export default defineTemplate({
     return {
       templateId: 'M4-10-PREZZOPERAZIONE',
       seed: rng.seed,
-      brief: [
-        '## Prezzo per azione: la fine del percorso',
-        '',
-        "Questo e' l'ultimo livello del modulo, e chiude l'intera catena che hai costruito pezzo per " +
-          "pezzo: **Enterprise Value -> Net Debt aggiustato (debt-like/cash-like) -> Equity Value -> " +
-          "Equity Value di pertinenza del gruppo (minorities e partecipazioni non consolidate) -> azioni " +
-          "fully diluted (opzioni, warrant, convertibili) -> prezzo per azione**. Ogni livello del modulo " +
-          "ha risolto un pezzo di questa catena; qui i pezzi si incontrano tutti.",
-        '',
-        "Le tre fonti di diluizione viste nel modulo arrivano qui gia' RISOLTE, come dati:",
-        '',
-        '- **Diluizione netta da opzioni** (M4-07, Treasury Stock Method): quante azioni nette nascono ' +
-          "dalle stock option, al netto del riacquisto ipotetico finanziato dallo strike incassato.",
-        '- **Diluizione netta da warrant** (M4-08): stesso metodo, stesso principio.',
-        "- **Diluizione EFFETTIVA da convertibili** (M4-09, if-converted test): le azioni potenziali del " +
-          "bond convertibile SE conveniva convertire, altrimenti zero — un evento binario, gia' deciso.",
-        '',
-        "1. **Azioni fully diluted** = azioni ordinarie in circolazione + diluizione da opzioni + " +
-          "diluizione da warrant + diluizione da convertibili. Le quattro voci si sommano sempre: nessuna " +
-          "condizione da valutare qui, e' gia' stata risolta a monte.",
-        "2. **Prezzo per azione** = Equity Value di pertinenza del gruppo / azioni fully diluted. Lo " +
-          "stesso Equity Value, diviso per PIU' azioni, da' un prezzo per azione PIU' basso: e' il modo " +
-          "in cui la diluizione si traduce in un numero che il mercato guarda davvero.",
-        '',
-        `L'Equity Value di pertinenza del gruppo, gia' dato, e' ${eur(equityValueGruppo)}; le azioni ` +
-          `ordinarie in circolazione, gia' date, sono ${num(azioniOrdinarie)}. Le tre diluizioni, gia' ` +
-          `date, sono: ${num(diluzioneOpzioni)} da opzioni, ${num(diluzioneWarrant)} da warrant, ` +
-          `${num(diluzioneConvertibili)} da convertibili. Somma prima le azioni fully diluted (task 1), ` +
-          'poi chiudi il modulo con il prezzo per azione (task 2).',
-      ].join('\n'),
+      brief: [tx('M4-10-PREZZOPERAZIONE.4', { p0: eur(equityValueGruppo), p1: num(azioniOrdinarie), p2: num(diluzioneOpzioni), p3: num(diluzioneWarrant), p4: num(diluzioneConvertibili) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga(`A${ROW_TITOLO}`, ["Prezzo per azione: l'ultimo passo del bridge"], { style: STILE_TITOLO }),
+            riga(`A${ROW_TITOLO}`, [tx('M4-10-PREZZOPERAZIONE.5')], { style: STILE_TITOLO }),
 
-            riga(`A${ROW_SEZ1}`, ["Dati (i risultati gia' risolti del modulo)"], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ1}`, [tx('M4-10-PREZZOPERAZIONE.6')], { style: STILE_TITOLO }),
             colonna(
               `A${ROW_EQV}`,
               [
-                'Equity Value di pertinenza del gruppo, €',
-                'Azioni ordinarie in circolazione',
-                'Diluizione netta da opzioni (Treasury Stock Method), azioni',
-                'Diluizione netta da warrant (Treasury Stock Method), azioni',
-                'Diluizione EFFETTIVA da convertibili (if-converted test), azioni',
+                tx('M4-10-PREZZOPERAZIONE.7'),
+                tx('M4-10-PREZZOPERAZIONE.8'),
+                tx('M4-10-PREZZOPERAZIONE.9'),
+                tx('M4-10-PREZZOPERAZIONE.10'),
+                tx('M4-10-PREZZOPERAZIONE.11'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -246,10 +208,10 @@ export default defineTemplate({
             [{ ref: B_DIL_WARRANT, content: diluzioneWarrant, style: STILE_INPUT, locked: true }],
             [{ ref: B_DIL_CONVERTIBILI, content: diluzioneConvertibili, style: STILE_INPUT, locked: true }],
 
-            riga(`A${ROW_SEZ2}`, ["Dall'Equity Value al prezzo per azione"], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ2}`, [tx('M4-10-PREZZOPERAZIONE.12')], { style: STILE_TITOLO }),
             colonna(
               `A${ROW_T1}`,
-              ['Azioni fully diluted', 'Prezzo per azione, €'],
+              [tx('M4-10-PREZZOPERAZIONE.13'), tx('M4-10-PREZZOPERAZIONE.14')],
               { style: STILE_ETICHETTA },
             ),
             [{ ref: B_T1, content: null, locked: false, style: STILE_FORMULA }],
@@ -262,15 +224,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=SUM(${B_AZIONI_ORD},${B_DIL_OPZIONI},${B_DIL_WARRANT},${B_DIL_CONVERTIBILI}): le azioni ` +
-            "ordinarie piu' le tre diluizioni gia' risolte, sempre — anche quando una di esse vale zero.",
+          tx('M4-10-PREZZOPERAZIONE.15', { B_AZIONI_ORD, B_DIL_OPZIONI, B_DIL_WARRANT, B_DIL_CONVERTIBILI }),
           12,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_EQV}/${B_T1}: l'Equity Value di pertinenza del gruppo diviso le azioni fully diluted ` +
-            `appena calcolate (qui vale ${num(prezzoPerAzione, 2)} €).`,
+          tx('M4-10-PREZZOPERAZIONE.16', { B_EQV, B_T1, p2: num(prezzoPerAzione, 2) }),
           10,
           'T2',
         ),

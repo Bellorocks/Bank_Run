@@ -32,6 +32,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // Geometria fissa
 const B_PURCHASE = 'B4'; // Equity Purchase Price (dato)
 const B_NBV = 'B5'; // Target Net Book Value (dato)
@@ -46,7 +47,9 @@ const B_ADD_AMORT_POST = 'B13'; // T3: Ammortamento addizionale post-tax = (B6 /
 export default defineTemplate({
   id: 'M9-03-PPAGOODWILL',
   module: 'M9',
-  title: 'Purchase price allocation: step-up intangibili, DTL e goodwill residuo',
+  get title() {
+    return tx('M9-03-PPAGOODWILL.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -66,43 +69,26 @@ export default defineTemplate({
     const goodwill = purchasePrice - (nbv + stepUp - dtl);
     const addAmortPost = (stepUp / usefulLife) * (1 - taxRate);
 
-    const brief = [
-      `Effettua la **Purchase Price Allocation (PPA)** per l'acquisizione del target.`,
-      ``,
-      `Parametri contabili:`,
-      `- **Equity Purchase Price**: ${eur(purchasePrice)}`,
-      `- **Patrimonio Netto Contabile (Target NBV)**: ${eur(nbv)}`,
-      `- **Step-up su Intangibili Ammortizzabili**: ${eur(stepUp)}`,
-      `- **Vita Utile Intangibili**: ${usefulLife} anni`,
-      `- **Aliquota Fiscale (IRES)**: ${pct(taxRate)}`,
-      ``,
-      "Il prezzo pagato si alloca sulle attivita' e passivita' della target al fair value. La rivalutazione " +
-        "degli intangibili (step-up) non ha valore fiscale: l'ammortamento in piu' non sara' deducibile, " +
-        "quindi nasce una **passivita' per imposte differite** (DTL). Quello che il patrimonio netto " +
-        'rivalutato, al netto della DTL, non spiega e\' **goodwill**.',
-      '',
-      "Calcola la DTL, il goodwill residuo e quanto l'ammortamento dello step-up ridurra' l'utile netto " +
-        "dell'acquirente ogni anno.",
-    ].join('\n');
+    const brief = [tx('M9-03-PPAGOODWILL.2', { p0: eur(purchasePrice), p1: eur(nbv), p2: eur(stepUp), usefulLife, p4: pct(taxRate) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['PURCHASE PRICE ALLOCATION (PPA)'], { style: STILE_TITOLO }),
-      riga('A3', ['Parametri Acquisizione & Fisco', 'Valore'], { style: STILE_TITOLO }),
+      riga('A1', [tx('M9-03-PPAGOODWILL.3')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M9-03-PPAGOODWILL.4'), tx('M9-03-PPAGOODWILL.20')], { style: STILE_TITOLO }),
       colonna('A4', [
-        'Equity Purchase Price (€)',
-        'Target Net Book Value (€)',
-        'Step-up Intangibili Ammortizzabili (€)',
-        'Vita Utile Intangibili (Anni)',
-        'Aliquota Fiscale (IRES)',
+        tx('M9-03-PPAGOODWILL.5'),
+        tx('M9-03-PPAGOODWILL.6'),
+        tx('M9-03-PPAGOODWILL.7'),
+        tx('M9-03-PPAGOODWILL.8'),
+        tx('M9-03-PPAGOODWILL.9'),
       ], { style: STILE_ETICHETTA }),
       colonna('B4', [purchasePrice, nbv, stepUp, usefulLife], { style: STILE_INPUT }),
       colonna(B_TAX, [taxRate], { style: STILE_INPUT_PCT }),
 
-      riga('A10', ['Allocazione & Impatto Contabile', 'Risultato (€)'], { style: STILE_TITOLO }),
+      riga('A10', [tx('M9-03-PPAGOODWILL.10'), tx('M9-03-PPAGOODWILL.11')], { style: STILE_TITOLO }),
       colonna('A11', [
-        'Deferred Tax Liability (DTL) (€)',
-        'Avviamento Residuo (Goodwill, €)',
-        'Ammortamento Annuo Addizionale Post-Tax (€)',
+        tx('M9-03-PPAGOODWILL.12'),
+        tx('M9-03-PPAGOODWILL.13'),
+        tx('M9-03-PPAGOODWILL.14'),
       ], { style: STILE_ETICHETTA }),
       colonna(B_DTL, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_GOODWILL, [null], { style: STILE_FORMULA, locked: false }),
@@ -112,7 +98,7 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `In ${B_DTL} la passivita' per imposte differite generata dallo step-up.`,
+        prompt: tx('M9-03-PPAGOODWILL.15', { B_DTL }),
         target: `Model!${B_DTL}`,
         atteso: dtl,
         referenzia: [B_STEPUP, B_TAX],
@@ -122,7 +108,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T2',
-        prompt: `In ${B_GOODWILL} il goodwill: la parte del prezzo che il patrimonio netto rivalutato (al netto della DTL) non spiega.`,
+        prompt: tx('M9-03-PPAGOODWILL.16', { B_GOODWILL }),
         target: `Model!${B_GOODWILL}`,
         atteso: goodwill,
         referenzia: [B_PURCHASE, B_NBV, B_STEPUP, B_DTL],
@@ -132,7 +118,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T3',
-        prompt: `In ${B_ADD_AMORT_POST} l'effetto annuo sull'utile netto dell'ammortamento dello step-up, dopo il rilascio della DTL.`,
+        prompt: tx('M9-03-PPAGOODWILL.17', { B_ADD_AMORT_POST }),
         target: `Model!${B_ADD_AMORT_POST}`,
         atteso: addAmortPost,
         referenzia: [B_STEPUP, B_USEFUL_LIFE, B_TAX],
@@ -152,8 +138,8 @@ export default defineTemplate({
       startAt: `Model!${B_DTL}`,
       hints: [
         hint('H1', '=B6*B8', 10, 'T1'),
-        hint('H2', '=B4-(B5+B6-B11): prezzo meno patrimonio netto rivalutato al netto della DTL.', 15, 'T2'),
-        hint('H3', "=(B6/B7)*(1-B8): ammortamento annuo dello step-up, al netto dell'effetto fiscale.", 10, 'T3'),
+        hint('H2', tx('M9-03-PPAGOODWILL.18'), 15, 'T2'),
+        hint('H3', tx('M9-03-PPAGOODWILL.19'), 10, 'T3'),
       ],
     };
   },

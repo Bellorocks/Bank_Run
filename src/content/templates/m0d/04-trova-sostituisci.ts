@@ -34,19 +34,20 @@ import { roundTo, triangular } from '../../../rng/distributions';
 import type { SeededRandom } from '../../../rng/SeededRandom';
 import type { Task } from '../../types';
 
-const DIVISIONI = [
-  'Divisione Nord',
-  'Divisione Sud',
-  'Divisione Export',
-  'Divisione Retail',
-  'Divisione Grande Distribuzione',
-  'Divisione Online',
-] as const;
+import { sectorName, tx } from '../../../i18n/content';
+const DIVISIONI = () => ([
+  tx('M0D-04-DIAGNOSI.1'),
+  tx('M0D-04-DIAGNOSI.2'),
+  tx('M0D-04-DIAGNOSI.3'),
+  tx('M0D-04-DIAGNOSI.4'),
+  tx('M0D-04-DIAGNOSI.5'),
+  tx('M0D-04-DIAGNOSI.6'),
+] as const);
 
 /** Tre nomi distinti, nell'ordine in cui finiscono in tabella. */
 function treDivisioni(rng: SeededRandom): string[] {
   const scelte: string[] = [];
-  const disponibili = [...DIVISIONI];
+  const disponibili = [...DIVISIONI()];
   for (let i = 0; i < 3; i++) {
     const idx = rng.int(0, disponibili.length - 1);
     scelte.push(disponibili[idx]);
@@ -66,7 +67,9 @@ interface RigaDivisione {
 export default defineTemplate({
   id: 'M0D-04-DIAGNOSI',
   module: 'M0-D',
-  title: 'Il numero plausibile ma falso',
+  get title() {
+    return tx('M0D-04-DIAGNOSI.title');
+  },
   rank: 2,
   mode: 'AUDIT',
   estimatedSeconds: 240,
@@ -108,21 +111,14 @@ export default defineTemplate({
     const task: Task = {
       id: 'T1',
       prompt:
-        'Per ciascuna divisione il margine EBITDA dovrebbe essere ricavi meno costi, diviso ricavi. ' +
-        "Una delle tre percentuali in D4:D6 non e' calcolata cosi': il denominatore punta alla colonna " +
-        "sbagliata. Non c'e' nessun errore in vista — il numero che vedi e' plausibile, e' solo falso. " +
-        'Controlla i riferimenti dentro ciascuna formula (F2 le evidenzia, F9 su un pezzo selezionato la ' +
-        "calcola) prima di fidarti di quello che leggi. Trovata quella sbagliata, scrivi in B8 il valore " +
-        'CORRETTO che quella cella dovrebbe mostrare.',
+        tx('M0D-04-DIAGNOSI.8'),
       targetCell: 'Model!B8',
       check: [
         {
           kind: 'value',
           expected: rigaSbagliata.margine,
           message:
-            "Il valore non e' il margine EBITDA corretto di quella divisione: ricalcola ricavi meno " +
-            "costi, diviso ricavi, per la riga che hai individuato come sbagliata — non fidarti del " +
-            'numero che la colonna D mostra li\'.',
+            tx('M0D-04-DIAGNOSI.9'),
         },
       ],
       skills: ['xl.trace'],
@@ -134,35 +130,18 @@ export default defineTemplate({
     return {
       templateId: 'M0D-04-DIAGNOSI',
       seed: rng.seed,
-      brief: [
-        '## Un numero sbagliato non sempre grida',
-        '',
-        "Finora un errore in un foglio si e' sempre visto: un cancelletto rosso, `#DIV/0!`, `#REF!`.",
-        "Quello che segue e' piu' pericoloso perche' non si vede affatto.",
-        '',
-        `Sotto ci sono tre divisioni dello stesso gruppo, settore **${settore}**. Per ciascuna la colonna`,
-        '**D** calcola gia\' il margine EBITDA: ricavi meno costi, diviso ricavi. Le formule sono scritte',
-        "e bloccate — non le devi editare — e nessuna delle tre restituisce un errore.",
-        '',
-        "Una pero' e' sbagliata. Non nel segno, non nella sottrazione: nel **denominatore**. Invece di",
-        'dividere per i ricavi, divide per i costi. La differenza fra "colonna B" e "colonna C" e\' una',
-        "lettera sola, e il numero che ne esce non e' assurdo: e' un margine EBITDA plausibile, dello",
-        "stesso ordine di grandezza degli altri due. Nessun test a colpo d'occhio lo separa dai numeri",
-        "veri: bisogna rileggere la formula, non fidarsi di quello che mostra.",
-        '',
-        "Trovala, ricalcola a mano il margine corretto per quella divisione, e scrivilo dove indicato.",
-      ].join('\n'),
+      brief: [tx('M0D-04-DIAGNOSI.10', { settore: sectorName(settore) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Margine EBITDA per divisione'], { style: STILE_TITOLO }),
-            riga('A3', ['Divisione', 'Ricavi (€)', 'Costi (€)', 'Margine EBITDA (%)'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M0D-04-DIAGNOSI.11')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M0D-04-DIAGNOSI.19'), tx('M0D-04-DIAGNOSI.12'), tx('M0D-04-DIAGNOSI.13'), tx('M0D-04-DIAGNOSI.14')], { style: STILE_TITOLO }),
             colonna('A4', righe.map((r) => r.nome), { style: STILE_ETICHETTA }),
             colonna('B4', righe.map((r) => r.ricavi), { style: STILE_INPUT }),
             colonna('C4', righe.map((r) => r.costi), { style: STILE_INPUT }),
             colonna('D4', formuleD, { style: STILE_FORMULA_PCT }),
-            blocco('A8', [["Il valore corretto della percentuale sbagliata, sopra, e'"]], { style: STILE_ETICHETTA }),
+            blocco('A8', [[tx('M0D-04-DIAGNOSI.15')]], { style: STILE_ETICHETTA }),
             areaLibera(['B8']),
           ],
           { colWidths: { A: 420, B: 140, C: 140, D: 190 }, frozenRows: 3 },
@@ -172,19 +151,17 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          "Il margine corretto e' sempre (Ricavi - Costi) / Ricavi. Controlla il denominatore di ciascuna " +
-            "delle tre formule in D4:D6: uno dei tre non divide per la colonna Ricavi.",
+          tx('M0D-04-DIAGNOSI.16'),
           10,
           'T1',
         ),
         hint(
           'H2',
-          "Seleziona una cella di D4:D6, premi F2: Excel evidenzia a colori le celle che referenzia. " +
-            'Confronta il colore sul denominatore fra le tre righe: uno spicca.',
+          tx('M0D-04-DIAGNOSI.17'),
           10,
           'T1',
         ),
-        hint('H3', `La formula sbagliata e' quella della riga "${rigaSbagliata.nome}".`, 16, 'T1'),
+        hint('H3', tx('M0D-04-DIAGNOSI.18', { p0: rigaSbagliata.nome }), 16, 'T1'),
       ],
       parScore: par(tasks, { letturaSecondi: 90 }),
       startAt: 'Model!D4',

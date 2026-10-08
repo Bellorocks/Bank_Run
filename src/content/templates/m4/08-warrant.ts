@@ -63,6 +63,7 @@ import { roundTo, triangular } from '../../../rng/distributions';
 import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 
+import { tx } from '../../../i18n/content';
 // Stili locali: prezzi per azione (due decimali) e conteggi di azioni
 // potenzialmente frazionari (il TSM non arrotonda le azioni riacquistabili
 // a un intero — e' un modello, non un ordine di borsa reale).
@@ -99,7 +100,9 @@ const B_T3 = `B${ROW_T3}`;
 export default defineTemplate({
   id: 'M4-08-WARRANT',
   module: 'M4',
-  title: 'Treasury Stock Method sui warrant: lo stesso metodo, un altro strumento',
+  get title() {
+    return tx('M4-08-WARRANT.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 260,
@@ -140,20 +143,13 @@ export default defineTemplate({
     const diluizioneNetta = numeroWarrant - azioniRiacquistabili;
 
     const originePrompt = daAumentoCapitale
-      ? "emessi nell'ultimo aumento di capitale (un warrant assegnato ogni tot azioni sottoscritte, per " +
-        "rendere l'operazione piu' appetibile agli investitori)"
-      : "abbinati a un prestito obbligazionario \"cum warrant\", poi staccati e negoziati separatamente " +
-        "dall'obbligazione";
+      ? tx('M4-08-WARRANT.2')
+      : tx('M4-08-WARRANT.3');
 
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_T1} calcola i proventi ipotetici da esercizio: se tutti i detentori esercitassero i ` +
-        `loro warrant in the money (${B_WARRANT}), pagherebbero all'azienda il prezzo di esercizio ` +
-        `(${B_ESERCIZIO}) per ciascuna azione ricevuta. Il provento ipotetico e' quindi numero warrant ` +
-        "moltiplicato per prezzo di esercizio: denaro vero che entrerebbe in cassa, non un dettaglio " +
-        "contabile — esattamente lo stesso primo passo del Treasury Stock Method visto con le opzioni, " +
-        "applicato qui a uno strumento diverso.",
+        tx('M4-08-WARRANT.4', { B_T1, B_WARRANT, B_ESERCIZIO }),
       target: `Model!${B_T1}`,
       atteso: proventiIpotetici,
       referenzia: [B_WARRANT, B_ESERCIZIO],
@@ -165,12 +161,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_T2} calcola quante azioni l'azienda potrebbe riacquistare sul mercato aperto usando ` +
-        `esattamente i proventi ipotetici appena calcolati (${B_T1}). Come per le opzioni, il TSM assume ` +
-        "che quel denaro venga reimpiegato SUBITO per riacquistare azioni proprie AL PREZZO CORRENTE " +
-        `(${B_PREZZO}) — non al prezzo di esercizio del warrant: sul mercato aperto si paga il prezzo di ` +
-        "mercato, non lo sconto che aveva il detentore del warrant. Le azioni riacquistabili sono quindi " +
-        'il provento ipotetico diviso il prezzo corrente.',
+        tx('M4-08-WARRANT.5', { B_T2, B_T1, B_PREZZO }),
       target: `Model!${B_T2}`,
       atteso: azioniRiacquistabili,
       referenzia: [B_T1, B_PREZZO],
@@ -182,13 +173,7 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        `In ${B_T3} chiudi il Treasury Stock Method e calcola la diluizione NETTA: il numero di warrant ` +
-        `esercitati (${B_WARRANT}) meno le azioni che il riacquisto ipotetico appena calcolato "assorbe" ` +
-        `(${B_T2}). Il risultato e' il numero di azioni NUOVE che restano davvero in circolazione dopo ` +
-        "il riacquisto — ed e' SEMPRE minore del numero lordo di warrant, per la stessa ragione geometrica " +
-        "vista con le opzioni: finche' il prezzo di esercizio e' positivo e sotto il prezzo corrente (qui " +
-        "sempre vero per costruzione), il riacquisto assorbe sempre una parte, mai zero e mai tutte, delle " +
-        'azioni emesse per l\'esercizio.',
+        tx('M4-08-WARRANT.6', { B_T3, B_WARRANT, B_T2 }),
       target: `Model!${B_T3}`,
       atteso: diluizioneNetta,
       referenzia: [B_WARRANT, B_T2],
@@ -202,49 +187,22 @@ export default defineTemplate({
     return {
       templateId: 'M4-08-WARRANT',
       seed: rng.seed,
-      brief: [
-        '## Treasury Stock Method sui warrant: lo stesso metodo, un altro strumento',
-        '',
-        "In M4-07 hai applicato il Treasury Stock Method alle stock option dei dipendenti. Qui il " +
-          `titolo che da' diritto a comprare azioni sono i **warrant**, ${originePrompt}. Cambia lo ` +
-          "strumento, cambia il nome del prezzo fisso (qui \"prezzo di esercizio\" invece di \"strike " +
-          "price\"), ma il metodo per calcolare la diluizione che producono e' identico: il TSM non e' un " +
-          "trucco specifico delle stock option, e' un procedimento generale per QUALSIASI diritto a " +
-          "comprare azioni a un prezzo fisso, quando quel prezzo e' sotto il prezzo corrente di mercato " +
-          '(un warrant "in the money").',
-        '',
-        "Trattare l'intero numero di warrant come nuove azioni pure e semplici sovrastimerebbe la " +
-          "diluizione: il TSM corregge il conto assumendo che il denaro incassato dall'esercizio venga " +
-          "subito reimpiegato per riacquistare azioni proprie sul mercato, riducendo la diluizione netta:",
-        '',
-        '1. **Proventi ipotetici** = numero warrant × prezzo di esercizio — il denaro che entrerebbe in ' +
-          'cassa se tutti venissero esercitati.',
-        "2. **Azioni riacquistabili** = proventi ipotetici / prezzo CORRENTE dell'azione — quante azioni " +
-          "quel denaro puo' comprare sul mercato aperto (al prezzo di mercato, non al prezzo di esercizio).",
-        '3. **Diluizione netta** = numero warrant - azioni riacquistabili — le nuove azioni che restano ' +
-          'davvero in circolazione dopo il riacquisto.',
-        '',
-        `Il prezzo corrente per azione, gia' dato, e' ${eur(prezzoCorrente, 2)}; i warrant in circolazione ` +
-          `sono ${num(numeroWarrant)}, con un prezzo di esercizio di ${eur(prezzoEsercizio, 2)} — sempre ` +
-          "sotto il prezzo corrente, altrimenti il warrant non sarebbe in the money e nessuno lo " +
-          'eserciterebbe. Segui gli stessi tre passi in cascata: proventi ipotetici, azioni riacquistabili, ' +
-          'diluizione netta.',
-      ].join('\n'),
+      brief: [tx('M4-08-WARRANT.7', { originePrompt, p1: eur(prezzoCorrente, 2), p2: num(numeroWarrant), p3: eur(prezzoEsercizio, 2) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga(`A${ROW_TITOLO}`, ['Treasury Stock Method sui warrant'], {
+            riga(`A${ROW_TITOLO}`, [tx('M4-08-WARRANT.8')], {
               style: STILE_TITOLO,
             }),
 
-            riga(`A${ROW_SEZ1}`, ['Dati di base'], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ1}`, [tx('M4-08-WARRANT.9')], { style: STILE_TITOLO }),
             colonna(
               `A${ROW_PREZZO}`,
               [
-                'Prezzo corrente per azione, €',
-                'Numero warrant in the money',
-                'Prezzo di esercizio, €',
+                tx('M4-08-WARRANT.10'),
+                tx('M4-08-WARRANT.11'),
+                tx('M4-08-WARRANT.12'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -252,13 +210,13 @@ export default defineTemplate({
             [{ ref: B_WARRANT, content: numeroWarrant, style: STILE_INPUT_CONTEGGIO, locked: true }],
             [{ ref: B_ESERCIZIO, content: prezzoEsercizio, style: STILE_INPUT_PREZZO, locked: true }],
 
-            riga(`A${ROW_SEZ2}`, ['Treasury Stock Method'], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ2}`, [tx('M4-08-WARRANT.13')], { style: STILE_TITOLO }),
             colonna(
               `A${ROW_T1}`,
               [
-                'Proventi ipotetici da esercizio, €',
-                'Azioni riacquistabili al prezzo corrente',
-                'Diluizione netta (TSM)',
+                tx('M4-08-WARRANT.14'),
+                tx('M4-08-WARRANT.15'),
+                tx('M4-08-WARRANT.16'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -273,19 +231,19 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_WARRANT}*${B_ESERCIZIO}: numero warrant moltiplicato per il prezzo di esercizio.`,
+          tx('M4-08-WARRANT.17', { B_WARRANT, B_ESERCIZIO }),
           10,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_T1}/${B_PREZZO}: proventi ipotetici divisi per il prezzo corrente dell'azione.`,
+          tx('M4-08-WARRANT.18', { B_T1, B_PREZZO }),
           10,
           'T2',
         ),
         hint(
           'H3',
-          `=${B_WARRANT}-${B_T2}: numero di warrant meno le azioni riacquistabili appena calcolate.`,
+          tx('M4-08-WARRANT.19', { B_WARRANT, B_T2 }),
           10,
           'T3',
         ),

@@ -43,6 +43,7 @@ import { SECTORS, STEP_MULTIPLE, ebitdaMargin, evEbitdaMultiple, growthRate, rev
 import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 
+import { sectorName, tx } from '../../../i18n/content';
 const STILE_FORMULA_MULTIPLO: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: '0.0x' };
 
 const B_PREZZO = 'B4'; // Prezzo pagato per il 100% dell'equity (dato)
@@ -57,7 +58,9 @@ const B_SCOSTAMENTO = 'B12'; // T3
 export default defineTemplate({
   id: 'M6-01-MULTIPLIDITRANSAZIONE',
   module: 'M6',
-  title: 'Il multiplo di transazione e il premio di controllo',
+  get title() {
+    return tx('M6-01-MULTIPLIDITRANSAZIONE.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 280,
@@ -89,8 +92,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T1',
         prompt:
-          `In ${B_EV} l'Enterprise Value della transazione: il prezzo annunciato e' quello dell'equity, ma ` +
-          "il compratore si e' preso anche il debito della target.",
+          tx('M6-01-MULTIPLIDITRANSAZIONE.2', { B_EV }),
         target: `Model!${B_EV}`,
         atteso: ev,
         referenzia: [B_PREZZO, B_DEBITO],
@@ -100,7 +102,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T2',
-        prompt: `In ${B_MULT_TRANSAZIONE} il multiplo EV/EBITDA della transazione.`,
+        prompt: tx('M6-01-MULTIPLIDITRANSAZIONE.3', { B_MULT_TRANSAZIONE }),
         target: `Model!${B_MULT_TRANSAZIONE}`,
         atteso: multiploTransazione,
         referenzia: [B_EV, B_EBITDA_TARGET],
@@ -111,8 +113,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T3',
         prompt:
-          `In ${B_SCOSTAMENTO} di quanto il multiplo di transazione supera il multiplo trading di settore, ` +
-          'in percentuale del trading: il premio implicito sul multiplo.',
+          tx('M6-01-MULTIPLIDITRANSAZIONE.4', { B_SCOSTAMENTO }),
         target: `Model!${B_SCOSTAMENTO}`,
         atteso: scostamento,
         referenzia: [B_MULT_TRANSAZIONE, B_MULT_TRADING],
@@ -125,46 +126,30 @@ export default defineTemplate({
     return {
       templateId: 'M6-01-MULTIPLIDITRANSAZIONE',
       seed: rng.seed,
-      brief: [
-        "## Il multiplo di transazione non e' un multiplo trading",
-        '',
-        "Un multiplo trading nasce dal prezzo di una singola azione, scambiata in borsa da investitori che " +
-          "comprano una quota minoritaria e liquida. Un multiplo di **transazione** nasce da cio' che un " +
-          "compratore ha pagato per il 100% di un'azienda, cioe' per il **controllo**: nominare il " +
-          'management, decidere la strategia, disporre della cassa. Il controllo si paga, e il premio si ' +
-          'legge nel multiplo.',
-        '',
-        "Attenzione al numeratore. Il prezzo che si legge nel comunicato e' quello pagato agli azionisti " +
-          "per l'equity; ma chi compra si accolla anche il debito netto della target. Il multiplo EV/EBITDA " +
-          "della transazione si calcola sull'EV, non sul prezzo dell'equity.",
-        '',
-        `**Il deal.** Target del settore ${sector}, EBITDA ${eurM(ebitdaTarget)}, debito netto ` +
-          `${eurM(debitoNetto)}. Prezzo pagato per il 100% dell'equity: ${eurM(prezzoPagato)}. Nello stesso ` +
-          `periodo il settore trattava in borsa a ${multiplo(multiploTrading)} EV/EBITDA.`,
-      ].join('\n'),
+      brief: [tx('M6-01-MULTIPLIDITRANSAZIONE.5', { sector: sectorName(sector), p1: eurM(ebitdaTarget), p2: eurM(debitoNetto), p3: eurM(prezzoPagato), p4: multiplo(multiploTrading) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Il multiplo di transazione e il premio di controllo'], { style: STILE_TITOLO }),
-            riga('A3', ['Dati del deal comparabile'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M6-01-MULTIPLIDITRANSAZIONE.6')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M6-01-MULTIPLIDITRANSAZIONE.7')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                "Prezzo pagato per il 100% dell'equity, €",
-                'Debito netto della target, assunto dal compratore, €',
-                'EBITDA della target al momento del deal, €',
-                'Multiplo EV/EBITDA trading medio di settore, stesso periodo, x',
+                tx('M6-01-MULTIPLIDITRANSAZIONE.8'),
+                tx('M6-01-MULTIPLIDITRANSAZIONE.9'),
+                tx('M6-01-MULTIPLIDITRANSAZIONE.10'),
+                tx('M6-01-MULTIPLIDITRANSAZIONE.11'),
               ],
               { style: STILE_ETICHETTA },
             ),
             colonna(B_PREZZO, [prezzoPagato, debitoNetto, ebitdaTarget], { style: STILE_INPUT }),
             [{ ref: B_MULT_TRADING, content: multiploTrading, style: STILE_INPUT_MULTIPLO, locked: true }],
 
-            riga('A9', ['Multiplo di transazione e confronto col trading'], { style: STILE_TITOLO }),
+            riga('A9', [tx('M6-01-MULTIPLIDITRANSAZIONE.12')], { style: STILE_TITOLO }),
             colonna(
               'A10',
-              ['Enterprise Value della transazione, €', 'Multiplo di transazione (EV / EBITDA), x', 'Premio sul multiplo trading, %'],
+              [tx('M6-01-MULTIPLIDITRANSAZIONE.13'), tx('M6-01-MULTIPLIDITRANSAZIONE.14'), tx('M6-01-MULTIPLIDITRANSAZIONE.15')],
               { style: STILE_ETICHETTA },
             ),
             [{ ref: B_EV, content: null, locked: false, style: STILE_FORMULA }],
@@ -176,7 +161,7 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', `=${B_PREZZO}+${B_DEBITO}: equity piu' debito netto assunto.`, 10, 'T1'),
+        hint('H1', tx('M6-01-MULTIPLIDITRANSAZIONE.16', { B_PREZZO, B_DEBITO }), 10, 'T1'),
         hint('H2', `=${B_EV}/${B_EBITDA_TARGET}`, 8, 'T2'),
         hint('H3', `=(${B_MULT_TRANSAZIONE}-${B_MULT_TRADING})/${B_MULT_TRADING}`, 10, 'T3'),
       ],

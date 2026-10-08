@@ -64,6 +64,7 @@ import {
 } from '../../authoring';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
 const B_NOL = 'B4'; // NOL residuo disponibile a inizio anno (dato, bloccato)
 const B_REDD = 'B5'; // Reddito imponibile ante-NOL dell'anno (dato, bloccato)
@@ -77,7 +78,9 @@ const ALIQUOTA_FISCALE = 0.24; // dato di legge, non randomizzato
 export default defineTemplate({
   id: 'M7-12-NOL',
   module: 'M7',
-  title: 'NOL: lo scudo fiscale delle perdite pregresse',
+  get title() {
+    return tx('M7-12-NOL.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 240,
@@ -107,12 +110,7 @@ export default defineTemplate({
     const t1: Task = {
       id: 'T1',
       prompt:
-        `In ${B_NOLUSATO} calcola il NOL EFFETTIVAMENTE UTILIZZATO quest'anno. Non e' semplicemente il ` +
-        `NOL residuo (${B_NOL}) ne' semplicemente il reddito imponibile ante-NOL (${B_REDD}): e' vincolato ` +
-        `da DUE tetti indipendenti, e non puo' superare NESSUNO dei due. Primo tetto: non puoi usare piu' ` +
-        `credito fiscale di quanto ne hai davvero in ${B_NOL}. Secondo tetto: non serve azzerare l'imponibile ` +
-        `oltre lo zero — il NOL abbatte le imposte fino a zero, non genera un rimborso, quindi non puoi ` +
-        `usarne piu' di ${B_REDD}. Il NOL utilizzato e' quindi il PIU' PICCOLO fra i due: usa la funzione MIN.`,
+        tx('M7-12-NOL.2', { B_NOLUSATO, B_NOL, B_REDD }),
       targetCell: `Model!${B_NOLUSATO}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -128,12 +126,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_IMPEFF} calcola le IMPOSTE EFFETTIVAMENTE PAGATE quest'anno: il reddito imponibile ` +
-        `ante-NOL (${B_REDD}) MENO il NOL appena utilizzato (${B_NOLUSATO} — NON ricalcolarlo da zero), ` +
-        `moltiplicato per l'aliquota IRES (${B_ALIQ}). Confronta questo numero con quanto l'azienda ` +
-        `pagherebbe SENZA il NOL, cioe' ${B_REDD} moltiplicato per l'aliquota da sola: la differenza fra i ` +
-        "due e' il valore concreto, in euro, dello scudo fiscale del NOL — piu' NOL residuo hai usato, " +
-        'meno imposte hai pagato.',
+        tx('M7-12-NOL.3', { B_IMPEFF, B_REDD, B_NOLUSATO, B_ALIQ }),
       target: `Model!${B_IMPEFF}`,
       atteso: imposteEffettive,
       referenzia: [B_REDD, B_NOLUSATO, B_ALIQ],
@@ -147,40 +140,19 @@ export default defineTemplate({
     return {
       templateId: 'M7-12-NOL',
       seed: rng.seed,
-      brief: [
-        '## NOL: le perdite fiscali pregresse sono un credito, non solo un ricordo',
-        '',
-        "Un'azienda che negli anni passati ha accumulato perdite fiscali non le perde: puo' riportarle a " +
-          "nuovo (carry-forward) e usarle per ridurre l'imponibile fiscale degli anni futuri. E' uno scudo " +
-          "fiscale vero, che va valorizzato nel Free Cash Flow esattamente come il D&A o gli interessi " +
-          'passivi: riduce le imposte EFFETTIVAMENTE pagate, non solo quelle "sulla carta".',
-        '',
-        '**Perche\' serve un MIN e non una sottrazione diretta**: il NOL utilizzato in un anno non puo\' MAI ' +
-          'superare due tetti indipendenti — il NOL residuo che hai davvero disponibile, e il reddito ' +
-          "imponibile dell'anno (non serve azzerarlo oltre lo zero, il NOL non genera un rimborso). Il NOL " +
-          "utilizzato e' il PIU' PICCOLO fra i due tetti.",
-        '',
-        "**Semplificazione dichiarata**: in Italia (art. 84 TUIR) le perdite riportate compensano al massimo " +
-          "l'80% del reddito di ogni anno, salvo quelle dei primi tre esercizi. Qui si usa la regola senza " +
-          'limite, quella di molti modelli internazionali.',
-        '',
-        `Dati dell'anno: NOL residuo a inizio anno ${eur(nolResiduo)}, reddito imponibile ante-NOL ` +
-          `${eur(redditoImponibile)}, aliquota IRES ${pct(ALIQUOTA_FISCALE)}. Senza NOL, l'azienda avrebbe ` +
-          `pagato ${eur(imposteSenzaNOL)} di imposte: quanto risparmia grazie al NOL lo scoprirai calcolando ` +
-          'i due task qui sotto.',
-      ].join('\n'),
+      brief: [tx('M7-12-NOL.4', { p0: eur(nolResiduo), p1: eur(redditoImponibile), p2: pct(ALIQUOTA_FISCALE), p3: eur(imposteSenzaNOL) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['NOL: lo scudo fiscale delle perdite pregresse'], { style: STILE_TITOLO }),
-            riga('A3', ['Dati di partenza'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M7-12-NOL.5')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M7-12-NOL.6')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                "NOL residuo disponibile a inizio anno, €",
-                "Reddito imponibile ante-NOL dell'anno, €",
-                'Aliquota IRES',
+                tx('M7-12-NOL.7'),
+                tx('M7-12-NOL.8'),
+                tx('M7-12-NOL.9'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -190,12 +162,12 @@ export default defineTemplate({
               { ref: B_ALIQ, content: ALIQUOTA_FISCALE, style: STILE_INPUT_PCT, locked: true },
             ],
 
-            riga('A9', ['Utilizzo del NOL'], { style: STILE_TITOLO }),
+            riga('A9', [tx('M7-12-NOL.10')], { style: STILE_TITOLO }),
             colonna(
               'A10',
               [
-                "NOL utilizzato quest'anno, €",
-                'Imposte effettivamente pagate, €',
+                tx('M7-12-NOL.11'),
+                tx('M7-12-NOL.12'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -209,15 +181,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=MIN(${B_NOL},${B_REDD}): il NOL utilizzato e' il piu' piccolo fra il NOL residuo disponibile e ` +
-            "il reddito imponibile dell'anno.",
+          tx('M7-12-NOL.13', { B_NOL, B_REDD }),
           10,
           'T1',
         ),
         hint(
           'H2',
-          `=(${B_REDD}-${B_NOLUSATO})*${B_ALIQ}: reddito imponibile meno il NOL utilizzato, per l'aliquota ` +
-            'IRES.',
+          tx('M7-12-NOL.14', { B_REDD, B_NOLUSATO, B_ALIQ }),
           8,
           'T2',
         ),

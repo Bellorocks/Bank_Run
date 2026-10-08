@@ -85,6 +85,7 @@ import {
 } from '../../authoring';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
 const B_UN = 'B4'; // Utile netto dell'esercizio
 const B_DA = 'B5'; // D&A dell'anno
@@ -107,7 +108,9 @@ const B_CHECK = 'B22'; // T5 — controllo di quadratura
 export default defineTemplate({
   id: 'M1-07-TREPROSPETTI',
   module: 'M1',
-  title: 'Tre prospetti: dal Conto Economico alla cassa',
+  get title() {
+    return tx('M1-07-TREPROSPETTI.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 420,
@@ -150,12 +153,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_FCO} calcola il flusso di cassa OPERATIVO: parti dall'utile netto (${B_UN}), aggiungi ` +
-        `il D&A dell'anno (${B_DA} — un costo a Conto Economico che non e' mai uscito di cassa) e ` +
-        `sottrai la variazione del Capitale Circolante Netto (${B_DCCN}). Attenzione al segno di ` +
-        `${B_DCCN}: e' gia' presentata come un numero con segno dove POSITIVO significa che il CCN e' ` +
-        "aumentato e ha ASSORBITO cassa (per questo si sottrae), NEGATIVO significa che il CCN e' " +
-        'diminuito e ha LIBERATO cassa (sottrarre un negativo la restituisce).',
+        tx('M1-07-TREPROSPETTI.2', { B_FCO, B_UN, B_DA, B_DCCN }),
       target: `Model!${B_FCO}`,
       atteso: fco,
       referenzia: [B_UN, B_DA, B_DCCN],
@@ -167,9 +165,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_FCI} calcola il flusso di cassa da INVESTIMENTI: e' il capex dell'anno (${B_CAPEX}), un ` +
-        "esborso. Il capex e' dato come numero positivo, ma nel rendiconto un investimento e' cassa " +
-        `che esce: la formula deve restituire il NEGATIVO di ${B_CAPEX}.`,
+        tx('M1-07-TREPROSPETTI.3', { B_FCI, B_CAPEX }),
       target: `Model!${B_FCI}`,
       atteso: fci,
       referenzia: [B_CAPEX],
@@ -181,10 +177,7 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        `In ${B_FCF} calcola il flusso di cassa da FINANZIAMENTO: la variazione del debito finanziario ` +
-        `netto dell'anno (${B_DDEBITO} — gia' con segno: positivo se e' stato acceso piu' debito di ` +
-        `quanto rimborsato, negativo se i rimborsi hanno prevalso) meno i dividendi distribuiti ` +
-        `(${B_DIV}, un esborso sempre positivo).`,
+        tx('M1-07-TREPROSPETTI.4', { B_FCF, B_DDEBITO, B_DIV }),
       target: `Model!${B_FCF}`,
       atteso: fcf,
       referenzia: [B_DDEBITO, B_DIV],
@@ -196,9 +189,7 @@ export default defineTemplate({
     const t4 = taskFormula({
       id: 'T4',
       prompt:
-        `In ${B_CASSAFIN} calcola la cassa finale: la cassa iniziale (${B_CASSA0}) piu' i tre flussi ` +
-        `appena calcolati — operativo (${B_FCO}), investimenti (${B_FCI}) e finanziamento (${B_FCF}). ` +
-        "Riferisciti alle tre celle gia' calcolate, non ricostruire i flussi da capo.",
+        tx('M1-07-TREPROSPETTI.5', { B_CASSAFIN, B_CASSA0, B_FCO, B_FCI, B_FCF }),
       target: `Model!${B_CASSAFIN}`,
       atteso: cassaFinale,
       referenzia: [B_CASSA0, B_FCO, B_FCI, B_FCF],
@@ -213,16 +204,7 @@ export default defineTemplate({
     const t5: Task = {
       id: 'T5',
       prompt:
-        `In ${B_CHECK} scrivi il CONTROLLO DI QUADRATURA del modello: la differenza fra l'attivo e il ` +
-        "passivo dello stato patrimoniale di fine anno, ricostruiti passando per i tre prospetti. " +
-        `Attivo finale = cassa finale (${B_CASSAFIN}) piu' le attivita' non monetarie di fine anno ` +
-        `(${B_ATTNONMON}, gia' calcolate). Passivo finale = patrimonio netto di fine anno (patrimonio ` +
-        `netto iniziale ${B_PN0}, piu' l'utile netto ${B_UN}, meno i dividendi distribuiti ${B_DIV}) ` +
-        `piu' debito finanziario di fine anno (debito iniziale ${B_DEBITO0} piu' la sua variazione ` +
-        `${B_DDEBITO}). La formula e' (Attivo finale) - (Passivo finale): se hai collegato bene CE, SP ` +
-        'e Rendiconto Finanziario, questo numero deve fare ESATTAMENTE zero. Se non fa zero, il ' +
-        "modello non quadra: il problema e' quasi sempre un segno invertito in uno dei quattro task " +
-        'precedenti, non un arrotondamento.',
+        tx('M1-07-TREPROSPETTI.6', { B_CHECK, B_CASSAFIN, B_ATTNONMON, B_PN0, B_UN, B_DIV, B_DEBITO0, B_DDEBITO }),
       targetCell: `Model!${B_CHECK}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -232,8 +214,7 @@ export default defineTemplate({
           toleranceMode: 'absolute',
           tolerance: 0.01,
           message:
-            "Il modello non quadra: attivo e passivo di fine anno non coincidono. Ricontrolla i segni " +
-            "nei task precedenti (ΔCCN, capex, ΔDebito, dividendi) prima di sospettare un arrotondamento.",
+            tx('M1-07-TREPROSPETTI.7'),
         },
         {
           kind: 'mustReference',
@@ -250,58 +231,26 @@ export default defineTemplate({
     return {
       templateId: 'M1-07-TREPROSPETTI',
       seed: rng.seed,
-      brief: [
-        '## I tre prospetti si parlano, e devono quadrare',
-        '',
-        "Conto Economico, Stato Patrimoniale e Rendiconto Finanziario non sono tre fogli slegati: sono " +
-          "la stessa azienda vista da tre angolazioni, e devono raccontare una storia coerente. Il modo " +
-          "in cui lo si dimostra e' costruire il Rendiconto Finanziario con il **metodo indiretto** — " +
-          "partire dall'utile netto del Conto Economico e arrivare, passo per passo, alla cassa di fine " +
-          "anno — e poi verificare che quella cassa, sommata al resto dell'attivo, faccia esattamente " +
-          "pareggiare lo Stato Patrimoniale. Se non pareggia, qualcosa nel modello e' rotto: e' il " +
-          "**balance check**, il controllo che ogni modello a tre prospetti deve avere.",
-        '',
-        `Utile netto dell'esercizio ${eur(utileNetto)}, D&A dell'anno ${eur(da)}, variazione del ` +
-          `Capitale Circolante Netto ${eur(deltaCCN)} (positivo = ha assorbito cassa, negativo = ne ha ` +
-          `liberata), capex ${eur(capex)}, variazione del debito finanziario netto ${eur(deltaDebito)} ` +
-          `(positivo = piu' debito acceso che rimborsato), dividendi distribuiti ${eur(dividendi)}, ` +
-          `cassa iniziale ${eur(cassaIniziale)}.`,
-        '',
-        `Per il controllo finale servono anche: le attivita' non monetarie di fine anno, gia' calcolate ` +
-          `(${eur(attivitaNonMonetarieFinali)} — immobilizzazioni nette, CCN e il resto dell'attivo che ` +
-          `non e' cassa), il patrimonio netto iniziale (${eur(patrimonioNettoIniziale)}) e il debito ` +
-          `finanziario iniziale (${eur(debitoIniziale)}).`,
-        '',
-        "**Il punto piu' delicato**: la variazione del CCN e la variazione del debito arrivano gia' " +
-          "come un unico numero CON SEGNO. Un CCN che aumenta ha assorbito cassa (crediti e magazzino " +
-          "sono cresciuti prima che i clienti pagassero): nel flusso operativo si SOTTRAE. Un debito " +
-          "che aumenta e' cassa incassata: nel flusso di finanziamento si SOMMA. Capex e dividendi, " +
-          "invece, arrivano come numeri positivi che rappresentano un'uscita: e' la formula a doverli " +
-          "trattare come tali.",
-        '',
-        "Costruisci il Rendiconto Finanziario riga per riga, arriva alla cassa finale, e chiudi con il " +
-          "controllo di quadratura: deve fare zero. Se non fa zero, non abbassare la tolleranza — " +
-          "torna indietro e ricontrolla un segno.",
-      ].join('\n'),
+      brief: [tx('M1-07-TREPROSPETTI.8', { p0: eur(utileNetto), p1: eur(da), p2: eur(deltaCCN), p3: eur(capex), p4: eur(deltaDebito), p5: eur(dividendi), p6: eur(cassaIniziale), p7: eur(attivitaNonMonetarieFinali), p8: eur(patrimonioNettoIniziale), p9: eur(debitoIniziale) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Tre prospetti: dal Conto Economico alla cassa'], { style: STILE_TITOLO }),
-            riga('A3', ['Dati di partenza'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M1-07-TREPROSPETTI.9')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M1-07-TREPROSPETTI.10')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                "Utile netto dell'esercizio, €",
-                'D&A dell\'anno (ammortamenti), €',
-                'Variazione del Capitale Circolante Netto (ΔCCN), €',
-                "Capex dell'anno (investimenti), €",
-                'Variazione del debito finanziario netto (ΔDebito), €',
-                "Dividendi distribuiti nell'anno, €",
-                'Cassa iniziale, €',
-                "Totale attivita' non monetarie di fine anno, €",
-                'Patrimonio netto iniziale, €',
-                'Debito finanziario iniziale, €',
+                tx('M1-07-TREPROSPETTI.11'),
+                tx('M1-07-TREPROSPETTI.12'),
+                tx('M1-07-TREPROSPETTI.13'),
+                tx('M1-07-TREPROSPETTI.14'),
+                tx('M1-07-TREPROSPETTI.15'),
+                tx('M1-07-TREPROSPETTI.16'),
+                tx('M1-07-TREPROSPETTI.17'),
+                tx('M1-07-TREPROSPETTI.18'),
+                tx('M1-07-TREPROSPETTI.19'),
+                tx('M1-07-TREPROSPETTI.20'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -318,14 +267,14 @@ export default defineTemplate({
               { ref: B_DEBITO0, content: debitoIniziale, style: STILE_INPUT, locked: true },
             ],
 
-            riga('A15', ['Rendiconto Finanziario (metodo indiretto)'], { style: STILE_TITOLO }),
+            riga('A15', [tx('M1-07-TREPROSPETTI.21')], { style: STILE_TITOLO }),
             colonna(
               'A16',
               [
-                'Flusso di cassa operativo',
-                'Flusso di cassa da investimenti',
-                'Flusso di cassa da finanziamento',
-                'Cassa finale',
+                tx('M1-07-TREPROSPETTI.22'),
+                tx('M1-07-TREPROSPETTI.23'),
+                tx('M1-07-TREPROSPETTI.24'),
+                tx('M1-07-TREPROSPETTI.25'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -334,11 +283,11 @@ export default defineTemplate({
             [{ ref: B_FCF, content: null, locked: false, style: STILE_FORMULA }],
             [{ ref: B_CASSAFIN, content: null, locked: false, style: STILE_FORMULA }],
 
-            riga('A21', ['Controllo di quadratura'], { style: STILE_TITOLO }),
+            riga('A21', [tx('M1-07-TREPROSPETTI.26')], { style: STILE_TITOLO }),
             [
               {
                 ref: 'A22',
-                content: 'Attivo finale - Passivo finale (deve essere zero)',
+                content: tx('M1-07-TREPROSPETTI.27'),
                 locked: true,
                 style: STILE_ETICHETTA,
               },
@@ -352,28 +301,26 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_UN}+${B_DA}-${B_DCCN}: utile netto piu' D&A (costo non monetario), meno la variazione del CCN (positiva = assorbe cassa).`,
+          tx('M1-07-TREPROSPETTI.28', { B_UN, B_DA, B_DCCN }),
           10,
           'T1',
         ),
-        hint('H2', `=-${B_CAPEX}: il capex e' dato positivo, ma nel rendiconto e' un'uscita.`, 8, 'T2'),
+        hint('H2', tx('M1-07-TREPROSPETTI.29', { B_CAPEX }), 8, 'T2'),
         hint(
           'H3',
-          `=${B_DDEBITO}-${B_DIV}: la variazione del debito (gia' con segno) meno i dividendi (uscita).`,
+          tx('M1-07-TREPROSPETTI.30', { B_DDEBITO, B_DIV }),
           8,
           'T3',
         ),
         hint(
           'H4',
-          `=${B_CASSA0}+${B_FCO}+${B_FCI}+${B_FCF}: cassa iniziale piu' i tre flussi appena calcolati.`,
+          tx('M1-07-TREPROSPETTI.31', { B_CASSA0, B_FCO, B_FCI, B_FCF }),
           10,
           'T4',
         ),
         hint(
           'H5',
-          `=(${B_CASSAFIN}+${B_ATTNONMON})-(${B_PN0}+${B_UN}-${B_DIV}+${B_DEBITO0}+${B_DDEBITO}): ` +
-            "attivo finale meno passivo finale. Se non fa zero, il segno sbagliato e' quasi sempre in " +
-            'ΔCCN, capex o ΔDebito.',
+          tx('M1-07-TREPROSPETTI.32', { B_CASSAFIN, B_ATTNONMON, B_PN0, B_UN, B_DIV, B_DEBITO0, B_DDEBITO }),
           15,
           'T5',
         ),

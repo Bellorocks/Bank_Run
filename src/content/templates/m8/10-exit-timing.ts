@@ -31,6 +31,7 @@ import {
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 const ANNI = [3, 5, 7] as const;
 const COLONNE = ['B', 'C', 'D'] as const;
 const ETICHETTE = ['3 anni', '5 anni', '7 anni'] as const;
@@ -46,7 +47,9 @@ const B_MIGLIORE = 'B12';
 export default defineTemplate({
   id: 'M8-10-EXITTIMING',
   module: 'M8',
-  title: 'Exit timing: holding period a 3, 5 e 7 anni',
+  get title() {
+    return tx('M8-10-EXITTIMING.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -81,8 +84,7 @@ export default defineTemplate({
       {
         id: 'T1',
         prompt:
-          `Riga ${ROW_IRR}: l'IRR annuo composto di ciascuno scenario, dal suo MoIC e dalla sua durata. ` +
-          `Una formula in B${ROW_IRR}, copiata fino a D${ROW_IRR}.`,
+          tx('M8-10-EXITTIMING.2', { ROW_IRR }),
         targetCell: `Model!${rg}`,
         check: [
           { kind: 'mustBeFormula' },
@@ -99,8 +101,7 @@ export default defineTemplate({
       {
         id: 'T2',
         prompt:
-          `In ${B_MIGLIORE} il nome dello scenario (riga ${ROW_INTEST}) con l'IRR piu' alto, trovato da una formula: ` +
-          'se cambiano le uscite, la risposta deve cambiare da sola.',
+          tx('M8-10-EXITTIMING.3', { B_MIGLIORE, ROW_INTEST }),
         targetCell: `Model!${B_MIGLIORE}`,
         check: [
           { kind: 'mustBeFormula' },
@@ -112,29 +113,18 @@ export default defineTemplate({
       },
     ];
 
-    const brief = [
-      'Il fondo deve decidere quando uscire. Tre scenari, stesso capitale iniziale:',
-      '',
-      `- **Capitale investito**: ${eur(entryEq)}`,
-      ...ANNI.map((a, i) => `- **Uscita a ${a} anni**: equity ${eur(exit[i])} (${multiplo(moic[i])})`),
-      '',
-      "Aspettare fa crescere il MoIC, ma l'IRR misura il rendimento **per anno**: un MoIC piu' alto " +
-        "ottenuto in piu' tempo puo' valere meno. Il fondo, che deve restituire il capitale agli investitori " +
-        "e raccoglierne di nuovo, guarda soprattutto l'IRR.",
-      '',
-      "Calcola l'IRR dei tre scenari e fai indicare al foglio quello migliore.",
-    ].join('\n');
+    const brief = [tx('M8-10-EXITTIMING.4', { p0: eur(entryEq) }), ...ANNI.map((a, i) => tx('M8-10-EXITTIMING.5', { a, p1: eur(exit[i]), p2: multiplo(moic[i]) })), tx('M8-10-EXITTIMING.6')].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['SCENARI DI EXIT TIMING (3 vs 5 vs 7 ANNI)'], { style: STILE_TITOLO }),
-      riga('A3', ['Investimento iniziale', 'Valore (€)'], { style: STILE_TITOLO }),
-      colonna('A4', ['Equity iniziale sponsor (anno 0)'], { style: STILE_ETICHETTA }),
+      riga('A1', [tx('M8-10-EXITTIMING.7')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M8-10-EXITTIMING.8'), tx('M8-10-EXITTIMING.9')], { style: STILE_TITOLO }),
+      colonna('A4', [tx('M8-10-EXITTIMING.10')], { style: STILE_ETICHETTA }),
       [{ ref: B_ENTRY, content: entryEq, style: STILE_INPUT, locked: true }],
 
-      riga(`A${ROW_INTEST}`, ['Scenario', ...ETICHETTE], { style: STILE_TITOLO }),
+      riga(`A${ROW_INTEST}`, [tx('M8-10-EXITTIMING.17'), ...ETICHETTE], { style: STILE_TITOLO }),
       colonna(
         `A${ROW_ANNI}`,
-        ['Durata (anni)', 'Equity incassata (€)', 'MoIC realizzato (x)', 'IRR annuo composto'],
+        [tx('M8-10-EXITTIMING.11'), tx('M8-10-EXITTIMING.12'), tx('M8-10-EXITTIMING.13'), tx('M8-10-EXITTIMING.14')],
         { style: STILE_ETICHETTA },
       ),
       riga(`B${ROW_ANNI}`, [...ANNI], { style: { ...STILE_INPUT, numFmt: '0' } }),
@@ -146,7 +136,7 @@ export default defineTemplate({
       ),
       riga(`B${ROW_IRR}`, [null, null, null], { style: STILE_FORMULA_PCT, locked: false }),
 
-      colonna(`A${B_MIGLIORE.slice(1)}`, ["Scenario con l'IRR piu' alto"], { style: STILE_ETICHETTA }),
+      colonna(`A${B_MIGLIORE.slice(1)}`, [tx('M8-10-EXITTIMING.15')], { style: STILE_ETICHETTA }),
       [{ ref: B_MIGLIORE, content: null, locked: false, style: { ...STILE_FORMULA, numFmt: '@' } }],
     ]);
 
@@ -159,7 +149,7 @@ export default defineTemplate({
       parScore: par(tasks, { letturaSecondi: 50 }),
       startAt: `Model!B${ROW_IRR}`,
       hints: [
-        hint('H1', `In B${ROW_IRR}: =B${ROW_MOIC}^(1/B${ROW_ANNI})-1, poi copia a destra.`, 10, 'T1'),
+        hint('H1', tx('M8-10-EXITTIMING.16', { ROW_IRR, ROW_MOIC, ROW_ANNI }), 10, 'T1'),
         hint(
           'H2',
           `=INDEX(B${ROW_INTEST}:D${ROW_INTEST},MATCH(MAX(${rg}),${rg},0)): cerca il massimo e restituisci l'intestazione.`,

@@ -39,6 +39,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // Geometria fissa
 const B_ACQ_EQ = 'B4'; // Uses: Purchase Equity (dato)
 const B_REF_DEBT = 'B5'; // Uses: Refinance Existing Debt (dato)
@@ -55,7 +56,9 @@ const B_TOT_SOURCES = 'B15'; // Total Sources (formula SUM)
 export default defineTemplate({
   id: 'M8-01-SOURCESUSES',
   module: 'M8',
-  title: 'Sources & Uses: la tavola di apertura dell\'LBO',
+  get title() {
+    return tx('M8-01-SOURCESUSES.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -85,43 +88,28 @@ export default defineTemplate({
     // Sponsor equity (plug)
     const sponsorEquity = totalUses - totalDebt;
 
-    const brief = [
-      `Stai strutturando l'acquisizione in LBO del target industriale **Project Titan**.`,
-      ``,
-      `I parametri dell'operazione:`,
-      `- **Equity Purchase Price**: ${eur(purchaseEquity)}`,
-      `- **Rifinanziamento debito esistente**: ${eur(refDebt)}`,
-      `- **Commissioni legali & advisory M&A**: ${eur(advisoryFees)}`,
-      `- **Financing fees (commissioni bancarie)**: ${eur(financingFees)}`,
-      `- **Senior Term Loan**: ${eur(seniorDebt)}`,
-      `- **Mezzanine Debt**: ${eur(mezzDebt)}`,
-      ``,
-      `### I tuoi obiettivi:`,
-      `1. Calcola il totale degli **Impieghi (Total Uses)** in \`${B_TOT_USES}\` sommando acquisto equity, rifinanziamento e tutte le fee.`,
-      `2. Calcola il totale del **Debito Finanziario (Total Debt)** in \`${B_TOT_DEBT}\` sommando Senior Debt e Mezzanine Debt.`,
-      `3. Calcola l'**Equity dello Sponsor (Plug)** in \`${B_SPONSOR_EQ}\` come differenza tra Total Uses e Total Debt per far quadrare esattamente la tavola Sources & Uses.`,
-    ].join('\n');
+    const brief = [tx('M8-01-SOURCESUSES.2', { p0: eur(purchaseEquity), p1: eur(refDebt), p2: eur(advisoryFees), p3: eur(financingFees), p4: eur(seniorDebt), p5: eur(mezzDebt), B_TOT_USES, B_TOT_DEBT, B_SPONSOR_EQ })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['LBO SOURCES & USES'], { style: STILE_TITOLO }),
-      riga('A3', ['USES (Impieghi)', 'Importo (€)'], { style: STILE_TITOLO }),
+      riga('A1', [tx('M8-01-SOURCESUSES.3')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M8-01-SOURCESUSES.4'), tx('M8-01-SOURCESUSES.5')], { style: STILE_TITOLO }),
       colonna('A4', [
-        'Purchase Equity',
-        'Refinance Debt',
-        'Advisory & Legal Fees',
-        'Financing Fees',
-        'TOTAL USES',
+        tx('M8-01-SOURCESUSES.6'),
+        tx('M8-01-SOURCESUSES.7'),
+        tx('M8-01-SOURCESUSES.8'),
+        tx('M8-01-SOURCESUSES.9'),
+        tx('M8-01-SOURCESUSES.10'),
       ], { style: STILE_ETICHETTA }),
       colonna('B4', [purchaseEquity, refDebt, advisoryFees, financingFees], { style: STILE_INPUT }),
       colonna(B_TOT_USES, [null], { style: STILE_TOTALE, locked: false }),
 
-      riga('A10', ['SOURCES (Fonti)', 'Importo (€)'], { style: STILE_TITOLO }),
+      riga('A10', [tx('M8-01-SOURCESUSES.11'), tx('M8-01-SOURCESUSES.12')], { style: STILE_TITOLO }),
       colonna('A11', [
-        'Senior Term Loan',
-        'Mezzanine Debt',
-        'TOTAL DEBT',
-        'Sponsor Equity (Plug)',
-        'TOTAL SOURCES',
+        tx('M8-01-SOURCESUSES.13'),
+        tx('M8-01-SOURCESUSES.14'),
+        tx('M8-01-SOURCESUSES.15'),
+        tx('M8-01-SOURCESUSES.16'),
+        tx('M8-01-SOURCESUSES.17'),
       ], { style: STILE_ETICHETTA }),
       colonna('B11', [seniorDebt, mezzDebt], { style: STILE_INPUT }),
       colonna(B_TOT_DEBT, [null], { style: STILE_FORMULA, locked: false }),
@@ -132,7 +120,7 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `In ${B_TOT_USES} il totale degli impieghi: tutto il denaro che serve al closing, fee comprese.`,
+        prompt: tx('M8-01-SOURCESUSES.18', { B_TOT_USES }),
         target: `Model!${B_TOT_USES}`,
         atteso: totalUses,
         referenzia: [B_ACQ_EQ, B_REF_DEBT, B_ADV_FEES, B_FIN_FEES],
@@ -142,7 +130,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T2',
-        prompt: `In ${B_TOT_DEBT} il debito finanziario complessivo raccolto per l'operazione.`,
+        prompt: tx('M8-01-SOURCESUSES.19', { B_TOT_DEBT }),
         target: `Model!${B_TOT_DEBT}`,
         atteso: totalDebt,
         referenzia: [B_SR_DEBT, B_MEZZ_DEBT],
@@ -152,7 +140,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T3',
-        prompt: `In ${B_SPONSOR_EQ} l'equity che lo sponsor deve versare perche' fonti e impieghi quadrino al centesimo.`,
+        prompt: tx('M8-01-SOURCESUSES.20', { B_SPONSOR_EQ }),
         target: `Model!${B_SPONSOR_EQ}`,
         atteso: sponsorEquity,
         referenzia: [B_TOT_USES, B_TOT_DEBT],
@@ -170,9 +158,9 @@ export default defineTemplate({
       tasks,
       parScore: par(tasks, { letturaSecondi: 20 }),
       hints: [
-        hint('H1', 'In B8 usa =SUM(B4:B7) per calcolare la cassa complessiva necessaria all\'operazione.', 10, 'T1'),
-        hint('H2', 'In B13 calcola il debito totale con =SUM(B11:B12).', 10, 'T2'),
-        hint('H3', 'L\'equity dello sponsor è il "tappo" (plug) che finanzia tutto ciò che il debito non copre: =B8-B13.', 15, 'T3'),
+        hint('H1', tx('M8-01-SOURCESUSES.21'), 10, 'T1'),
+        hint('H2', tx('M8-01-SOURCESUSES.22'), 10, 'T2'),
+        hint('H3', tx('M8-01-SOURCESUSES.23'), 15, 'T3'),
       ],
     };
   },

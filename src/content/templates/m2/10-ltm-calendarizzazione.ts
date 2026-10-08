@@ -55,6 +55,7 @@ import { DEFAULT_FORMATS } from '../../../engine/numberFormat';
 import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 
+import { tx } from '../../../i18n/content';
 const MS_PER_DAY = 86_400_000;
 
 /** Giorni dal 30/12/1899 (epoca di Excel) — stessa funzione usata in M1-03 e M0F-09. */
@@ -77,7 +78,9 @@ const B_GIORNI = 'B12'; // T2
 export default defineTemplate({
   id: 'M2-10-LTM',
   module: 'M2',
-  title: 'LTM: dodici mesi veri, non un raddoppio',
+  get title() {
+    return tx('M2-10-LTM.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -117,10 +120,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_LTM} calcola l'EBITDA LTM (Last Twelve Months): il FY dell'ultimo anno fiscale intero ` +
-        `(${B_FY}) piu' l'H1 dell'anno corrente (${B_H1_CORRENTE}) MENO l'H1 dello stesso periodo ` +
-        `dell'anno precedente (${B_H1_PRECEDENTE}). Il FY include gia' quei sei mesi: se non li togli, li ` +
-        'conti due volte. Formula: FY + H1 corrente - H1 precedente.',
+        tx('M2-10-LTM.2', { B_LTM, B_FY, B_H1_CORRENTE, B_H1_PRECEDENTE }),
       target: `Model!${B_LTM}`,
       atteso: ltm,
       referenzia: [B_FY, B_H1_CORRENTE, B_H1_PRECEDENTE],
@@ -132,12 +132,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_GIORNI} verifica che la finestra LTM copra davvero 12 mesi: sottrai la data di chiusura ` +
-        `dell'H1 precedente (${B_DATA_PRECEDENTE}) dalla data di chiusura dell'H1 corrente ` +
-        `(${B_DATA_CORRENTE}). Usa la sottrazione diretta fra le due celle-data — niente EDATE, EOMONTH ` +
-        "o YEARFRAC qui, la sottrazione basta ed e' piu' sicura. Il risultato deve essere 365 o 366 " +
-        "(a seconda che un 29 febbraio cada dentro la finestra), mai un numero diverso: se non torna " +
-        "cosi', le due date di partenza non coprono davvero un anno esatto.",
+        tx('M2-10-LTM.3', { B_GIORNI, B_DATA_PRECEDENTE, B_DATA_CORRENTE }),
       target: `Model!${B_GIORNI}`,
       atteso: giorniLTM,
       referenzia: [B_DATA_PRECEDENTE, B_DATA_CORRENTE],
@@ -151,49 +146,21 @@ export default defineTemplate({
     return {
       templateId: 'M2-10-LTM',
       seed: rng.seed,
-      brief: [
-        '## LTM: dodici mesi veri, non un raddoppio',
-        '',
-        "Un compratore non negozia mai sull'ultimo bilancio annuale chiuso (puo' avere fino a 18 mesi di " +
-          "dati ormai vecchi) ne' su una proiezione ottenuta raddoppiando l'ultimo semestre disponibile. " +
-          "Usa l'**LTM** (*Last Twelve Months*): gli ultimi 12 mesi REALMENTE osservati, ricostruiti " +
-          "sommando e sottraendo pezzi di bilanci gia' pubblicati.",
-        '',
-        '> **EBITDA LTM = FY (ultimo anno fiscale intero) + H1 corrente − H1 precedente**',
-        '',
-        "Il FY piu' recente include gia', al suo interno, i sei mesi di \"H1 precedente\" (lo stesso " +
-          "periodo dell'anno prima, gia' chiuso dentro quel FY). Sommare H1 corrente senza togliere H1 " +
-          "precedente conterebbe quei sei mesi DUE VOLTE — la sottrazione non e' un dettaglio tecnico, e' " +
-          "cio' che evita il doppio conteggio.",
-        '',
-        `**Perche' non basta raddoppiare l'H1 corrente per stimare l'anno?** Perche' un business ` +
-          "stagionale — retail con il Black Friday e il Natale, turismo con l'estate — non distribuisce " +
-          "l'EBITDA in modo uniforme fra i due semestri. Qui, per esempio, l'H1 corrente vale " +
-          `${eur(h1Corrente)}: raddoppiarlo darebbe ${eur(raddoppioNaive)}, un numero ben diverso ` +
-          `dall'LTM vero (che dovrai calcolare tu). Se il semestre forte dell'anno e' quello NON ancora ` +
-          "osservato, il raddoppio SOTTOSTIMA l'anno; se e' quello gia' passato, lo SOVRASTIMA. L'LTM " +
-          "aggira il problema perche' non proietta nulla: usa solo dati gia' realmente accaduti.",
-        '',
-        `**I dati.** Il ${giornoChiusura}/${meseChiusura}/${annoPrecedente} si e' chiuso l'H1 ` +
-          `dell'anno precedente, e il FY ${annoPrecedente} (l'intero anno fiscale, gia' pubblicato) ha ` +
-          `fatto ${eur(fyEbitda)} di EBITDA. Il ${giornoChiusura}/${meseChiusura}/${annoCorrente} ` +
-          `si e' chiuso l'H1 corrente, con un EBITDA di ${eur(h1Corrente)}. Lo stesso semestre dell'anno ` +
-          `precedente (gia' incluso dentro il FY ${annoPrecedente}) aveva fatto ${eur(h1Precedente)}.`,
-      ].join('\n'),
+      brief: [tx('M2-10-LTM.4', { p0: eur(h1Corrente), p1: eur(raddoppioNaive), giornoChiusura, meseChiusura, annoPrecedente, p5: eur(fyEbitda), annoCorrente, p7: eur(h1Corrente), p8: eur(h1Precedente) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['LTM (Last Twelve Months) e calendarizzazione'], { style: STILE_TITOLO }),
-            riga('A3', ['Dati storici'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M2-10-LTM.5')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M2-10-LTM.6')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                `EBITDA FY ${annoPrecedente} (ultimo anno fiscale intero), €`,
-                `EBITDA H1 ${annoCorrente} (primi 6 mesi dell'anno corrente), €`,
-                `EBITDA H1 ${annoPrecedente} (stesso periodo dell'anno precedente), €`,
-                `Data di chiusura H1 ${annoPrecedente}`,
-                `Data di chiusura H1 ${annoCorrente} (12 mesi dopo)`,
+                tx('M2-10-LTM.7', { annoPrecedente }),
+                tx('M2-10-LTM.8', { annoCorrente }),
+                tx('M2-10-LTM.9', { annoPrecedente }),
+                tx('M2-10-LTM.10', { annoPrecedente }),
+                tx('M2-10-LTM.11', { annoCorrente }),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -217,12 +184,12 @@ export default defineTemplate({
               },
             ],
 
-            riga('A10', ['Calcolo LTM'], { style: STILE_TITOLO }),
+            riga('A10', [tx('M2-10-LTM.12')], { style: STILE_TITOLO }),
             colonna(
               'A11',
               [
-                'EBITDA LTM (Last Twelve Months), €',
-                'Giorni coperti dalla finestra LTM (deve essere 365 o 366)',
+                tx('M2-10-LTM.13'),
+                tx('M2-10-LTM.14'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -236,15 +203,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_FY}+${B_H1_CORRENTE}-${B_H1_PRECEDENTE}: FY piu' H1 corrente, meno H1 precedente (gia' ` +
-            "contato dentro il FY).",
+          tx('M2-10-LTM.15', { B_FY, B_H1_CORRENTE, B_H1_PRECEDENTE }),
           10,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_DATA_CORRENTE}-${B_DATA_PRECEDENTE}: sottrazione diretta fra le due date di chiusura, ` +
-            `nessuna funzione data (qui vale ${giorniLTM} giorni).`,
+          tx('M2-10-LTM.16', { B_DATA_CORRENTE, B_DATA_PRECEDENTE, giorniLTM }),
           8,
           'T2',
         ),

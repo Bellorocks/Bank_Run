@@ -31,10 +31,13 @@ import {
   eur,
 } from '../../authoring';
 
+import { tx } from '../../../i18n/content';
 export default defineTemplate({
   id: 'M0B-01-IF',
   module: 'M0-B',
-  title: 'IF: una domanda, due risposte',
+  get title() {
+    return tx('M0B-01-IF.title');
+  },
   rank: 1,
   mode: 'GUIDED',
   estimatedSeconds: 180,
@@ -64,9 +67,7 @@ export default defineTemplate({
       {
         id: 'T1',
         prompt:
-          'In B8 calcola il bonus maturato dal team vendite: se le vendite in B2 superano ' +
-          "l'obiettivo in B3, il bonus e' quello scritto in B4; altrimenti il bonus e' zero. " +
-          "Usa IF: una condizione, il valore se e' vera, il valore se e' falsa.",
+          tx('M0B-01-IF.2'),
         targetCell: 'Model!B8',
         check: [
           { kind: 'mustBeFormula' as const },
@@ -81,9 +82,7 @@ export default defineTemplate({
       {
         id: 'T2',
         prompt:
-          "In B9 calcola la penale: se le vendite in B2 non arrivano alla soglia minima in B5 " +
-          '(compreso il caso in cui la toccano esattamente), la penale e\' quella scritta in B6; ' +
-          'altrimenti zero.',
+          tx('M0B-01-IF.3'),
         targetCell: 'Model!B9',
         check: [
           { kind: 'mustBeFormula' as const },
@@ -98,11 +97,9 @@ export default defineTemplate({
       {
         id: 'T3',
         prompt:
-          "Non scrivere una formula: rispondi a parole in B11. Se le vendite fossero esattamente " +
-          "uguali all'obiettivo in B3 — nemmeno un euro di piu' — il bonus del task precedente " +
-          'scatterebbe? Scrivi SI oppure NO.',
+          tx('M0B-01-IF.4'),
         targetCell: 'Model!B11',
-        check: [{ kind: 'text' as const, expected: 'NO', caseSensitive: false }],
+        check: [{ kind: 'text' as const, expected: tx('common.tok.no'), caseSensitive: false }],
         skills: ['xl.if'],
         minKeystrokes: 3,
       },
@@ -111,49 +108,30 @@ export default defineTemplate({
     return {
       templateId: 'M0B-01-IF',
       seed: rng.seed,
-      brief: [
-        '## Se succede, allora',
-        '',
-        'Fin qui ogni formula ha sempre calcolato lo stesso modo, qualunque fossero i numeri.',
-        "`IF` e' diverso: guarda una condizione e **sceglie** fra due risposte a seconda che sia",
-        'vera o falsa. E\' la prima formula del foglio che decide, non solo che somma.',
-        '',
-        'La forma e\' sempre la stessa, in tre pezzi separati da virgola:',
-        '',
-        '`=IF(condizione, valore se vera, valore se falsa)`',
-        '',
-        'La condizione confronta due celle con un operatore: `>` maggiore, `<` minore, `>=`',
-        "maggiore o uguale, `<=` minore o uguale. La differenza fra `>` e `>=` sembra un dettaglio,",
-        "ma decide se il caso limite — il pareggio esatto — passa la condizione o no.",
-        '',
-        `Questo mese il team ha venduto ${eur(vendite)}. L'obiettivo per far scattare il bonus e'`,
-        `${eur(obiettivo)}: sopra, il team incassa ${eur(bonusImporto)}; altrimenti niente.`,
-        `Esiste anche una soglia minima di attenzione, ${eur(sogliaMinima)}: scenderci sotto (o`,
-        `toccarla esattamente) fa scattare una penale di ${eur(penaleImporto)}.`,
-      ].join('\n'),
+      brief: [tx('M0B-01-IF.5', { p0: eur(vendite), p1: eur(obiettivo), p2: eur(bonusImporto), p3: eur(sogliaMinima), p4: eur(penaleImporto) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            blocco('A1', [['Bonus vendite a soglia']], { style: STILE_TITOLO }),
+            blocco('A1', [[tx('M0B-01-IF.6')]], { style: STILE_TITOLO }),
             blocco(
               'A2',
               [
-                ['Vendite del mese'],
-                ['Obiettivo (soglia bonus)'],
-                ["Bonus se le vendite superano l'obiettivo"],
-                ['Soglia minima di attenzione'],
-                ['Penale se le vendite non raggiungono la soglia minima'],
+                [tx('M0B-01-IF.7')],
+                [tx('M0B-01-IF.8')],
+                [tx('M0B-01-IF.9')],
+                [tx('M0B-01-IF.10')],
+                [tx('M0B-01-IF.11')],
               ],
               { style: STILE_ETICHETTA },
             ),
             blocco('B2', [[vendite], [obiettivo], [bonusImporto], [sogliaMinima], [penaleImporto]], {
               style: STILE_INPUT,
             }),
-            blocco('A8', [['Bonus maturato'], ['Penale maturata']], { style: STILE_ETICHETTA }),
+            blocco('A8', [[tx('M0B-01-IF.12')], [tx('M0B-01-IF.13')]], { style: STILE_ETICHETTA }),
             blocco(
               'A11',
-              [["Se le vendite fossero esattamente pari all'obiettivo, il bonus scatterebbe?"]],
+              [[tx('M0B-01-IF.14')]],
               { style: STILE_ETICHETTA },
             ),
             areaLibera(['B8', 'B9', 'B11']),
@@ -165,22 +143,19 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          "IF ha tre pezzi separati da virgola: la condizione, il valore se e' vera, il valore " +
-            "se e' falsa. Qui la condizione confronta B2 con B3, e il valore vero e' B4.",
+          tx('M0B-01-IF.15'),
           10,
           'T1',
         ),
         hint(
           'H2',
-          "Stessa struttura del task precedente, ma la condizione ora e' 'minore o uguale': " +
-            'confronta B2 con B5. Il valore vero e\' B6.',
+          tx('M0B-01-IF.16'),
           10,
           'T2',
         ),
         hint(
           'H3',
-          'Nel primo task hai scritto una condizione con B2>B3: quell\'operatore include il ' +
-            "pareggio esatto o lo esclude?",
+          tx('M0B-01-IF.17'),
           8,
           'T3',
         ),

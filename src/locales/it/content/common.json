@@ -1,0 +1,22 @@
+{
+  "common.anno": "Anno {n}",
+  "common.mese": "Mese {n}",
+  "common.trimestre": "Trimestre {n}",
+  "common.trim": "Trim. {n}",
+  "common.lotto": "Lotto {n}",
+  "common.gennaio": "Gennaio",
+  "common.febbraio": "Febbraio",
+  "common.marzo": "Marzo",
+  "common.prudente": "Prudente",
+  "common.base": "Base",
+  "common.ambizioso": "Ambizioso",
+  "common.tok.si": "SI",
+  "common.tok.no": "NO",
+  "common.tok.nd": "n.d.",
+  "common.tok.investi": "INVESTI",
+  "common.tok.passa": "PASSA",
+  "common.settore.manifattura": "manifattura",
+  "common.settore.software": "software",
+  "common.settore.distribuzione": "distribuzione",
+  "common.settore.servizi": "servizi"
+}

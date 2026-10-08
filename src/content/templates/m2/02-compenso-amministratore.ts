@@ -53,6 +53,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
 const B_EBITDA_RIP = 'B4'; // EBITDA riportato (dato, bloccato)
 const B_COMP_PAGATO = 'B5'; // Compenso pagato all'amministratore/socio (dato, bloccato)
@@ -64,7 +65,9 @@ const B_EBITDA_NORM = 'B12'; // T2: EBITDA normalizzato
 export default defineTemplate({
   id: 'M2-02-COMPENSOAMMINISTRATORE',
   module: 'M2',
-  title: "Compenso amministratore: la rettifica cambia segno",
+  get title() {
+    return tx('M2-02-COMPENSOAMMINISTRATORE.title');
+  },
   rank: 1,
   mode: 'PRACTICE',
   estimatedSeconds: 200,
@@ -99,21 +102,13 @@ export default defineTemplate({
     const ebitdaNormalizzato = ebitdaRiportato + rettifica;
 
     const spiegazioneCaso = sopraMercato
-      ? `In questo caso il socio SI PAGA PIU' del mercato (${eur(compensoPagato)} contro un benchmark di ` +
-        `${eur(compensoMercato)}): il sovra-compenso di ${eur(scostamento)} e' un costo gonfiato che ha ` +
-        "sgonfiato l'EBITDA riportato. Si RIAGGIUNGE: rettifica POSITIVA."
-      : `In questo caso il socio SI PAGA MENO del mercato (${eur(compensoPagato)} contro un benchmark di ` +
-        `${eur(compensoMercato)}): il costo del lavoro e' sotto-stimato di ${eur(scostamento)}, e questo ha ` +
-        "GONFIATO artificialmente l'EBITDA riportato. Un compratore dovra' assumere un manager vero pagandolo " +
-        "al prezzo di mercato: l'EBITDA va RIDOTTO di conseguenza. Rettifica NEGATIVA.";
+      ? tx('M2-02-COMPENSOAMMINISTRATORE.2', { p0: eur(compensoPagato), p1: eur(compensoMercato), p2: eur(scostamento) })
+      : tx('M2-02-COMPENSOAMMINISTRATORE.3', { p0: eur(compensoPagato), p1: eur(compensoMercato), p2: eur(scostamento) });
 
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_RETTIFICA} calcola la rettifica CON SEGNO per il compenso amministratore: compenso pagato ` +
-        `(${B_COMP_PAGATO}) meno compenso di mercato (${B_COMP_MERCATO}). ${spiegazioneCaso} Nota bene: la ` +
-        "formula e' sempre la stessa (pagato meno mercato) — e' il segno del RISULTATO a cambiare a seconda " +
-        "di chi si sotto- o sovra-paga, non la formula.",
+        tx('M2-02-COMPENSOAMMINISTRATORE.4', { B_RETTIFICA, B_COMP_PAGATO, B_COMP_MERCATO, spiegazioneCaso }),
       target: `Model!${B_RETTIFICA}`,
       atteso: rettifica,
       referenzia: [B_COMP_PAGATO, B_COMP_MERCATO],
@@ -125,9 +120,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_EBITDA_NORM} calcola l'EBITDA normalizzato: l'EBITDA riportato (${B_EBITDA_RIP}) piu' la ` +
-        `rettifica appena calcolata (${B_RETTIFICA}). Riusa il risultato di ${B_RETTIFICA} cosi' com'e' — con ` +
-        "il suo segno, positivo o negativo che sia — non ricalcolare la differenza da capo.",
+        tx('M2-02-COMPENSOAMMINISTRATORE.5', { B_EBITDA_NORM, B_EBITDA_RIP, B_RETTIFICA }),
       target: `Model!${B_EBITDA_NORM}`,
       atteso: ebitdaNormalizzato,
       referenzia: [B_EBITDA_RIP, B_RETTIFICA],
@@ -141,38 +134,19 @@ export default defineTemplate({
     return {
       templateId: 'M2-02-COMPENSOAMMINISTRATORE',
       seed: rng.seed,
-      brief: [
-        '## Una rettifica di parte correlata puo\' andare in entrambe le direzioni',
-        '',
-        "Il compenso pagato all'amministratore/socio e' la prima posta che un QoE controlla: e' una " +
-          "spesa di parte correlata, decisa da chi controlla l'azienda, non dal mercato. Il confronto " +
-          "e' sempre con un **compenso di mercato**: quanto costerebbe assumere un manager esterno per " +
-          "lo stesso ruolo.",
-        '',
-        "La rettifica ha SEMPRE la stessa formula — compenso pagato meno compenso di mercato — ma il " +
-          "SEGNO del risultato dipende da chi si sotto- o sovra-paga, e va capito prima di scriverla:",
-        '',
-        "- se il compenso pagato e' SOPRA il mercato, il sovra-compenso ha gonfiato i costi (quindi " +
-          "sgonfiato l'EBITDA riportato): si RIAGGIUNGE, rettifica **positiva**.",
-        "- se il compenso pagato e' SOTTO il mercato, il costo del lavoro e' sotto-stimato e ha GONFIATO " +
-          "l'EBITDA riportato: un compratore dovra' pagare un manager vero al prezzo di mercato, quindi " +
-          "l'EBITDA va RIDOTTO. Rettifica **negativa** — e' il caso meno intuitivo, tipico delle aziende " +
-          "familiari dove il fondatore si sotto-paga, ma altrettanto reale del primo.",
-        '',
-        `L'EBITDA riportato di questa azienda e' ${eur(ebitdaRiportato)}. ${spiegazioneCaso}`,
-      ].join('\n'),
+      brief: [tx('M2-02-COMPENSOAMMINISTRATORE.6', { p0: eur(ebitdaRiportato), spiegazioneCaso })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ["Compenso amministratore: rettifica di parte correlata"], { style: STILE_TITOLO }),
-            riga('A3', ['Dati di partenza'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M2-02-COMPENSOAMMINISTRATORE.7')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M2-02-COMPENSOAMMINISTRATORE.8')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'EBITDA riportato (da bilancio), €',
-                "Compenso pagato all'amministratore/socio, €",
-                'Compenso "di mercato" per un ruolo equivalente (benchmark esterno), €',
+                tx('M2-02-COMPENSOAMMINISTRATORE.9'),
+                tx('M2-02-COMPENSOAMMINISTRATORE.10'),
+                tx('M2-02-COMPENSOAMMINISTRATORE.11'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -182,18 +156,18 @@ export default defineTemplate({
               { ref: B_COMP_MERCATO, content: compensoMercato, style: STILE_INPUT, locked: true },
             ],
 
-            riga('A8', ['Rettifica di parte correlata'], { style: STILE_TITOLO }),
+            riga('A8', [tx('M2-02-COMPENSOAMMINISTRATORE.12')], { style: STILE_TITOLO }),
             colonna(
               'A9',
-              ['Rettifica compenso amministratore (con segno), €'],
+              [tx('M2-02-COMPENSOAMMINISTRATORE.13')],
               { style: STILE_ETICHETTA },
             ),
             [{ ref: B_RETTIFICA, content: null, locked: false, style: STILE_FORMULA }],
 
-            riga('A11', ['Normalizzazione'], { style: STILE_TITOLO }),
+            riga('A11', [tx('M2-02-COMPENSOAMMINISTRATORE.17')], { style: STILE_TITOLO }),
             colonna(
               'A12',
-              ['EBITDA normalizzato, €'],
+              [tx('M2-02-COMPENSOAMMINISTRATORE.14')],
               { style: STILE_ETICHETTA },
             ),
             [{ ref: B_EBITDA_NORM, content: null, locked: false, style: STILE_FORMULA }],
@@ -205,16 +179,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_COMP_PAGATO}-${B_COMP_MERCATO}: compenso pagato meno compenso di mercato. Il segno del ` +
-            `risultato (qui ${eur(rettifica)}) ti dice da solo se e' un addback o una riduzione: non ` +
-            "deciderlo tu a priori, lascia che sia la formula a determinarlo.",
+          tx('M2-02-COMPENSOAMMINISTRATORE.15', { B_COMP_PAGATO, B_COMP_MERCATO, p2: eur(rettifica) }),
           8,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_EBITDA_RIP}+${B_RETTIFICA}: EBITDA riportato piu' la rettifica gia' calcolata, con il suo ` +
-            "segno. Se la rettifica e' negativa, sommarla la sottrae automaticamente.",
+          tx('M2-02-COMPENSOAMMINISTRATORE.16', { B_EBITDA_RIP, B_RETTIFICA }),
           8,
           'T2',
         ),

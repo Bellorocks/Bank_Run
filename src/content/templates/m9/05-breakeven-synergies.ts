@@ -31,6 +31,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { contentNumberLocale, tx } from '../../../i18n/content';
 // Geometria fissa
 const B_ACQ_EPS = 'B4'; // Standalone EPS (€) (dato)
 const B_PF_SHARES = 'B5'; // Azioni Pro-Forma Totali (dato)
@@ -44,7 +45,9 @@ const B_BE_SYN = 'B12'; // T3: Breakeven Synergies Pre-Tax = B11 / (1 - B7)
 export default defineTemplate({
   id: 'M9-05-BREAKEVENSYNERGIES',
   module: 'M9',
-  title: 'Breakeven synergies: sinergie minime prima delle imposte',
+  get title() {
+    return tx('M9-05-BREAKEVENSYNERGIES.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -65,41 +68,25 @@ export default defineTemplate({
     const gapNi = reqNi - basePfNi;
     const beSyn = gapNi / (1 - taxRate);
 
-    const brief = [
-      `L'operazione M&A proposta risulta attualmente diluitiva per gli azionisti dell'Acquirer.`,
-      `Determina l'ammontare minimo di **Sinergie Pre-Tax di Breakeven** necessarie per raggiungere un'accretion esattamente pari a 0,0%.`,
-      ``,
-      `Dati di bilancio pro-forma:`,
-      `- **EPS Standalone Acquirer (Target da preservare)**: ${eur(acqEps, 2)}`,
-      `- **Numero Azioni Pro-Forma Post-Fusione**: ${pfShares.toLocaleString('it-IT')}`,
-      `- **Utile Netto Pro-Forma Base (Senza Sinergie)**: ${eur(basePfNi)}`,
-      `- **Aliquota Fiscale (IRES)**: ${pct(taxRate)}`,
-      ``,
-      "Ragiona a ritroso: quale utile netto servirebbe, con le azioni pro-forma, per avere lo stesso EPS " +
-        "di oggi? La differenza con l'utile base e' un numero **dopo le imposte**; le sinergie che il " +
-        "management promette sono invece **prima delle imposte**, e ogni euro di sinergia porta a casa " +
-        'solo la sua parte netta.',
-      '',
-      'Calcola utile richiesto, gap da colmare e sinergie ante imposte di breakeven.',
-    ].join('\n');
+    const brief = [tx('M9-05-BREAKEVENSYNERGIES.2', { p0: eur(acqEps, 2), p1: pfShares.toLocaleString(contentNumberLocale()), p2: eur(basePfNi), p3: pct(taxRate) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['BREAKEVEN SYNERGIES ANALYSIS'], { style: STILE_TITOLO }),
-      riga('A3', ['Parametri Pro-Forma & Fisco', 'Valore'], { style: STILE_TITOLO }),
+      riga('A1', [tx('M9-05-BREAKEVENSYNERGIES.3')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M9-05-BREAKEVENSYNERGIES.4'), tx('M9-05-BREAKEVENSYNERGIES.18')], { style: STILE_TITOLO }),
       colonna('A4', [
-        'EPS Standalone Acquirer Target (€)',
-        'Azioni Totali Pro-Forma (Numero)',
-        'Utile Netto Pro-Forma Base (Senza Sinergie, €)',
-        'Aliquota Fiscale (IRES)',
+        tx('M9-05-BREAKEVENSYNERGIES.5'),
+        tx('M9-05-BREAKEVENSYNERGIES.6'),
+        tx('M9-05-BREAKEVENSYNERGIES.7'),
+        tx('M9-05-BREAKEVENSYNERGIES.8'),
       ], { style: STILE_ETICHETTA }),
       colonna('B4', [acqEps, pfShares, basePfNi], { style: STILE_INPUT }),
       colonna(B_TAX, [taxRate], { style: STILE_INPUT_PCT }),
 
-      riga('A9', ['Calcolo di Pareggio (Breakeven)', 'Risultato (€)'], { style: STILE_TITOLO }),
+      riga('A9', [tx('M9-05-BREAKEVENSYNERGIES.9'), tx('M9-05-BREAKEVENSYNERGIES.10')], { style: STILE_TITOLO }),
       colonna('A10', [
-        'Utile Netto Pro-Forma Richiesto (€)',
-        'Gap di Utile Netto Post-Tax (€)',
-        'Sinergie Pre-Tax di Breakeven Necessarie (€)',
+        tx('M9-05-BREAKEVENSYNERGIES.11'),
+        tx('M9-05-BREAKEVENSYNERGIES.12'),
+        tx('M9-05-BREAKEVENSYNERGIES.13'),
       ], { style: STILE_ETICHETTA }),
       colonna(B_REQ_NI, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_GAP_NI, [null], { style: STILE_FORMULA, locked: false }),
@@ -109,7 +96,7 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `In ${B_REQ_NI} l'utile netto pro-forma che lascerebbe l'EPS esattamente invariato.`,
+        prompt: tx('M9-05-BREAKEVENSYNERGIES.14', { B_REQ_NI }),
         target: `Model!${B_REQ_NI}`,
         atteso: reqNi,
         referenzia: [B_ACQ_EPS, B_PF_SHARES],
@@ -119,7 +106,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T2',
-        prompt: `In ${B_GAP_NI} quanto utile netto manca.`,
+        prompt: tx('M9-05-BREAKEVENSYNERGIES.15', { B_GAP_NI }),
         target: `Model!${B_GAP_NI}`,
         atteso: gapNi,
         referenzia: [B_REQ_NI, B_BASE_PF_NI],
@@ -129,7 +116,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T3',
-        prompt: `In ${B_BE_SYN} le sinergie ante imposte necessarie per colmarlo.`,
+        prompt: tx('M9-05-BREAKEVENSYNERGIES.16', { B_BE_SYN }),
         target: `Model!${B_BE_SYN}`,
         atteso: beSyn,
         referenzia: [B_GAP_NI, B_TAX],
@@ -150,7 +137,7 @@ export default defineTemplate({
       hints: [
         hint('H1', '=B4*B5', 10, 'T1'),
         hint('H2', '=B10-B6', 10, 'T2'),
-        hint('H3', "=B11/(1-B7): si 'lorda' il gap delle imposte.", 15, 'T3'),
+        hint('H3', tx('M9-05-BREAKEVENSYNERGIES.17'), 15, 'T3'),
       ],
     };
   },

@@ -30,6 +30,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // Geometria fissa
 const B_EBITDA_PLAT = 'B4'; // EBITDA Platform (dato)
 const B_EBITDA_ADD = 'B5'; // EBITDA Add-on (dato)
@@ -45,7 +46,9 @@ const B_VALORE_ADD = 'B14'; // T4: valore creato dall'add-on = (B5+B6)*B8 - B5*B
 export default defineTemplate({
   id: 'M8-09-BUYANDBUILD',
   module: 'M8',
-  title: 'Buy-and-build: acquisizioni add-on e multiple arbitrage',
+  get title() {
+    return tx('M8-09-BUYANDBUILD.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -67,43 +70,27 @@ export default defineTemplate({
     const multArb = ebitdaAdd * (multExit - multAdd);
     const valoreAdd = (ebitdaAdd + synergies) * multExit - ebitdaAdd * multAdd;
 
-    const brief = [
-      `La tua platform company in portafoglio acquisisce un concorrente add-on tramite strategia **Buy-and-Build**.`,
-      ``,
-      `Parametri dell'operazione:`,
-      `- **EBITDA Platform**: ${eur(ebitdaPlat)}`,
-      `- **EBITDA Add-on Acquisito**: ${eur(ebitdaAdd)}`,
-      `- **Sinergie di Costo Estratte**: ${eur(synergies)}`,
-      `- **Multiplo di Acquisto Add-on**: ${multiplo(multAdd)}`,
-      `- **Multiplo di Uscita Previsto per il Gruppo**: ${multiplo(multExit)}`,
-      ``,
-      "Le aziende piccole si comprano a multipli piu' bassi di quelle grandi. Una volta dentro il gruppo, " +
-        "l'EBITDA dell'add-on viene valutato al multiplo del gruppo: e' il **multiple arbitrage**. In piu' " +
-        "l'integrazione libera sinergie, che all'uscita valgono anch'esse il multiplo del gruppo.",
-      '',
-      "Calcola EBITDA ed EV combinati, il guadagno da arbitraggio sui multipli e il valore totale creato " +
-        "dall'add-on rispetto a quanto e' stato pagato.",
-    ].join('\n');
+    const brief = [tx('M8-09-BUYANDBUILD.2', { p0: eur(ebitdaPlat), p1: eur(ebitdaAdd), p2: eur(synergies), p3: multiplo(multAdd), p4: multiplo(multExit) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['STRATEGIA BUY-AND-BUILD (ADD-ON)'], { style: STILE_TITOLO }),
-      riga('A3', ['Parametri Operativi & Multipli', 'Valore'], { style: STILE_TITOLO }),
+      riga('A1', [tx('M8-09-BUYANDBUILD.3')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M8-09-BUYANDBUILD.4'), tx('M8-09-BUYANDBUILD.20')], { style: STILE_TITOLO }),
       colonna('A4', [
-        'EBITDA Platform (€)',
-        'EBITDA Add-on (€)',
-        'Sinergie di Costo (€)',
-        'Multiplo di Acquisto Add-on (x)',
-        'Multiplo di Uscita Gruppo (x)',
+        tx('M8-09-BUYANDBUILD.5'),
+        tx('M8-09-BUYANDBUILD.6'),
+        tx('M8-09-BUYANDBUILD.7'),
+        tx('M8-09-BUYANDBUILD.8'),
+        tx('M8-09-BUYANDBUILD.9'),
       ], { style: STILE_ETICHETTA }),
       colonna('B4', [ebitdaPlat, ebitdaAdd, synergies], { style: STILE_INPUT }),
       colonna(B_MULT_ADD, [multAdd, multExit], { style: STILE_INPUT_MULTIPLO }),
 
-      riga('A10', ['Valutazione Combinata & Arbitraggio', 'Risultato'], { style: STILE_TITOLO }),
+      riga('A10', [tx('M8-09-BUYANDBUILD.10'), tx('M8-09-BUYANDBUILD.21')], { style: STILE_TITOLO }),
       colonna('A11', [
-        'EBITDA Combinato Pro-Forma (€)',
-        'Enterprise Value Combinato all\'Uscita (€)',
-        'Guadagno da Multiple Arbitrage Add-on (€)',
-        "Valore creato dall'add-on vs prezzo pagato (€)",
+        tx('M8-09-BUYANDBUILD.11'),
+        tx('M8-09-BUYANDBUILD.12'),
+        tx('M8-09-BUYANDBUILD.13'),
+        tx('M8-09-BUYANDBUILD.14'),
       ], { style: STILE_ETICHETTA }),
       colonna(B_COMB_EBITDA, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_COMB_EV, [null], { style: STILE_FORMULA, locked: false }),
@@ -114,7 +101,7 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `In ${B_COMB_EBITDA} l'EBITDA pro-forma del gruppo dopo l'acquisizione, sinergie comprese.`,
+        prompt: tx('M8-09-BUYANDBUILD.15', { B_COMB_EBITDA }),
         target: `Model!${B_COMB_EBITDA}`,
         atteso: combEbitda,
         referenzia: [B_EBITDA_PLAT, B_EBITDA_ADD, B_SYNERGIES],
@@ -124,7 +111,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T2',
-        prompt: `In ${B_COMB_EV} l'Enterprise Value del gruppo all'uscita.`,
+        prompt: tx('M8-09-BUYANDBUILD.16', { B_COMB_EV }),
         target: `Model!${B_COMB_EV}`,
         atteso: combEv,
         referenzia: [B_COMB_EBITDA, B_MULT_EXIT],
@@ -134,7 +121,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T3',
-        prompt: `In ${B_MULT_ARB} il guadagno da multiple arbitrage: quanto vale in piu' l'EBITDA dell'add-on (senza sinergie) solo perche' ora e' valutato al multiplo del gruppo.`,
+        prompt: tx('M8-09-BUYANDBUILD.17', { B_MULT_ARB }),
         target: `Model!${B_MULT_ARB}`,
         atteso: multArb,
         referenzia: [B_EBITDA_ADD, B_MULT_EXIT, B_MULT_ADD],
@@ -145,8 +132,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T4',
         prompt:
-          `In ${B_VALORE_ADD} il valore totale creato dall'add-on: quanto valgono all'uscita il suo EBITDA e le ` +
-          'sinergie, meno quanto e\' stato pagato per comprarlo.',
+          tx('M8-09-BUYANDBUILD.18', { B_VALORE_ADD }),
         target: `Model!${B_VALORE_ADD}`,
         atteso: valoreAdd,
         referenzia: [B_EBITDA_ADD, B_SYNERGIES, B_MULT_EXIT, B_MULT_ADD],
@@ -168,7 +154,7 @@ export default defineTemplate({
         hint('H1', '=SUM(B4:B6)', 10, 'T1'),
         hint('H2', '=B11*B8', 10, 'T2'),
         hint('H3', '=B5*(B8-B7)', 10, 'T3'),
-        hint('H4', '=(B5+B6)*B8-B5*B7: valore all\'uscita meno prezzo pagato.', 15, 'T4'),
+        hint('H4', tx('M8-09-BUYANDBUILD.19'), 15, 'T4'),
       ],
     };
   },

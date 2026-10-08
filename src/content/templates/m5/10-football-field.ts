@@ -84,6 +84,7 @@ import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 import type { CellSpec, Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 /** Output di una formula che restituisce un multiplo: nero, "x". */
 const STILE_FORMULA_MULTIPLO: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: '0.0x' };
 
@@ -124,7 +125,9 @@ const rangeMultipli = `D${DATA_START}:D${DATA_END}`;
 export default defineTemplate({
   id: 'M5-10-FOOTBALLFIELD',
   module: 'M5',
-  title: 'Il football field: dal comp set al range di valutazione',
+  get title() {
+    return tx('M5-10-FOOTBALLFIELD.title');
+  },
   rank: 4,
   mode: 'PRACTICE',
   estimatedSeconds: 380,
@@ -159,7 +162,7 @@ export default defineTemplate({
       const growth = growthRate(rPeer, sector);
       const evEbitda = evEbitdaMultiple(rPeer, sector, growth, margin);
       const ev = roundTo(ebitda * evEbitda, 1000);
-      return { label: `Peer ${i + 1}`, ev, ebitda };
+      return { label: tx('M5-10-FOOTBALLFIELD.2', { p0: i + 1 }), ev, ebitda };
     });
 
     // --- EBITDA del target: stesso meccanismo generativo dei peer (cosi'
@@ -194,13 +197,7 @@ export default defineTemplate({
     const t1: Task = {
       id: 'T1',
       prompt:
-        `Nella colonna D calcola il multiplo EV/EBITDA di ciascuna delle ${num(N_PEER)} comparable: ` +
-        `Enterprise Value della riga (colonna B) diviso EBITDA della riga (colonna C) — entrambi gia' ` +
-        "dati, gia' calendarizzati sullo stesso periodo del target (l'allineamento e' gia' fatto a monte, " +
-        `qui il lavoro e' solo calcolare il rapporto). Parti da D${DATA_START} (=B${DATA_START}/C${DATA_START}) ` +
-        `e trascinala fino a D${DATA_END}: deve restare la STESSA formula, solo traslata di riga — e' cosi' ` +
-        "che nasce la colonna dei multipli 'disallineati' di questo comp set: i dati grezzi ci sono gia', " +
-        'il rapporto fra i due lo calcoli tu, riga per riga, sempre nello stesso modo.',
+        tx('M5-10-FOOTBALLFIELD.3', { p0: num(N_PEER), DATA_START, DATA_END }),
       targetCell: `Model!${rangeMultipli}`,
       check: [
         { kind: 'consistentRow', range: `Model!${rangeMultipli}` },
@@ -214,11 +211,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T2',
         prompt:
-          `In ${B_MEDIANA} calcola il multiplo MEDIANO del comp set: MEDIAN sull'intera colonna dei ` +
-          `multipli appena costruita (${rangeMultipli}). Non la media: un comp set si sintetizza con la ` +
-          "mediana proprio perche' resiste agli outlier — un solo peer comprato a premio, o con un EBITDA " +
-          "temporaneamente compresso, non deve spostare il multiplo di sintesi quanto sposterebbe una " +
-          'media aritmetica.',
+          tx('M5-10-FOOTBALLFIELD.4', { B_MEDIANA, rangeMultipli }),
         target: `Model!${B_MEDIANA}`,
         atteso: multiploMediano,
         referenzia: [`D${DATA_START}`, `D${DATA_END}`],
@@ -232,11 +225,7 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        `In ${B_EVIMPLICITO} calcola l'Enterprise Value implicito del target al multiplo mediano: il ` +
-        `multiplo mediano appena calcolato (${B_MEDIANA}) moltiplicato per l'EBITDA del target ` +
-        `(${B_TARGET}). E' il punto centrale dell'intero modulo condensato in una riga sola: un multiplo ` +
-        "osservato su societa' comparabili si applica alla metrica del target per ottenere un valore " +
-        'implicito.',
+        tx('M5-10-FOOTBALLFIELD.5', { B_EVIMPLICITO, B_MEDIANA, B_TARGET }),
       target: `Model!${B_EVIMPLICITO}`,
       atteso: evImplicito,
       referenzia: [B_MEDIANA, B_TARGET],
@@ -249,14 +238,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T4',
         prompt:
-          `In ${B_AMPIEZZA} calcola l'AMPIEZZA in euro del football field: EV implicito al multiplo ` +
-          `MASSIMO del comp set meno EV implicito al multiplo MINIMO, entrambi applicati alla stessa ` +
-          `EBITDA del target (${B_TARGET}) — cioe' (MAX(${rangeMultipli})-MIN(${rangeMultipli}))*${B_TARGET}. ` +
-          "Un vero football field non si riassume in un numero solo: si presenta come un INTERVALLO " +
-          "[EV basso; EV alto], tipicamente disegnato come una barra orizzontale — un range difendibile e' " +
-          "piu' onesto di un punto preciso ma arbitrario. Qui, per restare un valore singolo verificabile, " +
-          "calcoli solo quanto e' LARGO quel range: un proxy della stessa idea, non il football field per " +
-          'intero.',
+          tx('M5-10-FOOTBALLFIELD.6', { B_AMPIEZZA, B_TARGET, rangeMultipli }),
         target: `Model!${B_AMPIEZZA}`,
         atteso: ampiezza,
         referenzia: [`D${DATA_START}`, `D${DATA_END}`, B_TARGET],
@@ -287,40 +269,19 @@ export default defineTemplate({
     return {
       templateId: 'M5-10-FOOTBALLFIELD',
       seed: rng.seed,
-      brief: [
-        '## Il football field: dal comp set al range di valutazione',
-        '',
-        `Qui sotto trovi ${num(N_PEER)} societa' quotate comparabili, ciascuna con Enterprise Value ed ` +
-          "EBITDA gia' dati e gia' calendarizzati sullo stesso periodo del target (l'allineamento fra " +
-          "fiscal year diversi e' gia' materia acquisita: qui il lavoro non e' allinearli, e' calcolare " +
-          "il multiplo che ciascuna coppia di numeri implica).",
-        '',
-        `**Il percorso, in una frase.** Selezione dei peer (gia' fatta, e' il comp set qui sotto) → periodo ` +
-          "comparabile allineato (gia' fatto, LTM/NTM e calendarizzazione) → il multiplo giusto per lo " +
-          'scopo (EV/EBITDA, da CALCOLARE riga per riga) → una sintesi robusta agli outlier (la mediana, ' +
-          'non la media) → il valore implicito del target al multiplo mediano → un range finale, non un ' +
-          "punto solo — perche' un range difendibile e' piu' onesto di una cifra precisa ma arbitraria.",
-        '',
-        `**I quattro passi di oggi.** Prima calcoli il multiplo EV/EBITDA di ciascun peer (task 1). Poi ne ` +
-          "estrai il multiplo mediano del comp set (task 2): resiste agli outlier meglio di una media. Poi " +
-          `applichi quel multiplo mediano all'EBITDA del target, ${eurM(ebitdaTarget)}, per ottenere l'EV ` +
-          "implicito (task 3). Infine — invece del football field vero e proprio, che mostrerebbe l'intero " +
-          "intervallo come una barra — calcoli quanto e' LARGO quel range: la differenza fra l'EV al " +
-          "multiplo piu' alto del comp set e l'EV al multiplo piu' basso, applicati alla stessa EBITDA del " +
-          'target (task 4).',
-      ].join('\n'),
+      brief: [tx('M5-10-FOOTBALLFIELD.7', { p0: num(N_PEER), p1: eurM(ebitdaTarget) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga(`A${ROW_TITOLO}`, ['Il football field: dal comp set al range di valutazione'], {
+            riga(`A${ROW_TITOLO}`, [tx('M5-10-FOOTBALLFIELD.8')], {
               style: STILE_TITOLO,
             }),
 
-            riga(`A${ROW_SEZ1}`, [`Comp set: ${num(N_PEER)} societa' comparabili, EV ed EBITDA gia' calendarizzati`], {
+            riga(`A${ROW_SEZ1}`, [tx('M5-10-FOOTBALLFIELD.9', { p0: num(N_PEER) })], {
               style: STILE_TITOLO,
             }),
-            riga(`A${ROW_HEADER}`, ['Peer', 'EV, €', 'EBITDA, €', 'EV/EBITDA, x'], { style: STILE_TITOLO }),
+            riga(`A${ROW_HEADER}`, [tx('M5-10-FOOTBALLFIELD.18'), 'EV, €', tx('M5-10-FOOTBALLFIELD.19'), tx('M5-10-FOOTBALLFIELD.20')], { style: STILE_TITOLO }),
             colonna(
               `A${DATA_START}`,
               peers.map((p) => p.label),
@@ -329,17 +290,17 @@ export default defineTemplate({
             peerCellsSpec,
             multiploCellsSpec,
 
-            riga(`A${ROW_SEZ2}`, ['Target'], { style: STILE_TITOLO }),
-            colonna(`A${ROW_TARGET}`, ['EBITDA del target, €'], { style: STILE_ETICHETTA }),
+            riga(`A${ROW_SEZ2}`, [tx('M5-10-FOOTBALLFIELD.21')], { style: STILE_TITOLO }),
+            colonna(`A${ROW_TARGET}`, [tx('M5-10-FOOTBALLFIELD.10')], { style: STILE_ETICHETTA }),
             [{ ref: B_TARGET, content: ebitdaTarget, style: STILE_INPUT, locked: true }],
 
-            riga(`A${ROW_SEZ3}`, ['Sintesi: dal comp set al range di valutazione'], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ3}`, [tx('M5-10-FOOTBALLFIELD.11')], { style: STILE_TITOLO }),
             colonna(
               `A${ROW_MEDIANA}`,
               [
-                'Multiplo mediano del comp set, x',
-                'EV implicito del target al multiplo mediano, €',
-                "Ampiezza del football field (EV alto − EV basso), €",
+                tx('M5-10-FOOTBALLFIELD.12'),
+                tx('M5-10-FOOTBALLFIELD.13'),
+                tx('M5-10-FOOTBALLFIELD.14'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -354,7 +315,7 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=B${DATA_START}/C${DATA_START}: EV diviso EBITDA. Trascina fino a D${DATA_END} senza piu' toccarla.`,
+          tx('M5-10-FOOTBALLFIELD.15', { DATA_START, DATA_END }),
           8,
           'T1',
         ),
@@ -366,17 +327,13 @@ export default defineTemplate({
         ),
         hint(
           'H3',
-          `=${B_MEDIANA}*${B_TARGET} — qui vale ${eur(evImplicito)}: il multiplo mediano applicato ` +
-            "all'EBITDA del target.",
+          tx('M5-10-FOOTBALLFIELD.16', { B_MEDIANA, B_TARGET, p2: eur(evImplicito) }),
           10,
           'T3',
         ),
         hint(
           'H4',
-          `=(MAX(${rangeMultipli})-MIN(${rangeMultipli}))*${B_TARGET} — qui vale ${eur(ampiezza)}: la ` +
-            `differenza fra l'EV al multiplo piu' alto (${multiplo(multiploMassimo)}, ${eur(evAlto)}) e ` +
-            `l'EV al multiplo piu' basso (${multiplo(multiploMinimo)}, ${eur(evBasso)}) del comp set, ` +
-            "entrambi calcolati sulla stessa EBITDA del target.",
+          tx('M5-10-FOOTBALLFIELD.17', { rangeMultipli, B_TARGET, p2: eur(ampiezza), p3: multiplo(multiploMassimo), p4: eur(evAlto), p5: multiplo(multiploMinimo), p6: eur(evBasso) }),
           14,
           'T4',
         ),

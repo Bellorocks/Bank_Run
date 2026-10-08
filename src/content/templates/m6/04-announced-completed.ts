@@ -45,6 +45,7 @@ import { roundTo, triangular } from '../../../rng/distributions';
 import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 
+import { tx } from '../../../i18n/content';
 /** Input battuto a mano espresso in euro con i centesimi: prezzo per azione. */
 const STILE_INPUT_PREZZO: CellStyle = { fontColor: MODEL_COLORS.input, numFmt: '#,##0.00' };
 /** Output di una formula che restituisce un multiplo: nero, "x". */
@@ -64,7 +65,9 @@ const B_VARIAZIONE = 'B13'; // T3
 export default defineTemplate({
   id: 'M6-04-ANNOUNCEDCOMPLETED',
   module: 'M6',
-  title: 'Announced vs completed: il multiplo si muove col tempo',
+  get title() {
+    return tx('M6-04-ANNOUNCEDCOMPLETED.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 260,
@@ -110,8 +113,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_MULT_ANNUNCIO} il multiplo EV/EBITDA implicito nel prezzo per azione offerto all'annuncio. ` +
-        "L'EV e' l'equity offerta per tutte le azioni piu' il debito netto che il compratore si accolla.",
+        tx('M6-04-ANNOUNCEDCOMPLETED.2', { B_MULT_ANNUNCIO }),
       target: `Model!${B_MULT_ANNUNCIO}`,
       atteso: multiploAnnuncio,
       referenzia: [B_PREZZO_ANNUNCIO, B_AZIONI, B_DEBITO, B_EBITDA],
@@ -123,8 +125,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_MULT_COMPLETAMENTO} lo stesso multiplo col prezzo per azione effettivamente pagato al closing: ` +
-        'azioni, debito netto ed EBITDA non cambiano, cambia solo il prezzo.',
+        tx('M6-04-ANNOUNCEDCOMPLETED.3', { B_MULT_COMPLETAMENTO }),
       target: `Model!${B_MULT_COMPLETAMENTO}`,
       atteso: multiploCompletamento,
       referenzia: [B_PREZZO_CLOSING, B_AZIONI, B_DEBITO, B_EBITDA],
@@ -136,14 +137,7 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        `In ${B_VARIAZIONE} la variazione percentuale del multiplo dall'annuncio al completamento. ` +
-        "Puo' venire positiva o negativa: un database M&A " +
-        "che riporta solo il multiplo \"announced\" di un deal puo' farti leggere un numero che il " +
-        "mercato non ha mai davvero pagato. Le ragioni tipiche per cui i due numeri differiscono: una " +
-        "rinegoziazione del prezzo dopo l'annuncio (spesso per esiti della due diligence), un pagamento " +
-        "in tutto o in parte in azioni del compratore il cui valore si muove fra annuncio e closing, o " +
-        "condizioni sospensive (autorizzazioni antitrust, approvazioni assembleari) che modificano i " +
-        "termini finali rispetto a quelli annunciati.",
+        tx('M6-04-ANNOUNCEDCOMPLETED.4', { B_VARIAZIONE }),
       target: `Model!${B_VARIAZIONE}`,
       atteso: variazione,
       referenzia: [B_MULT_COMPLETAMENTO, B_MULT_ANNUNCIO],
@@ -157,43 +151,21 @@ export default defineTemplate({
     return {
       templateId: 'M6-04-ANNOUNCEDCOMPLETED',
       seed: rng.seed,
-      brief: [
-        "## Announced vs completed: il multiplo si muove col tempo",
-        '',
-        "Un multiplo di transazione letto su un database M&A e' quasi sempre calcolato su un " +
-          "prezzo — ma UN deal ha due prezzi rilevanti, non uno solo. Il prezzo **all'annuncio** " +
-          "(announced) e' quello dichiarato al mercato il giorno in cui l'operazione viene resa " +
-          "pubblica. Il prezzo **al completamento** (completed/closing) e' quello effettivamente " +
-          "pagato il giorno in cui l'operazione si chiude — settimane o mesi dopo. Fra i due " +
-          "momenti i termini possono cambiare: per una rinegoziazione (spesso a valle della due " +
-          "diligence), perche' il pagamento e', in tutto o in parte, in azioni del compratore e il " +
-          "loro valore di mercato si e' mosso nel frattempo, o per condizioni sospensive " +
-          "(autorizzazioni antitrust, approvazioni assembleari) che modificano i termini finali.",
-        '',
-        "Il multiplo calcolato sul prezzo di annuncio e quello calcolato sul prezzo di closing " +
-          "sono quindi due numeri DIVERSI della stessa transazione, e chi confronta deal precedenti " +
-          "deve sapere quale dei due sta guardando — e quanto i due si sono scostati.",
-        '',
-        `**Il deal.** Il target ha ${num(azioni, 0)} azioni in circolazione e un EBITDA di ` +
-          `${eurM(ebitdaTarget)}, invariato fra annuncio e closing, e un debito netto di ${eurM(debitoNetto)} che ` +
-          'passa al compratore. Il compratore ha offerto ' +
-          `${eur(prezzoAnnuncio, 2)} per azione all'annuncio del deal. Al completamento, il prezzo ` +
-          `effettivamente pagato per azione e' stato di ${eur(prezzoClosing, 2)}.`,
-      ].join('\n'),
+      brief: [tx('M6-04-ANNOUNCEDCOMPLETED.5', { p0: num(azioni, 0), p1: eurM(ebitdaTarget), p2: eurM(debitoNetto), p3: eur(prezzoAnnuncio, 2), p4: eur(prezzoClosing, 2) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Announced vs completed: il multiplo si muove col tempo'], { style: STILE_TITOLO }),
-            riga('A3', ['Dati del deal'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M6-04-ANNOUNCEDCOMPLETED.6')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M6-04-ANNOUNCEDCOMPLETED.7')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'Numero di azioni del target',
-                'EBITDA del target, invariato fra annuncio e closing, €',
-                "Prezzo per azione offerto all'annuncio, €",
-                'Prezzo per azione effettivo al closing, €',
-                'Debito netto della target, €',
+                tx('M6-04-ANNOUNCEDCOMPLETED.8'),
+                tx('M6-04-ANNOUNCEDCOMPLETED.9'),
+                tx('M6-04-ANNOUNCEDCOMPLETED.10'),
+                tx('M6-04-ANNOUNCEDCOMPLETED.11'),
+                tx('M6-04-ANNOUNCEDCOMPLETED.12'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -203,13 +175,13 @@ export default defineTemplate({
             [{ ref: B_PREZZO_CLOSING, content: prezzoClosing, style: STILE_INPUT_PREZZO, locked: true }],
             [{ ref: B_DEBITO, content: debitoNetto, style: STILE_INPUT, locked: true }],
 
-            riga('A10', ['Multiplo di transazione: annuncio vs completamento'], { style: STILE_TITOLO }),
+            riga('A10', [tx('M6-04-ANNOUNCEDCOMPLETED.13')], { style: STILE_TITOLO }),
             colonna(
               'A11',
               [
-                "Multiplo di transazione all'annuncio, x",
-                'Multiplo di transazione al completamento (closing), x',
-                'Variazione percentuale fra i due multipli, %',
+                tx('M6-04-ANNOUNCEDCOMPLETED.14'),
+                tx('M6-04-ANNOUNCEDCOMPLETED.15'),
+                tx('M6-04-ANNOUNCEDCOMPLETED.16'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -224,21 +196,19 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=(${B_PREZZO_ANNUNCIO}*${B_AZIONI}+${B_DEBITO})/${B_EBITDA}: equity offerta piu' debito netto, ` +
-            "diviso l'EBITDA.",
+          tx('M6-04-ANNOUNCEDCOMPLETED.17', { B_PREZZO_ANNUNCIO, B_AZIONI, B_DEBITO, B_EBITDA }),
           10,
           'T1',
         ),
         hint(
           'H2',
-          `=(${B_PREZZO_CLOSING}*${B_AZIONI}+${B_DEBITO})/${B_EBITDA}: stessa formula, prezzo al closing.`,
+          tx('M6-04-ANNOUNCEDCOMPLETED.18', { B_PREZZO_CLOSING, B_AZIONI, B_DEBITO, B_EBITDA }),
           10,
           'T2',
         ),
         hint(
           'H3',
-          `=(${B_MULT_COMPLETAMENTO}-${B_MULT_ANNUNCIO})/${B_MULT_ANNUNCIO}: quanto il multiplo al ` +
-            "completamento si scosta da quello all'annuncio, in percentuale dell'annuncio.",
+          tx('M6-04-ANNOUNCEDCOMPLETED.19', { B_MULT_COMPLETAMENTO, B_MULT_ANNUNCIO }),
           10,
           'T3',
         ),

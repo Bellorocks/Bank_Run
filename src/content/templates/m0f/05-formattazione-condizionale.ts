@@ -47,6 +47,7 @@ import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 const RIGHE = 7;
 const RIGA_INTESTAZIONE = 4;
 const RIGA_PRIMO = 5;
@@ -86,7 +87,9 @@ function sogliaTraDue(alto: number, basso: number): number {
 export default defineTemplate({
   id: 'M0F-05-CONDFORMAT',
   module: 'M0-F',
-  title: 'Il flag che segnala da solo',
+  get title() {
+    return tx('M0F-05-CONDFORMAT.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 360,
@@ -123,12 +126,12 @@ export default defineTemplate({
     const esito = leva.map((l) => (l > soglia ? 'BREACH' : 'OK'));
     const numeroBreach = esito.filter((e) => e === 'BREACH').length;
 
-    const trimestri = Array.from({ length: RIGHE }, (_, i) => `Trimestre ${i + 1}`);
+    const trimestri = Array.from({ length: RIGHE }, (_, i) => tx('common.trimestre', { n: i + 1 }));
 
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In D${RIGA_PRIMO} calcola la leva del primo trimestre: Net Debt diviso EBITDA.`,
+        tx('M0F-05-CONDFORMAT.2', { RIGA_PRIMO }),
       target: `Model!D${RIGA_PRIMO}`,
       atteso: leva[0],
       referenzia: [`B${RIGA_PRIMO}`, `C${RIGA_PRIMO}`],
@@ -139,7 +142,7 @@ export default defineTemplate({
 
     const t2: Task = {
       id: 'T2',
-      prompt: `Riempi D${RIGA_PRIMO}:D${RIGA_ULTIMA} copiando quella formula su tutti i trimestri.`,
+      prompt: tx('M0F-05-CONDFORMAT.3', { RIGA_PRIMO, RIGA_ULTIMA }),
       targetCell: RANGE_LEVA,
       check: [
         { kind: 'consistentRow' as const, range: RANGE_LEVA },
@@ -152,10 +155,7 @@ export default defineTemplate({
     const t3: Task = {
       id: 'T3',
       prompt:
-        `In E${RIGA_PRIMO} scrivi il flag di covenant: se la leva in D${RIGA_PRIMO} supera la soglia ` +
-        `riquadrata in C2, il testo "BREACH"; altrimenti "OK". La soglia e\' UNA casella sola che OGNI ` +
-        'trimestre deve guardare: bloccala con $ (F4) cosi\' non scivola quando la copi in basso — ' +
-        'e\' la stessa disciplina di un named range, applicata a una regola invece che a un prezzo.',
+        tx('M0F-05-CONDFORMAT.4', { RIGA_PRIMO }),
       targetCell: `Model!E${RIGA_PRIMO}`,
       check: [
         { kind: 'mustBeFormula' as const },
@@ -163,8 +163,7 @@ export default defineTemplate({
           kind: 'text' as const,
           expected: esito[0],
           message:
-            `Il flag del primo trimestre non torna: deve confrontare la leva in D${RIGA_PRIMO} con la ` +
-            'soglia in C2 e restituire "BREACH" se la supera, "OK" altrimenti.',
+            tx('M0F-05-CONDFORMAT.5', { RIGA_PRIMO }),
         },
         { kind: 'mustReference' as const, cells: [`D${RIGA_PRIMO}`, 'C2'] },
         { kind: 'anchoring' as const, pattern: '$C$2' },
@@ -176,7 +175,7 @@ export default defineTemplate({
 
     const t4: Task = {
       id: 'T4',
-      prompt: `Riempi E${RIGA_PRIMO}:E${RIGA_ULTIMA} allo stesso modo: stessa formula, stesso ancoraggio.`,
+      prompt: tx('M0F-05-CONDFORMAT.6', { RIGA_PRIMO, RIGA_ULTIMA }),
       targetCell: RANGE_ESITO,
       check: [
         { kind: 'consistentRow' as const, range: RANGE_ESITO },
@@ -189,15 +188,14 @@ export default defineTemplate({
     const t5: Task = {
       id: 'T5',
       prompt:
-        `In E${RIGA_TOTALE} conta quanti trimestri sono in BREACH: e\' il numero che un vero comitato ` +
-        'del credito guarda per primo, prima ancora di scorrere la tabella riga per riga.',
+        tx('M0F-05-CONDFORMAT.7', { RIGA_TOTALE }),
       targetCell: `Model!E${RIGA_TOTALE}`,
       check: [
         { kind: 'mustBeFormula' as const },
         {
           kind: 'value' as const,
           expected: numeroBreach,
-          message: `Il conteggio non torna: deve contare, nell\'intervallo E${RIGA_PRIMO}:E${RIGA_ULTIMA}, quante celle valgono esattamente "BREACH".`,
+          message: tx('M0F-05-CONDFORMAT.8', { RIGA_PRIMO, RIGA_ULTIMA }),
         },
         { kind: 'mustReference' as const, cells: [`E${RIGA_PRIMO}`, `E${RIGA_ULTIMA}`] },
         { kind: 'mustUseFunction' as const, functions: ['COUNTIF', 'COUNTIFS'], quantifier: 'any' as const },
@@ -211,54 +209,23 @@ export default defineTemplate({
     return {
       templateId: 'M0F-05-CONDFORMAT',
       seed: rng.seed,
-      brief: [
-        '## Il colore che nasce da una regola',
-        '',
-        'In Excel vero, **Home > Formattazione condizionale > Nuova regola** lascia che sia il foglio',
-        'a decidere quando colorare una cella: "se il valore supera X, sfondo rosso" — e da quel',
-        'momento, ogni volta che il numero ricalcola, il colore si aggiorna da solo. E\' cosi\' che si',
-        'rende visibile un problema (un covenant sforato, uno scostamento fuori soglia) invece di',
-        'doverlo andare a cercare riga per riga.',
-        '',
-        '*(Questo trainer non genera ancora regole di formattazione condizionale vere dentro il',
-        'foglio — e\' un lavoro futuro sul motore di gioco, vedi `openIssues`. L\'esercizio allena',
-        'pero\' esattamente la logica che ci sta dietro, con lo strumento che gia\' conosci: un IF che',
-        'restituisce un flag leggibile. La differenza fra i due conta e vale la pena tenerla a mente:',
-        'la regola vera COLORA la cella ma non produce nulla che un\'altra formula possa leggere; il',
-        'flag che scrivi qui — "BREACH" oppure "OK" — e\' un valore vero e proprio, referenziabile da',
-        'un COUNTIF, da un\'altra IF, da un totale. In un modello vero si usano spesso insieme: il',
-        'flag calcolato per contare e filtrare, la regola di formattazione condizionale sopra di lui',
-        'per farlo saltare all\'occhio.)*',
-        '',
-        '## Il caso',
-        '',
-        'Il contratto di finanziamento fissa un covenant di leva massima — Net Debt su EBITDA — e',
-        `lo testa ogni trimestre. La soglia di questa istanza e\' **${num(soglia, 2)}x**: superarla e\'`,
-        'un breach tecnico da segnalare alla banca.',
-        '',
-        `Net Debt ed EBITDA degli ultimi ${num(RIGHE)} trimestri sono gia\' in tabella (si parte da`,
-        `${eur(netDebt[0])} di debito e ${eur(ebitda[0])} di EBITDA nel primo trimestre; il debito`,
-        'scende ogni trimestre per il rimborso, l\'EBITDA cresce). La colonna Leva e la colonna Esito',
-        'covenant le scrivi tu: prima calcoli la leva, poi il flag che la confronta con la soglia',
-        'riquadrata in C2 — la casella unica che ogni riga deve guardare, mai un valore ribattuto a',
-        'mano riga per riga.',
-      ].join('\n'),
+      brief: [tx('M0F-05-CONDFORMAT.9', { p0: num(soglia, 2), p1: num(RIGHE), p2: eur(netDebt[0]), p3: eur(ebitda[0]) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Covenant test — leva netta / EBITDA'], { style: STILE_TITOLO }),
-            colonna('A2', ['Soglia covenant (Net Debt/EBITDA max)'], { style: STILE_ETICHETTA }),
+            riga('A1', [tx('M0F-05-CONDFORMAT.10')], { style: STILE_TITOLO }),
+            colonna('A2', [tx('M0F-05-CONDFORMAT.11')], { style: STILE_ETICHETTA }),
             [{ ref: 'C2', content: soglia, style: STILE_SOGLIA, locked: true }],
 
-            riga(`A${RIGA_INTESTAZIONE}`, ['Trimestre', 'Net Debt (€)', 'EBITDA (€)', 'Leva (Net Debt/EBITDA)', 'Esito covenant'], {
+            riga(`A${RIGA_INTESTAZIONE}`, [tx('M0F-05-CONDFORMAT.21'), tx('M0F-05-CONDFORMAT.12'), tx('M0F-05-CONDFORMAT.13'), tx('M0F-05-CONDFORMAT.14'), tx('M0F-05-CONDFORMAT.15')], {
               style: STILE_TITOLO,
             }),
             colonna(`A${RIGA_PRIMO}`, trimestri, { style: STILE_ETICHETTA }),
             colonna(`B${RIGA_PRIMO}`, netDebt, { style: STILE_INPUT }),
             colonna(`C${RIGA_PRIMO}`, ebitda, { style: STILE_INPUT }),
 
-            colonna(`A${RIGA_TOTALE}`, ['Trimestri in breach'], { style: STILE_ETICHETTA }),
+            colonna(`A${RIGA_TOTALE}`, [tx('M0F-05-CONDFORMAT.16')], { style: STILE_ETICHETTA }),
 
             areaLibera([
               ...Array.from({ length: RIGHE }, (_, i) => `D${RIGA_PRIMO + i}`),
@@ -275,15 +242,15 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', `Net Debt diviso EBITDA: =B${RIGA_PRIMO}/C${RIGA_PRIMO}.`, 8, 'T1'),
-        hint('H2', `Copia D${RIGA_PRIMO}, seleziona ${RANGE_LEVA.replace('Model!', '')}, incolla (o Ctrl+D).`, 8, 'T2'),
+        hint('H1', tx('M0F-05-CONDFORMAT.17', { RIGA_PRIMO }), 8, 'T1'),
+        hint('H2', tx('M0F-05-CONDFORMAT.18', { RIGA_PRIMO, p1: RANGE_LEVA.replace('Model!', '') }), 8, 'T2'),
         hint(
           'H3',
-          `=IF(D${RIGA_PRIMO}>$C$2,"BREACH","OK"). Scrivi prima C2 senza $, poi torna sul riferimento con F2 e premi F4 finche\' non diventa $C$2.`,
+          tx('M0F-05-CONDFORMAT.19', { RIGA_PRIMO }),
           12,
           'T3',
         ),
-        hint('H4', `Copia E${RIGA_PRIMO}, seleziona ${RANGE_ESITO.replace('Model!', '')}, incolla (o Ctrl+D).`, 8, 'T4'),
+        hint('H4', tx('M0F-05-CONDFORMAT.20', { RIGA_PRIMO, p1: RANGE_ESITO.replace('Model!', '') }), 8, 'T4'),
         hint('H5', `=COUNTIF(E${RIGA_PRIMO}:E${RIGA_ULTIMA},"BREACH")`, 10, 'T5'),
       ],
       parScore: par(tasks, { letturaSecondi: 80 }),

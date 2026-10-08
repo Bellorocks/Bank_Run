@@ -51,6 +51,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
 const B_EBITDA_RIP = 'B4'; // EBITDA riportato (dato, bloccato)
 const B_RETTIFICA = 'B5'; // Rettifica: costo legale one-off (dato, bloccato)
@@ -61,7 +62,9 @@ const B_IMPATTO_PCT = 'B9'; // T2
 export default defineTemplate({
   id: 'M2-01-NORMALIZZAZIONE',
   module: 'M2',
-  title: "Normalizzare l'EBITDA: la meccanica base",
+  get title() {
+    return tx('M2-01-NORMALIZZAZIONE.title');
+  },
   rank: 1,
   mode: 'GUIDED',
   estimatedSeconds: 220,
@@ -86,10 +89,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_EBITDA_NORM} calcola l'EBITDA normalizzato: l'EBITDA riportato (${B_EBITDA_RIP}) piu' la ` +
-        `rettifica (${B_RETTIFICA}). La rettifica e' un costo legale straordinario, one-off, gia' incluso ` +
-        `nell'EBITDA riportato: e' un costo non ricorrente che ha gonfiato i costi (quindi sgonfiato ` +
-        "l'EBITDA riportato), percio' si RIAGGIUNGE con segno positivo.",
+        tx('M2-01-NORMALIZZAZIONE.2', { B_EBITDA_NORM, B_EBITDA_RIP, B_RETTIFICA }),
       target: `Model!${B_EBITDA_NORM}`,
       atteso: ebitdaNormalizzato,
       referenzia: [B_EBITDA_RIP, B_RETTIFICA],
@@ -101,9 +101,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_IMPATTO_PCT} calcola l'impatto percentuale della rettifica sull'EBITDA riportato: la ` +
-        `rettifica (${B_RETTIFICA}) divisa per l'EBITDA riportato (${B_EBITDA_RIP}). Non basta guardare la ` +
-        "rettifica in valore assoluto: un compratore la giudica anche in proporzione all'EBITDA di partenza.",
+        tx('M2-01-NORMALIZZAZIONE.3', { B_IMPATTO_PCT, B_RETTIFICA, B_EBITDA_RIP }),
       target: `Model!${B_IMPATTO_PCT}`,
       atteso: impattoPct,
       referenzia: [B_RETTIFICA, B_EBITDA_RIP],
@@ -117,44 +115,18 @@ export default defineTemplate({
     return {
       templateId: 'M2-01-NORMALIZZAZIONE',
       seed: rng.seed,
-      brief: [
-        "## L'EBITDA che si negozia non e' quasi mai l'EBITDA di bilancio",
-        '',
-        "L'EBITDA \"come riportato\" in bilancio raramente e' l'EBITDA vero del business: dentro ci " +
-          "finiscono costi e proventi che non si ripeteranno piu', o che non riflettono le normali " +
-          "condizioni di mercato. Un Quality of Earnings (QoE) li rettifica per arrivare a un EBITDA " +
-          '**normalizzato** (o *adjusted*) — quello su cui davvero si negozia un multiplo. La formula ' +
-          "generale, che riuserai per tutto questo modulo, e' questa:",
-        '',
-        '> **EBITDA normalizzato = EBITDA riportato + Σ rettifiche**',
-        '',
-        "Ogni rettifica ha un segno preciso, e sbagliarlo e' l'errore piu' comune di chi inizia:",
-        '',
-        "- un **costo** one-off o non di mercato, gia' dentro l'EBITDA riportato, ha GONFIATO i costi " +
-          "(quindi SGONFIATO l'EBITDA riportato): si RIAGGIUNGE, rettifica **positiva**.",
-        "- un **ricavo/provento** one-off, gia' dentro l'EBITDA riportato, ha GONFIATO l'EBITDA " +
-          "riportato: si TOGLIE, rettifica **negativa**.",
-        '',
-        `Qui hai un solo caso, il piu' semplice: l'EBITDA riportato e' ${eur(ebitdaRiportato)}, e dentro ` +
-          `ci sono ${eur(rettificaLegale)} di spese legali straordinarie per un contenzioso concluso — un ` +
-          "costo che non si ripetera' negli anni futuri. E' una rettifica da riaggiungere.",
-        '',
-        "Una volta calcolato l'EBITDA normalizzato, guarda anche quanto pesa la rettifica in " +
-          "proporzione: se le rettifiche totali superano il 15-20% dell'EBITDA riportato, un compratore " +
-          "comincia a chiedersi quanto sia davvero pulito il business — e quanto, invece, l'EBITDA " +
-          '"adjusted" sia gonfiato ad arte.',
-      ].join('\n'),
+      brief: [tx('M2-01-NORMALIZZAZIONE.4', { p0: eur(ebitdaRiportato), p1: eur(rettificaLegale) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ["Normalizzazione dell'EBITDA"], { style: STILE_TITOLO }),
-            riga('A3', ['Dati di partenza'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M2-01-NORMALIZZAZIONE.5')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M2-01-NORMALIZZAZIONE.6')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'EBITDA riportato (da bilancio), €',
-                'Rettifica: costo legale straordinario one-off, gia\' incluso sopra, €',
+                tx('M2-01-NORMALIZZAZIONE.7'),
+                tx('M2-01-NORMALIZZAZIONE.8'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -163,12 +135,12 @@ export default defineTemplate({
               { ref: B_RETTIFICA, content: rettificaLegale, style: STILE_INPUT, locked: true },
             ],
 
-            riga('A7', ['Normalizzazione'], { style: STILE_TITOLO }),
+            riga('A7', [tx('M2-01-NORMALIZZAZIONE.13')], { style: STILE_TITOLO }),
             colonna(
               'A8',
               [
-                'EBITDA normalizzato, €',
-                "Impatto della rettifica sull'EBITDA riportato, %",
+                tx('M2-01-NORMALIZZAZIONE.9'),
+                tx('M2-01-NORMALIZZAZIONE.10'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -182,15 +154,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_EBITDA_RIP}+${B_RETTIFICA}: EBITDA riportato piu' la rettifica. Il costo legale e' ` +
-            "one-off e ha gonfiato i costi, quindi si riaggiunge con segno positivo.",
+          tx('M2-01-NORMALIZZAZIONE.11', { B_EBITDA_RIP, B_RETTIFICA }),
           8,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_RETTIFICA}/${B_EBITDA_RIP}: la rettifica in proporzione all'EBITDA riportato, non in ` +
-            `valore assoluto (qui vale ${pct(impattoPct)}).`,
+          tx('M2-01-NORMALIZZAZIONE.12', { B_RETTIFICA, B_EBITDA_RIP, p2: pct(impattoPct) }),
           8,
           'T2',
         ),

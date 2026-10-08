@@ -33,6 +33,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { contentNumberLocale, tx } from '../../../i18n/content';
 // Geometria fissa
 const B_ACQ_NI = 'B4'; // Utile Netto Acquirer (dato)
 const B_ACQ_EPS = 'B6'; // Standalone EPS = B4 / B5 (formula)
@@ -50,7 +51,9 @@ const B_ACCRETION = 'B18'; // T3: Accretion / (Dilution) % = (B17 / B6) - 1
 export default defineTemplate({
   id: 'M9-04-ACCRETIONDILUTION',
   module: 'M9',
-  title: 'Accretion / dilution: utile pro-forma e impatto su EPS',
+  get title() {
+    return tx('M9-04-ACCRETIONDILUTION.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -76,52 +79,35 @@ export default defineTemplate({
     const pfEps = pfNi / pfShares;
     const accretionPct = (pfEps / acqEps) - 1;
 
-    const brief = [
-      `Valuta l'impatto economico dell'operazione di fusione sull'**EPS (Utile per Azione)** pro-forma dell'acquirente.`,
-      ``,
-      `Dati Standalone & Transazione:`,
-      `- **Utile Netto Acquirer**: ${eur(acqNi)} su ${acqShares.toLocaleString('it-IT')} azioni (EPS ${eur(acqEps, 2)})`,
-      `- **Utile Netto Target**: ${eur(tgtNi)}`,
-      `- **Sinergie Nette Post-Tax**: +${eur(synAt)}`,
-      `- **Costi Finanziari Nuovo Debito Post-Tax**: -${eur(finAt)}`,
-      `- **Ammortamenti PPA Post-Tax**: -${eur(ppaAt)}`,
-      `- **Nuove Azioni Emesse per il Deal**: ${newShares.toLocaleString('it-IT')}`,
-      ``,
-      "L'operazione e' **accrescitiva** se l'EPS dell'acquirente dopo il deal e' piu' alto di quello " +
-        "standalone, **diluitiva** se e' piu' basso. L'utile combinato sale (utile della target e sinergie), " +
-        "ma scende per il costo del finanziamento e l'ammortamento della PPA; il denominatore cresce con le " +
-        'nuove azioni emesse.',
-      '',
-      "Calcola utile ed EPS pro-forma, e l'accretion (positiva) o dilution (negativa) in percentuale.",
-    ].join('\n');
+    const brief = [tx('M9-04-ACCRETIONDILUTION.2', { p0: eur(acqNi), p1: acqShares.toLocaleString(contentNumberLocale()), p2: eur(acqEps, 2), p3: eur(tgtNi), p4: eur(synAt), p5: eur(finAt), p6: eur(ppaAt), p7: newShares.toLocaleString(contentNumberLocale()) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['ANALISI ACCRETION / DILUTION EPS'], { style: STILE_TITOLO }),
-      riga('A3', ['Dati Acquirer Standalone', 'Valore'], { style: STILE_TITOLO }),
+      riga('A1', [tx('M9-04-ACCRETIONDILUTION.3')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M9-04-ACCRETIONDILUTION.4'), tx('M9-04-ACCRETIONDILUTION.23')], { style: STILE_TITOLO }),
       colonna('A4', [
-        'Utile Netto Acquirer (€)',
-        'Azioni Acquirer in Circolazione',
-        'EPS Standalone Acquirer (€)',
+        tx('M9-04-ACCRETIONDILUTION.5'),
+        tx('M9-04-ACCRETIONDILUTION.6'),
+        tx('M9-04-ACCRETIONDILUTION.7'),
       ], { style: STILE_ETICHETTA }),
       colonna('B4', [acqNi, acqShares], { style: STILE_INPUT }),
       colonna(B_ACQ_EPS, ['=B4/B5'], { style: STILE_FORMULA }),
 
-      riga('A7', ['Aggiustamenti Deal M&A (Post-Tax)', 'Importo (€) / Azioni'], { style: STILE_TITOLO }),
+      riga('A7', [tx('M9-04-ACCRETIONDILUTION.8'), tx('M9-04-ACCRETIONDILUTION.9')], { style: STILE_TITOLO }),
       colonna('A8', [
-        '(+) Utile Netto Target (€)',
-        '(+) Sinergie Post-Tax (€)',
-        '(-) Costi Finanziamento Post-Tax (€)',
-        '(-) Ammortamenti PPA Post-Tax (€)',
-        '(+) Nuove Azioni Emesse (Numero)',
+        tx('M9-04-ACCRETIONDILUTION.10'),
+        tx('M9-04-ACCRETIONDILUTION.11'),
+        tx('M9-04-ACCRETIONDILUTION.12'),
+        tx('M9-04-ACCRETIONDILUTION.13'),
+        tx('M9-04-ACCRETIONDILUTION.14'),
       ], { style: STILE_ETICHETTA }),
       colonna('B8', [tgtNi, synAt, finAt, ppaAt, newShares], { style: STILE_INPUT }),
 
-      riga('A14', ['Risultati Pro-Forma', 'Risultato'], { style: STILE_TITOLO }),
+      riga('A14', [tx('M9-04-ACCRETIONDILUTION.15'), tx('M9-04-ACCRETIONDILUTION.24')], { style: STILE_TITOLO }),
       colonna('A15', [
-        'Utile Netto Pro-Forma Combinato (€)',
-        'Azioni Totali Pro-Forma (Numero)',
-        'EPS Pro-Forma (€)',
-        'Accretion / (Dilution) %',
+        tx('M9-04-ACCRETIONDILUTION.16'),
+        tx('M9-04-ACCRETIONDILUTION.17'),
+        tx('M9-04-ACCRETIONDILUTION.18'),
+        tx('M9-04-ACCRETIONDILUTION.19'),
       ], { style: STILE_ETICHETTA }),
       colonna(B_PF_NI, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_PF_SHARES, ['=B5+B12'], { style: STILE_FORMULA }),
@@ -132,7 +118,7 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `In ${B_PF_NI} l'utile netto pro-forma del gruppo combinato, con tutti gli aggiustamenti del deal.`,
+        prompt: tx('M9-04-ACCRETIONDILUTION.20', { B_PF_NI }),
         target: `Model!${B_PF_NI}`,
         atteso: pfNi,
         referenzia: [B_ACQ_NI, B_TGT_NI, B_SYN_AT, B_FIN_AT, B_PPA_AT],
@@ -142,7 +128,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T2',
-        prompt: `In ${B_PF_EPS} l'EPS pro-forma.`,
+        prompt: tx('M9-04-ACCRETIONDILUTION.21', { B_PF_EPS }),
         target: `Model!${B_PF_EPS}`,
         atteso: pfEps,
         referenzia: [B_PF_NI, B_PF_SHARES],
@@ -152,7 +138,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T3',
-        prompt: `In ${B_ACCRETION} l'accretion (positiva) o dilution (negativa) dell'EPS, in percentuale dell'EPS standalone.`,
+        prompt: tx('M9-04-ACCRETIONDILUTION.22', { B_ACCRETION }),
         target: `Model!${B_ACCRETION}`,
         atteso: accretionPct,
         referenzia: [B_PF_EPS, B_ACQ_EPS],

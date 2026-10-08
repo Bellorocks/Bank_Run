@@ -32,6 +32,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // Geometria fissa
 const B_EBITDA = 'B4'; // EBITDA (dato)
 const B_CFADS = 'B5'; // Free Cash Flow Operativo per il debito (dato)
@@ -46,7 +47,9 @@ const B_LEV = 'B13'; // T3: Leverage = B8 / B4
 export default defineTemplate({
   id: 'M10-01-CREDITRATIOS',
   module: 'M10',
-  title: 'Credit ratios: DSCR, ICR e leverage ratio bancario',
+  get title() {
+    return tx('M10-01-CREDITRATIOS.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -66,42 +69,25 @@ export default defineTemplate({
     const icr = ebitda / intExp;
     const lev = netDebt / ebitda;
 
-    const brief = [
-      `Analizza il merito creditizio e la sostenibilità del debito per la delibera di fido bancario.`,
-      ``,
-      `Dati economico-finanziari dell'esercizio:`,
-      `- **EBITDA**: ${eur(ebitda)}`,
-      `- **Flusso di Cassa Operativo Disponibile (CFADS)**: ${eur(cfads)}`,
-      `- **Interessi Passivi Annui**: ${eur(intExp)}`,
-      `- **Quota Capitale Annua in Scadenza (Ammortamento)**: ${eur(mandAmort)}`,
-      `- **Debito Finanziario Netto**: ${eur(netDebt)}`,
-      ``,
-      'Tre domande, tre indicatori:',
-      '',
-      "- **DSCR**: la cassa disponibile basta a pagare tutto il servizio del debito dell'anno, interessi e quota capitale?",
-      "- **ICR**: quante volte l'EBITDA copre gli interessi?",
-      "- **Net leverage**: quanti anni di EBITDA servirebbero per ripagare il debito netto?",
-      '',
-      "Un DSCR sotto 1 vuol dire che l'azienda, da sola, non riesce a servire il debito quest'anno.",
-    ].join('\n');
+    const brief = [tx('M10-01-CREDITRATIOS.2', { p0: eur(ebitda), p1: eur(cfads), p2: eur(intExp), p3: eur(mandAmort), p4: eur(netDebt) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['METRICHE DI CREDITO E RATING BANCARIO'], { style: STILE_TITOLO }),
-      riga('A3', ['Flussi & Debito', 'Valore (€)'], { style: STILE_TITOLO }),
+      riga('A1', [tx('M10-01-CREDITRATIOS.3')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M10-01-CREDITRATIOS.4'), tx('M10-01-CREDITRATIOS.5')], { style: STILE_TITOLO }),
       colonna('A4', [
-        'EBITDA (€)',
-        'CFADS (Cassa Operativa per Debito, €)',
-        'Interessi Passivi Annui (€)',
-        'Quota Capitale Annua (Ammortamento, €)',
-        'Debito Finanziario Netto (€)',
+        tx('M10-01-CREDITRATIOS.6'),
+        tx('M10-01-CREDITRATIOS.7'),
+        tx('M10-01-CREDITRATIOS.8'),
+        tx('M10-01-CREDITRATIOS.9'),
+        tx('M10-01-CREDITRATIOS.10'),
       ], { style: STILE_ETICHETTA }),
       colonna('B4', [ebitda, cfads, intExp, mandAmort, netDebt], { style: STILE_INPUT }),
 
-      riga('A10', ['Indicatori di Copertura & Rischio', 'Risultato (x)'], { style: STILE_TITOLO }),
+      riga('A10', [tx('M10-01-CREDITRATIOS.11'), tx('M10-01-CREDITRATIOS.12')], { style: STILE_TITOLO }),
       colonna('A11', [
-        'DSCR (Debt Service Coverage Ratio)',
-        'ICR (Interest Coverage Ratio)',
-        'Net Leverage (Net Debt / EBITDA)',
+        tx('M10-01-CREDITRATIOS.13'),
+        tx('M10-01-CREDITRATIOS.14'),
+        tx('M10-01-CREDITRATIOS.15'),
       ], { style: STILE_ETICHETTA }),
       colonna(B_DSCR, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_ICR, [null], { style: STILE_FORMULA, locked: false }),
@@ -111,7 +97,7 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `In ${B_DSCR} il DSCR: cassa disponibile rapportata all'intero servizio del debito dell'anno.`,
+        prompt: tx('M10-01-CREDITRATIOS.16', { B_DSCR }),
         target: `Model!${B_DSCR}`,
         atteso: dscr,
         referenzia: [B_CFADS, B_INT_EXP, B_MAND_AMORT],
@@ -121,7 +107,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T2',
-        prompt: `In ${B_ICR} l'interest coverage ratio.`,
+        prompt: tx('M10-01-CREDITRATIOS.17', { B_ICR }),
         target: `Model!${B_ICR}`,
         atteso: icr,
         referenzia: [B_EBITDA, B_INT_EXP],
@@ -131,7 +117,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T3',
-        prompt: `In ${B_LEV} il net leverage.`,
+        prompt: tx('M10-01-CREDITRATIOS.18', { B_LEV }),
         target: `Model!${B_LEV}`,
         atteso: lev,
         referenzia: [B_NET_DEBT, B_EBITDA],

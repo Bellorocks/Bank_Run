@@ -47,6 +47,7 @@ import {
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 const ANNI = 5;
 const COLONNE = ['C', 'D', 'E', 'F', 'G'] as const;
 const ULTIMA = COLONNE[ANNI - 1];
@@ -97,7 +98,9 @@ const rowRange = (row: number) => `${COLONNE[0]}${row}:${ULTIMA}${row}`;
 export default defineTemplate({
   id: 'M12-01-DEALROOM',
   module: 'M12',
-  title: 'Live Deal Room: la transazione LBO integrata [BOSS]',
+  get title() {
+    return tx('M12-01-DEALROOM.title');
+  },
   rank: 5,
   mode: 'BOSS',
   estimatedSeconds: 1200,
@@ -172,15 +175,16 @@ export default defineTemplate({
     const irr = Math.pow(moic, 1 / ANNI) - 1;
     const scarto = (rHurdle.next() < 0.5 ? -1 : 1) * (0.01 + rHurdle.next() * 0.03);
     const hurdle = Math.min(0.3, Math.max(0.1, roundTo(irr + scarto, 0.01)));
-    const decisione = irr >= hurdle ? 'INVESTI' : 'PASSA';
+    const INVESTI = tx('common.tok.investi');
+    const PASSA = tx('common.tok.passa');
+    const decisione = irr >= hurdle ? INVESTI : PASSA;
 
     const c1 = COLONNE[0];
     const tasks: Task[] = [
       taskFormula({
         id: 'T1',
         prompt:
-          `In ${B_EBITDA_NORM} l'EBITDA normalizzato: quello riportato a bilancio, rettificato per i due ` +
-          'costi che un compratore non sosterra\' (sezione 1).',
+          tx('M12-01-DEALROOM.2', { B_EBITDA_NORM }),
         target: `Model!${B_EBITDA_NORM}`,
         atteso: ebitdaNorm,
         referenzia: [B_EBITDA_REP, B_ADD_SOCIO, B_ADD_LEGALI],
@@ -190,7 +194,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T2',
-        prompt: `In ${B_EV} l'Enterprise Value pagato, al multiplo d'ingresso concordato.`,
+        prompt: tx('M12-01-DEALROOM.3', { B_EV }),
         target: `Model!${B_EV}`,
         atteso: ev,
         referenzia: [B_EBITDA_NORM, B_MULT_IN],
@@ -200,7 +204,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T3',
-        prompt: `In ${B_PREZZO_EQ} quanto incassa il venditore per le sue azioni.`,
+        prompt: tx('M12-01-DEALROOM.4', { B_PREZZO_EQ }),
         target: `Model!${B_PREZZO_EQ}`,
         atteso: prezzoEquity,
         referenzia: [B_EV, B_ND_ESISTENTE],
@@ -210,7 +214,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T4',
-        prompt: `In ${B_FEE} le fee di transazione in euro.`,
+        prompt: tx('M12-01-DEALROOM.5', { B_FEE }),
         target: `Model!${B_FEE}`,
         atteso: fee,
         referenzia: [B_EV, B_FEE_PCT],
@@ -221,8 +225,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T5',
         prompt:
-          `In ${B_IMPIEGHI} il totale degli impieghi: tutto il denaro che serve al closing. Il deal e' ` +
-          'cash free / debt free: il debito esistente non resta in azienda.',
+          tx('M12-01-DEALROOM.6', { B_IMPIEGHI }),
         target: `Model!${B_IMPIEGHI}`,
         atteso: impieghi,
         referenzia: [B_PREZZO_EQ, B_ND_ESISTENTE, B_FEE],
@@ -232,7 +235,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T6',
-        prompt: `In ${B_DEBITO} il debito senior raccolto, alla leva concordata con le banche.`,
+        prompt: tx('M12-01-DEALROOM.7', { B_DEBITO }),
         target: `Model!${B_DEBITO}`,
         atteso: debito,
         referenzia: [B_EBITDA_NORM, B_LEVA],
@@ -242,7 +245,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T7',
-        prompt: `In ${B_SPONSOR} l'equity che lo sponsor deve versare per chiudere le fonti.`,
+        prompt: tx('M12-01-DEALROOM.8', { B_SPONSOR }),
         target: `Model!${B_SPONSOR}`,
         atteso: sponsor,
         referenzia: [B_IMPIEGHI, B_DEBITO],
@@ -253,8 +256,7 @@ export default defineTemplate({
       rigaPiano(
         'T8',
         ROW_EBITDA,
-        `Riga ${ROW_EBITDA}, ${rowRange(ROW_EBITDA)}: l'EBITDA di ogni anno, che cresce al tasso ipotizzato. ` +
-          'Una formula sola, copiata su tutta la riga.',
+        tx('M12-01-DEALROOM.9', { ROW_EBITDA, p1: rowRange(ROW_EBITDA) }),
         ebitda[0],
         ebitda[ANNI - 1],
         [`B${ROW_EBITDA}`, B_CRESCITA],
@@ -263,8 +265,7 @@ export default defineTemplate({
       rigaPiano(
         'T9',
         ROW_INTERESSI,
-        `Riga ${ROW_INTERESSI}: gli interessi dell'anno, calcolati sul debito di inizio anno (cioe' quello ` +
-          'di fine anno precedente): cosi\' il modello resta senza circolarita\'.',
+        tx('M12-01-DEALROOM.10', { ROW_INTERESSI }),
         interessi[0],
         interessi[ANNI - 1],
         [`B${ROW_DEBITO}`, B_TASSO],
@@ -273,8 +274,7 @@ export default defineTemplate({
       rigaPiano(
         'T10',
         ROW_CASSA,
-        `Riga ${ROW_CASSA}: la cassa disponibile per rimborsare il debito, cioe' l'EBITDA convertito in ` +
-          'cassa secondo l\'ipotesi, dopo aver pagato gli interessi.',
+        tx('M12-01-DEALROOM.11', { ROW_CASSA }),
         cassa[0],
         cassa[ANNI - 1],
         [`${c1}${ROW_EBITDA}`, B_CONVERSIONE, `${c1}${ROW_INTERESSI}`],
@@ -283,8 +283,7 @@ export default defineTemplate({
       rigaPiano(
         'T11',
         ROW_RIMBORSO,
-        `Riga ${ROW_RIMBORSO}: il rimborso con cash sweep al 100%. Tutta la cassa disponibile va a ripagare ` +
-          'il debito, ma non si puo\' rimborsare piu\' del debito che resta.',
+        tx('M12-01-DEALROOM.12', { ROW_RIMBORSO }),
         rimborso[0],
         rimborso[ANNI - 1],
         [`B${ROW_DEBITO}`, `${c1}${ROW_CASSA}`],
@@ -294,7 +293,7 @@ export default defineTemplate({
       rigaPiano(
         'T12',
         ROW_DEBITO,
-        `Riga ${ROW_DEBITO}: il debito di fine anno.`,
+        tx('M12-01-DEALROOM.13', { ROW_DEBITO }),
         debitoFine[0],
         debitoFine[ANNI - 1],
         [`B${ROW_DEBITO}`, `${c1}${ROW_RIMBORSO}`],
@@ -302,7 +301,7 @@ export default defineTemplate({
       ),
       taskFormula({
         id: 'T13',
-        prompt: `In ${B_EV_OUT} l'Enterprise Value all'uscita, a fine anno ${ANNI}, al multiplo di uscita ipotizzato.`,
+        prompt: tx('M12-01-DEALROOM.14', { B_EV_OUT, ANNI }),
         target: `Model!${B_EV_OUT}`,
         atteso: evOut,
         referenzia: [`${ULTIMA}${ROW_EBITDA}`, B_MULT_OUT],
@@ -312,7 +311,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T14',
-        prompt: `In ${B_EQ_OUT} il valore dell'equity dello sponsor all'uscita.`,
+        prompt: tx('M12-01-DEALROOM.15', { B_EQ_OUT }),
         target: `Model!${B_EQ_OUT}`,
         atteso: eqOut,
         referenzia: [B_EV_OUT, `${ULTIMA}${ROW_DEBITO}`],
@@ -322,7 +321,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T15',
-        prompt: `In ${B_MOIC} il multiplo sul capitale investito (MoIC) dello sponsor.`,
+        prompt: tx('M12-01-DEALROOM.16', { B_MOIC }),
         target: `Model!${B_MOIC}`,
         atteso: moic,
         referenzia: [B_EQ_OUT, B_SPONSOR],
@@ -333,8 +332,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T16',
         prompt:
-          `In ${B_IRR} l'IRR dello sponsor. Un solo versamento all'ingresso e un solo incasso all'uscita: ` +
-          `bastano MoIC e durata dell'investimento (${B_ANNI}).`,
+          tx('M12-01-DEALROOM.17', { B_IRR, B_ANNI }),
         target: `Model!${B_IRR}`,
         atteso: irr,
         referenzia: [B_MOIC, B_ANNI],
@@ -345,9 +343,7 @@ export default defineTemplate({
       {
         id: 'T17',
         prompt:
-          `In ${B_DECISIONE} la raccomandazione al comitato, calcolata e non battuta a mano: "INVESTI" se ` +
-          `l'IRR raggiunge almeno l'hurdle (${B_HURDLE}), altrimenti "PASSA". Se cambia un'ipotesi, la ` +
-          'raccomandazione deve aggiornarsi da sola.',
+          tx('M12-01-DEALROOM.18', { B_DECISIONE, B_HURDLE }),
         targetCell: `Model!${B_DECISIONE}`,
         check: [
           { kind: 'mustBeFormula' },
@@ -360,67 +356,39 @@ export default defineTemplate({
       },
     ];
 
-    const brief = [
-      '## Live Deal Room — il comitato ti aspetta',
-      '',
-      'Lo sponsor vuole comprare il 100% di un\'azienda industriale con un leveraged buyout. Hai tutti i ' +
-        'dati nel foglio: costruisci il modello dall\'inizio alla fine e porta al comitato una ' +
-        'raccomandazione. Nessuna formula suggerita: il mandato dice cosa serve, il come e\' tuo ' +
-        '(i suggerimenti ci sono, ma costano XP).',
-      '',
-      '### 1. Quality of Earnings',
-      `L'EBITDA a bilancio sconta il compenso eccedente del socio uscente e oneri legali straordinari ` +
-        'che non si ripeteranno: vanno riaggiunti.',
-      '',
-      '### 2. Sources & Uses',
-      `Il prezzo e' ${multiplo(multIn)} l'EBITDA normalizzato. L'operazione e' **cash free / debt free**: ` +
-        'lo sponsor paga l\'equity al venditore e rifinanzia per intero il debito netto esistente; sopra ' +
-        `ci sono le fee. Le banche prestano ${multiplo(leva)} l'EBITDA normalizzato al ${pct(tasso, 2)}; ` +
-        'il resto lo mette lo sponsor.',
-      '',
-      '### 3. Piano di rimborso',
-      `Cinque anni, EBITDA in crescita del ${pct(crescita)} annuo. Il ${pct(conversione, 0)} dell'EBITDA ` +
-        'diventa cassa prima degli interessi (dopo tasse, capex e capitale circolante); tutto quello che ' +
-        'resta dopo gli interessi va a rimborsare il debito (**cash sweep al 100%**).',
-      '',
-      '### 4. Uscita e decisione',
-      `Uscita a fine anno ${ANNI} a ${multiplo(multOut)} l'EBITDA. Il comitato investe solo se l'IRR ` +
-        `raggiunge almeno il ${pct(hurdle, 0)}.`,
-      '',
-      `Ordine di grandezza per orientarti: EBITDA riportato ${eurM(ebitdaRep)}.`,
-    ].join('\n');
+    const brief = [tx('M12-01-DEALROOM.19', { p0: multiplo(multIn), p1: multiplo(leva), p2: pct(tasso, 2), p3: pct(crescita), p4: pct(conversione, 0), ANNI, p6: multiplo(multOut), p7: pct(hurdle, 0), p8: eurM(ebitdaRep) })].join('\n');
 
     const intestazioni = ['Closing', ...COLONNE.map((_, i) => `Anno ${i + 1}`)];
 
     const sheet = foglio(
       'Model',
       [
-        riga('A1', ['LIVE DEAL ROOM — LBO INTEGRATO'], { style: STILE_TITOLO }),
+        riga('A1', [tx('M12-01-DEALROOM.20')], { style: STILE_TITOLO }),
 
-        riga('A3', ['1. Quality of Earnings', '€'], { style: STILE_TITOLO }),
+        riga('A3', [tx('M12-01-DEALROOM.21'), '€'], { style: STILE_TITOLO }),
         colonna(
           'A4',
-          ['EBITDA riportato a bilancio', 'Compenso eccedente del socio uscente', 'Oneri legali straordinari'],
+          [tx('M12-01-DEALROOM.22'), tx('M12-01-DEALROOM.23'), tx('M12-01-DEALROOM.24')],
           { style: STILE_ETICHETTA },
         ),
         colonna(B_EBITDA_REP, [ebitdaRep, addSocio, addLegali], { style: STILE_INPUT }),
-        colonna('A8', ['EBITDA normalizzato'], { style: STILE_ETICHETTA }),
+        colonna('A8', [tx('M12-01-DEALROOM.25')], { style: STILE_ETICHETTA }),
         [{ ref: B_EBITDA_NORM, content: null, locked: false, style: STILE_TOTALE }],
 
-        riga('A10', ['2. Ipotesi'], { style: STILE_TITOLO }),
+        riga('A10', [tx('M12-01-DEALROOM.58')], { style: STILE_TITOLO }),
         colonna(
           'A11',
           [
-            "Multiplo d'ingresso (EV / EBITDA normalizzato)",
-            'Debito netto esistente, rifinanziato al closing, €',
-            "Fee di transazione, % dell'EV",
-            'Leva senior (debito / EBITDA normalizzato)',
-            "Tasso d'interesse senior",
-            'Crescita annua EBITDA',
-            'EBITDA convertito in cassa prima degli interessi',
-            'Multiplo di uscita (EV / EBITDA anno 5)',
-            'IRR minimo del comitato (hurdle)',
-            'Durata dell\'investimento, anni',
+            tx('M12-01-DEALROOM.26'),
+            tx('M12-01-DEALROOM.27'),
+            tx('M12-01-DEALROOM.28'),
+            tx('M12-01-DEALROOM.29'),
+            tx('M12-01-DEALROOM.30'),
+            tx('M12-01-DEALROOM.31'),
+            tx('M12-01-DEALROOM.32'),
+            tx('M12-01-DEALROOM.33'),
+            tx('M12-01-DEALROOM.34'),
+            tx('M12-01-DEALROOM.35'),
           ],
           { style: STILE_ETICHETTA },
         ),
@@ -435,16 +403,16 @@ export default defineTemplate({
         [{ ref: B_HURDLE, content: hurdle, style: STILE_INPUT_PCT, locked: true }],
         [{ ref: B_ANNI, content: ANNI, style: { ...STILE_INPUT, numFmt: '0' }, locked: true }],
 
-        riga('A22', ['3. Sources & Uses', '€'], { style: STILE_TITOLO }),
+        riga('A22', [tx('M12-01-DEALROOM.36'), '€'], { style: STILE_TITOLO }),
         colonna(
           'A23',
           [
-            'Enterprise Value',
-            "Prezzo dell'equity al venditore",
-            'Fee di transazione',
-            'Totale impieghi',
-            'Debito senior raccolto',
-            'Equity dello sponsor',
+            tx('M12-01-DEALROOM.37'),
+            tx('M12-01-DEALROOM.38'),
+            tx('M12-01-DEALROOM.39'),
+            tx('M12-01-DEALROOM.40'),
+            tx('M12-01-DEALROOM.41'),
+            tx('M12-01-DEALROOM.42'),
           ],
           { style: STILE_ETICHETTA },
         ),
@@ -455,10 +423,10 @@ export default defineTemplate({
         [{ ref: B_DEBITO, content: null, locked: false, style: STILE_FORMULA }],
         [{ ref: B_SPONSOR, content: null, locked: false, style: STILE_TOTALE }],
 
-        riga(`A${ROW_INTEST}`, ['4. Piano di rimborso (cash sweep 100%)', ...intestazioni], { style: STILE_TITOLO }),
+        riga(`A${ROW_INTEST}`, [tx('M12-01-DEALROOM.43'), ...intestazioni], { style: STILE_TITOLO }),
         colonna(
           `A${ROW_EBITDA}`,
-          ['EBITDA', 'Interessi sul debito di inizio anno', 'Cassa disponibile per il rimborso', 'Rimborso del debito', 'Debito di fine anno'],
+          [tx('M12-01-DEALROOM.59'), tx('M12-01-DEALROOM.44'), tx('M12-01-DEALROOM.45'), tx('M12-01-DEALROOM.46'), tx('M12-01-DEALROOM.47')],
           { style: STILE_ETICHETTA },
         ),
         [{ ref: `B${ROW_EBITDA}`, content: `=${B_EBITDA_NORM}`, style: STILE_FORMULA, locked: true }],
@@ -472,10 +440,10 @@ export default defineTemplate({
           })),
         ),
 
-        riga('A37', ['5. Uscita e decisione'], { style: STILE_TITOLO }),
+        riga('A37', [tx('M12-01-DEALROOM.48')], { style: STILE_TITOLO }),
         colonna(
           'A38',
-          ["Enterprise Value all'uscita, €", "Equity dello sponsor all'uscita, €", 'MoIC', 'IRR', 'Raccomandazione'],
+          [tx('M12-01-DEALROOM.49'), tx('M12-01-DEALROOM.50'), tx('M12-01-DEALROOM.60'), tx('M12-01-DEALROOM.61'), tx('M12-01-DEALROOM.62')],
           { style: STILE_ETICHETTA },
         ),
         [{ ref: B_EV_OUT, content: null, locked: false, style: STILE_FORMULA }],
@@ -496,37 +464,34 @@ export default defineTemplate({
       parScore: par(tasks, { letturaSecondi: 120 }),
       startAt: `Model!${B_EBITDA_NORM}`,
       hints: [
-        hint('H1', `=SUM(${B_EBITDA_REP}:${B_ADD_LEGALI}): riportato piu' i due addback.`, 15, 'T1'),
+        hint('H1', tx('M12-01-DEALROOM.51', { B_EBITDA_REP, B_ADD_LEGALI }), 15, 'T1'),
         hint(
           'H2',
-          `Impieghi = prezzo dell'equity + debito esistente rifinanziato + fee: =${B_PREZZO_EQ}+${B_ND_ESISTENTE}+${B_FEE}. ` +
-            `Il prezzo dell'equity e' EV meno debito netto: =${B_EV}-${B_ND_ESISTENTE}.`,
+          tx('M12-01-DEALROOM.52', { B_PREZZO_EQ, B_ND_ESISTENTE, B_FEE, B_EV }),
           20,
           'T5',
         ),
-        hint('H3', `L'equity dello sponsor chiude le fonti: =${B_IMPIEGHI}-${B_DEBITO}.`, 15, 'T7'),
+        hint('H3', tx('M12-01-DEALROOM.53', { B_IMPIEGHI, B_DEBITO }), 15, 'T7'),
         hint(
           'H4',
-          `In ${c1}${ROW_EBITDA}: =B${ROW_EBITDA}*(1+$${B_CRESCITA.slice(0, 1)}$${B_CRESCITA.slice(1)}). ` +
-            'Il dollaro tiene ferma la cella dell\'ipotesi quando copi verso destra.',
+          tx('M12-01-DEALROOM.54', { c1, ROW_EBITDA, p2: B_CRESCITA.slice(0, 1), p3: B_CRESCITA.slice(1) }),
           20,
           'T8',
         ),
         hint(
           'H5',
-          `In ${c1}${ROW_INTERESSI}: =B${ROW_DEBITO}*$B$${B_TASSO.slice(1)} — il debito di fine anno precedente.`,
+          tx('M12-01-DEALROOM.55', { c1, ROW_INTERESSI, ROW_DEBITO, p3: B_TASSO.slice(1) }),
           20,
           'T9',
         ),
         hint(
           'H6',
-          `In ${c1}${ROW_RIMBORSO}: =MIN(B${ROW_DEBITO},${c1}${ROW_CASSA}). In ${c1}${ROW_DEBITO}: ` +
-            `=B${ROW_DEBITO}-${c1}${ROW_RIMBORSO}.`,
+          tx('M12-01-DEALROOM.56', { c1, ROW_RIMBORSO, ROW_DEBITO, ROW_CASSA }),
           20,
           'T11',
         ),
-        hint('H7', `IRR con due flussi: =${B_MOIC}^(1/${B_ANNI})-1.`, 20, 'T16'),
-        hint('H8', `=IF(${B_IRR}>=${B_HURDLE},"INVESTI","PASSA")`, 15, 'T17'),
+        hint('H7', tx('M12-01-DEALROOM.57', { B_MOIC, B_ANNI }), 20, 'T16'),
+        hint('H8', `=IF(${B_IRR}>=${B_HURDLE},"${INVESTI}","${PASSA}")`, 15, 'T17'),
       ],
     };
   },

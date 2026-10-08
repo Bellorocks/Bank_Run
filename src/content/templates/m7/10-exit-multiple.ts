@@ -79,6 +79,7 @@ import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 const STILE_FORMULA_MULTIPLO: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: '0.0x' };
 const STILE_FORMULA_PCT: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: '0.0%' };
 
@@ -94,7 +95,9 @@ const B_SCOSTAMENTO = 'B11'; // T3: scostamento % fra implicito e multiplo di me
 export default defineTemplate({
   id: 'M7-10-EXITMULTIPLE',
   module: 'M7',
-  title: 'Terminal value: exit multiple e cross-check con Gordon',
+  get title() {
+    return tx('M7-10-EXITMULTIPLE.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 340,
@@ -133,12 +136,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_TV_EXIT} calcola il Terminal Value col metodo exit multiple: l'EBITDA dell'ultimo ` +
-        `anno esplicito (${B_EBITDA}) moltiplicato per il multiplo di uscita di mercato (${B_MULT_MKT}). ` +
-        'Formula: Terminal Value (exit multiple) = EBITDA(ultimo anno esplicito) × multiplo di uscita. ' +
-        "A differenza di Gordon growth, questo metodo non proietta una rendita perpetua: assume che, " +
-        "alla fine dell'orizzonte esplicito, l'azienda venga ceduta a un multiplo di mercato osservabile " +
-        'oggi. Usa le due celle date, senza copiare i numeri a mano.',
+        tx('M7-10-EXITMULTIPLE.2', { B_TV_EXIT, B_EBITDA, B_MULT_MKT }),
       target: `Model!${B_TV_EXIT}`,
       atteso: terminalValueExit,
       referenzia: [B_EBITDA, B_MULT_MKT],
@@ -150,13 +148,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_MULT_IMPLICITO} calcola il multiplo IMPLICITO nel Terminal Value ottenuto col metodo ` +
-        `Gordon growth (${B_TV_GORDON}, dato — il risultato concettuale di M7-09): dividilo per l'EBITDA ` +
-        `dell'ultimo anno esplicito (${B_EBITDA}). Formula: multiplo implicito (Gordon) = TV(Gordon growth) ` +
-        '/ EBITDA(ultimo anno esplicito). E\' la domanda "a quale multiplo di EBITDA corrisponde, in ' +
-        'sostanza, il Terminal Value che il metodo Gordon ha prodotto?" — la stessa unita\' di misura del ' +
-        'multiplo di mercato usato in T1, che serve per il confronto del prossimo task. Usa le due celle ' +
-        'date, senza copiare i numeri a mano.',
+        tx('M7-10-EXITMULTIPLE.3', { B_MULT_IMPLICITO, B_TV_GORDON, B_EBITDA }),
       target: `Model!${B_MULT_IMPLICITO}`,
       atteso: multiploImplicito,
       referenzia: [B_TV_GORDON, B_EBITDA],
@@ -178,16 +170,7 @@ export default defineTemplate({
     const t3: Task = {
       id: 'T3',
       prompt:
-        `In ${B_SCOSTAMENTO} calcola lo scostamento % fra il multiplo implicito di Gordon appena ` +
-        `calcolato in T2 (${B_MULT_IMPLICITO} — NON ricalcolarlo da zero) e il multiplo di mercato usato ` +
-        `in T1 (${B_MULT_MKT}): (${B_MULT_IMPLICITO}-${B_MULT_MKT})/${B_MULT_MKT}. ATTENZIONE all'ordine: ` +
-        `il multiplo implicito di Gordon MENO il multiplo di mercato, il tutto diviso per il multiplo di ` +
-        `mercato (non per l'implicito) — invertire numeratore o denominatore cambia sia il segno sia la ` +
-        "scala del risultato. Un risultato positivo dice che Gordon implica un multiplo PIU' alto di " +
-        "quello di mercato; negativo, PIU' basso. Se lo scostamento e' grande (indicativamente oltre il " +
-        "20%-30% in valore assoluto), e' un segnale che le assunzioni di WACC e g usate in Gordon vanno " +
-        "riviste: i due metodi dovrebbero raccontare storie simili, non wildly diverse — un multiplo " +
-        "implicito troppo alto di solito nasce da un g troppo ottimistico o un WACC troppo compresso.",
+        tx('M7-10-EXITMULTIPLE.4', { B_SCOSTAMENTO, B_MULT_IMPLICITO, B_MULT_MKT }),
       targetCell: `Model!${B_SCOSTAMENTO}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -197,9 +180,7 @@ export default defineTemplate({
           tolerance: 0.0005,
           toleranceMode: 'absolute',
           message:
-            'Il valore non torna: controlla che il numeratore sia (multiplo implicito di Gordon − ' +
-            `multiplo di mercato), cioe' (${B_MULT_IMPLICITO}-${B_MULT_MKT}), e che tu stia dividendo ` +
-            `per il multiplo di MERCATO (${B_MULT_MKT}), non per l'implicito (${B_MULT_IMPLICITO}).`,
+            tx('M7-10-EXITMULTIPLE.5', { B_MULT_IMPLICITO, B_MULT_MKT }),
         },
         { kind: 'mustReference', cells: [B_MULT_IMPLICITO, B_MULT_MKT] },
         { kind: 'mustNotContainLiteral', except: [] },
@@ -213,48 +194,19 @@ export default defineTemplate({
     return {
       templateId: 'M7-10-EXITMULTIPLE',
       seed: rng.seed,
-      brief: [
-        '## Terminal value: exit multiple e cross-check con Gordon',
-        '',
-        'Il secondo metodo, dopo Gordon growth (M7-09), per stimare il terminal value di un DCF. Il ' +
-          "**metodo exit multiple** non proietta una rendita perpetua: assume che, alla fine " +
-          "dell'orizzonte esplicito, l'azienda venga ceduta a un multiplo di mercato osservabile OGGI " +
-          "sull'EBITDA dell'ultimo anno esplicito — lo stesso multiplo a cui negozieresti una " +
-          'transazione comparabile in quel momento:',
-        '',
-        '> **Terminal Value (exit multiple) = EBITDA(ultimo anno esplicito) × multiplo di uscita**',
-        '',
-        '**Il punto centrale di questo livello: il cross-check.** Gordon growth ed exit multiple sono ' +
-          "due strade diverse verso lo STESSO numero concettuale, e dovrebbero raccontare storie " +
-          "compatibili. Il modo standard per verificarlo non e' confrontare i due Terminal Value " +
-          "direttamente in euro (le scale possono differire per mille motivi), ma tradurre il TV di " +
-          "Gordon in un MULTIPLO IMPLICITO di EBITDA — la stessa unita' di misura del metodo exit " +
-          'multiple:',
-        '',
-        '> **Multiplo implicito (Gordon) = TV(Gordon growth) / EBITDA(ultimo anno esplicito)**',
-        '',
-        "Se quel multiplo implicito e' vicino al multiplo di mercato usato per l'exit multiple, i due " +
-          "metodi si confermano a vicenda. Se lo scostamento e' grande — indicativamente oltre il " +
-          "20%-30% — e' un segnale che le assunzioni di WACC e g usate in Gordon vanno riviste, non che " +
-          "il metodo exit multiple sia sbagliato: un multiplo implicito troppo alto di solito nasce da " +
-          'un g troppo ottimistico o un WACC troppo compresso.',
-        '',
-        `**I dati**, gia' pronti come assunzioni: EBITDA dell'ultimo anno esplicito della proiezione ` +
-          `${eurM(ebitdaUltimoAnno)}, multiplo di uscita di mercato ${multiplo(multiploMercato)}, Terminal ` +
-          `Value col metodo Gordon growth (M7-09, dato) ${eurM(tvGordon)}.`,
-      ].join('\n'),
+      brief: [tx('M7-10-EXITMULTIPLE.6', { p0: eurM(ebitdaUltimoAnno), p1: multiplo(multiploMercato), p2: eurM(tvGordon) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Terminal value: exit multiple e cross-check con Gordon'], { style: STILE_TITOLO }),
-            riga('A3', ['Assunzioni'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M7-10-EXITMULTIPLE.7')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M7-10-EXITMULTIPLE.17')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                "EBITDA dell'ultimo anno esplicito della proiezione, €",
-                'Multiplo di uscita di mercato',
-                "Terminal value col metodo Gordon growth (M7-09, dato), €",
+                tx('M7-10-EXITMULTIPLE.8'),
+                tx('M7-10-EXITMULTIPLE.9'),
+                tx('M7-10-EXITMULTIPLE.10'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -264,13 +216,13 @@ export default defineTemplate({
               { ref: B_TV_GORDON, content: tvGordon, style: STILE_INPUT, locked: true },
             ],
 
-            riga('A8', ['Terminal value (exit multiple) e cross-check'], { style: STILE_TITOLO }),
+            riga('A8', [tx('M7-10-EXITMULTIPLE.11')], { style: STILE_TITOLO }),
             colonna(
               'A9',
               [
-                'Terminal value, metodo exit multiple, €',
-                'Multiplo implicito nel TV di Gordon growth',
-                "Scostamento % fra implicito di Gordon e multiplo di mercato",
+                tx('M7-10-EXITMULTIPLE.12'),
+                tx('M7-10-EXITMULTIPLE.13'),
+                tx('M7-10-EXITMULTIPLE.14'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -284,11 +236,10 @@ export default defineTemplate({
       tasks,
       hints: [
         hint('H1', `=${B_EBITDA}*${B_MULT_MKT}: EBITDA per il multiplo di uscita di mercato.`, 10, 'T1'),
-        hint('H2', `=${B_TV_GORDON}/${B_EBITDA}: TV di Gordon diviso per l'EBITDA.`, 10, 'T2'),
+        hint('H2', tx('M7-10-EXITMULTIPLE.15', { B_TV_GORDON, B_EBITDA }), 10, 'T2'),
         hint(
           'H3',
-          `=(${B_MULT_IMPLICITO}-${B_MULT_MKT})/${B_MULT_MKT}: implicito meno mercato, diviso per il ` +
-            'mercato (non il contrario).',
+          tx('M7-10-EXITMULTIPLE.16', { B_MULT_IMPLICITO, B_MULT_MKT }),
           14,
           'T3',
         ),

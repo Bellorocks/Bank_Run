@@ -34,18 +34,19 @@ import {
 import { triangular, roundTo } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
-const FORNITORI = [
-  'Metalsider Srl',
-  'Trans Log Spa',
-  'OfficeMax Forniture',
-  'Adriatica Elettroforniture',
-  'GreenPack Imballaggi',
-  'Cantina Sociale del Nord',
-  'TechService Informatica',
-  'Rossi Componenti Srl',
-  'Nordest Logistica',
-  'Bianchi Utensileria',
-] as const;
+import { tx } from '../../../i18n/content';
+const FORNITORI = () => ([
+  tx('M0D-02-TESTOCOMENUMERO.1'),
+  tx('M0D-02-TESTOCOMENUMERO.2'),
+  tx('M0D-02-TESTOCOMENUMERO.3'),
+  tx('M0D-02-TESTOCOMENUMERO.4'),
+  tx('M0D-02-TESTOCOMENUMERO.5'),
+  tx('M0D-02-TESTOCOMENUMERO.6'),
+  tx('M0D-02-TESTOCOMENUMERO.7'),
+  tx('M0D-02-TESTOCOMENUMERO.8'),
+  tx('M0D-02-TESTOCOMENUMERO.9'),
+  tx('M0D-02-TESTOCOMENUMERO.10'),
+] as const);
 
 const RIGHE = 7;
 
@@ -57,7 +58,9 @@ function conVirgole(n: number): string {
 export default defineTemplate({
   id: 'M0D-02-TESTOCOMENUMERO',
   module: 'M0-D',
-  title: 'Il numero che non e\' un numero',
+  get title() {
+    return tx('M0D-02-TESTOCOMENUMERO.title');
+  },
   rank: 2,
   mode: 'AUDIT',
   estimatedSeconds: 210,
@@ -67,7 +70,7 @@ export default defineTemplate({
   generate: (rng) => {
     const r = rng.fork('dati');
 
-    const fornitori = r.shuffle([...FORNITORI]).slice(0, RIGHE);
+    const fornitori = r.shuffle([...FORNITORI()]).slice(0, RIGHE);
 
     const importi: number[] = [];
     for (let i = 0; i < RIGHE; i++) {
@@ -111,10 +114,7 @@ export default defineTemplate({
     const t1: Task = {
       id: 'T1',
       prompt:
-        'In B12 somma tutta la colonna degli importi in B4:B10, con un\'unica formula, senza farlo a mano voce ' +
-        'per voce. Prima di scriverla, guarda bene la colonna: non tutte le celle sono allineate allo stesso ' +
-        "modo. Il totale che ottieni e' quello vero da consegnare, anche se non coincide con la somma che " +
-        'faresti a mente sommando le cifre a vista.',
+        tx('M0D-02-TESTOCOMENUMERO.12'),
       targetCell: 'Model!B12',
       check: [
         { kind: 'mustBeFormula' },
@@ -122,8 +122,7 @@ export default defineTemplate({
           kind: 'value',
           expected: sommaVera,
           message:
-            "Il totale non e' quello che produce SUM su B4:B10. Alcune celle di quella colonna sono testo, " +
-            "non numeri: SUM le salta senza segnalare nulla, e il totale vero e' piu' basso di quanto sembri.",
+            tx('M0D-02-TESTOCOMENUMERO.13'),
         },
         {
           kind: 'mustReference',
@@ -139,11 +138,7 @@ export default defineTemplate({
     const t2: Task = {
       id: 'T2',
       prompt:
-        'In B14 conta quante celle di B4:B10 sono davvero numeri: serve una funzione diversa da quella gia\' ' +
-        'usata in B13. Il testo, come nella somma qui sopra, resta fuori dal conteggio senza nessun errore: ' +
-        "e' il modo per sapere QUANTI importi sono davvero finiti nel totale che hai appena calcolato. Non " +
-        'usare COUNTA: quella la trovi gia\' calcolata in B13, giusto per il confronto — conta tutto cio\' che ' +
-        "non e' vuoto, testo compreso, ed e' per questo che non basta da sola a dirti quanti numeri veri hai.",
+        tx('M0D-02-TESTOCOMENUMERO.14'),
       targetCell: 'Model!B14',
       check: [
         { kind: 'mustBeFormula' },
@@ -151,7 +146,7 @@ export default defineTemplate({
           kind: 'value',
           expected: numeriVeri,
           message:
-            "Il conteggio non torna. COUNT deve contare solo le celle che sono numeri veri, non tutte le celle piene.",
+            tx('M0D-02-TESTOCOMENUMERO.15'),
         },
         {
           kind: 'mustReference',
@@ -170,42 +165,19 @@ export default defineTemplate({
     return {
       templateId: 'M0D-02-TESTOCOMENUMERO',
       seed: rng.seed,
-      brief: [
-        '## Il numero che non e\' un numero',
-        '',
-        'Sette fatture fornitore, esportate dal gestionale nel foglio **Model**. Colonna degli importi in euro,',
-        'colonna B. A occhio sembra una tabella normale: sette cifre, una sotto l\'altra.',
-        '',
-        'Non lo e\'. Un export porta dentro Excel anche i difetti del sistema di partenza: una cifra scritta',
-        'con la virgola delle migliaia (`12,500` — ma qui il punto e\' il separatore decimale, quindi quella',
-        'virgola non e\' un carattere che Excel riconosce come numero) o con uno spazio finale invisibile',
-        'restano **testo**, non numeri. Non c\'e\' nessun cancelletto rosso a segnalarlo: l\'unico indizio e\'',
-        'l\'allineamento della cella. I numeri veri si allineano a destra. Il testo si allinea a sinistra.',
-        'Guarda la colonna B prima di scrivere qualunque formula.',
-        '',
-        `Gli importi generati vanno dai ${eur(Math.min(...importi))} ai ${eur(Math.max(...importi))} circa.`,
-        'Alcune di queste cifre — non ti diciamo quali, e\' il punto dell\'audit — sono testo travestito da numero.',
-        '',
-        '**SUM** e **COUNT** condividono la stessa regola: contano solo cio\' che e\' davvero un numero.',
-        'Il testo lo saltano, in silenzio. Il totale che otterrai in B12 e\' quello REALE, non quello che',
-        'ti aspetteresti sommando le sette cifre a vista.',
-        '',
-        'In B13 trovi gia\' calcolato **COUNTA** sulla stessa colonna: conta ogni cella non vuota, testo',
-        'compreso. Tocca a te, in B14, calcolare **COUNT**: quante di quelle sette celle sono numeri veri.',
-        'La differenza fra B13 e B14 e\' la prova in cifra di quante fatture ti mancano nel totale.',
-      ].join('\n'),
+      brief: [tx('M0D-02-TESTOCOMENUMERO.16', { p0: eur(Math.min(...importi)), p1: eur(Math.max(...importi)) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ["Fatture fornitore — export dal gestionale"], { style: STILE_TITOLO }),
-            riga('A3', ['Fornitore', 'Importo (€)'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M0D-02-TESTOCOMENUMERO.17')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M0D-02-TESTOCOMENUMERO.25'), tx('M0D-02-TESTOCOMENUMERO.18')], { style: STILE_TITOLO }),
             colonna('A4', fornitori, { style: STILE_ETICHETTA }),
             colonna('B4', colonnaB, { style: { ...STILE_INPUT, numFmt: '#,##0' } }),
-            blocco('A12', [['Totale (SUM)']], { style: STILE_ETICHETTA }),
-            blocco('A13', [['Celle non vuote (COUNTA) — per confronto']], { style: STILE_ETICHETTA }),
+            blocco('A12', [[tx('M0D-02-TESTOCOMENUMERO.19')]], { style: STILE_ETICHETTA }),
+            blocco('A13', [[tx('M0D-02-TESTOCOMENUMERO.20')]], { style: STILE_ETICHETTA }),
             blocco('B13', [['=COUNTA(B4:B10)']], { style: STILE_FORMULA }),
-            blocco('A14', [['Numeri veri (COUNT)']], { style: STILE_ETICHETTA }),
+            blocco('A14', [[tx('M0D-02-TESTOCOMENUMERO.21')]], { style: STILE_ETICHETTA }),
             areaLibera(['B12', 'B14']),
           ],
           { colWidths: { A: 260, B: 150 }, frozenRows: 3 },
@@ -215,13 +187,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          "Guarda l'allineamento della colonna B: le celle testo si spostano a sinistra, i numeri veri restano a destra. E' l'unico indizio visibile.",
+          tx('M0D-02-TESTOCOMENUMERO.22'),
           8,
         ),
-        hint('H2', '=SUM(B4:B10). Le celle testo restano fuori dal totale senza nessun errore: e\' normale, e\' il fenomeno che stai osservando.', 10, 'T1'),
+        hint('H2', tx('M0D-02-TESTOCOMENUMERO.23'), 10, 'T1'),
         hint(
           'H3',
-          '=COUNT(B4:B10) conta solo i numeri veri. COUNTA(B4:B10), gia\' in B13, conta anche il testo: confronta i due valori per capire quante celle sono sporche.',
+          tx('M0D-02-TESTOCOMENUMERO.24'),
           10,
           'T2',
         ),

@@ -57,19 +57,22 @@ import {
 import { roundTo } from '../../../rng/distributions';
 import type { CellSpec, Task } from '../../types';
 
-const CATEGORIE_POOL = [
-  'Impianti',
-  'Attrezzature',
-  'Macchinari',
-  'Automezzi',
-  'Mobili e arredi',
-  'Attrezzatura industriale',
-] as const;
+import { tx } from '../../../i18n/content';
+const CATEGORIE_POOL = () => ([
+  tx('M1-08-DASCHEDULE.impianti'),
+  tx('M1-08-DASCHEDULE.attrezzature'),
+  tx('M1-08-DASCHEDULE.macchinari'),
+  tx('M1-08-DASCHEDULE.automezzi'),
+  tx('M1-08-DASCHEDULE.1'),
+  tx('M1-08-DASCHEDULE.2'),
+] as const);
 
 export default defineTemplate({
   id: 'M1-08-DASCHEDULE',
   module: 'M1',
-  title: 'D&A schedule: il registro cespiti',
+  get title() {
+    return tx('M1-08-DASCHEDULE.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 320,
@@ -84,7 +87,7 @@ export default defineTemplate({
     const rFondo = rng.fork('fondo');
 
     const nCespiti = rCespiti.int(3, 4);
-    const categorie = rCespiti.shuffle(CATEGORIE_POOL).slice(0, nCespiti);
+    const categorie = rCespiti.shuffle(CATEGORIE_POOL()).slice(0, nCespiti);
 
     const cespiti = categorie.map((categoria) => ({
       categoria,
@@ -134,12 +137,7 @@ export default defineTemplate({
     const t1: Task = {
       id: 'T1',
       prompt:
-        `Nella colonna D calcola l'ammortamento ANNUO di ciascun cespite col metodo a quote costanti: ` +
-        `costo storico della riga diviso vita utile della riga. Parti da D${CESPITE_ROW_FIRST} ` +
-        `(= B${CESPITE_ROW_FIRST}/C${CESPITE_ROW_FIRST}) e trascinala fino a D${CESPITE_ROW_LAST}: ` +
-        "deve restare la STESSA formula, solo traslata di riga — se anche una sola cella nel mezzo " +
-        "e' stata ritoccata a mano o incollata come valore, e' li' che si nasconde l'errore che non si " +
-        'vede finche\' non e\' troppo tardi.',
+        tx('M1-08-DASCHEDULE.4', { CESPITE_ROW_FIRST, CESPITE_ROW_LAST }),
       targetCell: `Model!${rangeAmmortamenti}`,
       check: [
         { kind: 'consistentRow', range: `Model!${rangeAmmortamenti}` },
@@ -153,10 +151,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T2',
         prompt:
-          `In B${R_FONDO_FIN} calcola il fondo ammortamento CUMULATO di fine anno: il fondo che c'era ` +
-          `gia' a inizio anno (B${R_FONDO_INIZ}, gli ammortamenti accumulati negli anni precedenti) ` +
-          `piu' la somma degli ammortamenti dell'anno che hai appena costruito riga per riga in ` +
-          `${rangeAmmortamenti}. Usa SUM sul range, non la somma di ogni cella scritta a mano.`,
+          tx('M1-08-DASCHEDULE.5', { R_FONDO_FIN, R_FONDO_INIZ, rangeAmmortamenti }),
         target: `Model!B${R_FONDO_FIN}`,
         atteso: fondoCumulatoFinale,
         referenzia: [`B${R_FONDO_INIZ}`, ...cellsAmmortamento],
@@ -171,10 +166,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T3',
         prompt:
-          `In B${R_VNC} calcola il valore netto contabile TOTALE del parco cespiti: la somma dei costi ` +
-          `storici di tutti i cespiti (${rangeCosti}) meno il fondo ammortamento cumulato di fine anno ` +
-          `appena calcolato (B${R_FONDO_FIN}). E' il numero che finisce nell'attivo dello Stato ` +
-          'Patrimoniale.',
+          tx('M1-08-DASCHEDULE.6', { R_VNC, rangeCosti, R_FONDO_FIN }),
         target: `Model!B${R_VNC}`,
         atteso: valoreNettoContabileTotale,
         referenzia: [...cellsCosti, `B${R_FONDO_FIN}`],
@@ -190,42 +182,18 @@ export default defineTemplate({
     return {
       templateId: 'M1-08-DASCHEDULE',
       seed: rng.seed,
-      brief: [
-        "## Il D&A non e' un numero, e' un registro",
-        '',
-        "In M1-07 il D&A dell'anno arrivava gia' come un unico numero aggregato: comodo per collegare " +
-          "i tre prospetti, ma non e' cosi' che nasce davvero. Nasce da un **registro cespiti** (asset " +
-          "register): un elenco di beni, ciascuno con il proprio costo storico e la propria vita utile, " +
-          "ciascuno con la propria quota di ammortamento annua — che poi si sommano.",
-        '',
-        `Il parco cespiti di questo esercizio ha ${num(nCespiti)} voci:`,
-        '',
-        ...cespiti.map(
+      brief: [tx('M1-08-DASCHEDULE.7', { p0: num(nCespiti) }), ...cespiti.map(
           (c) =>
-            `- **${c.categoria}**: costo storico ${eur(c.costoStorico)}, vita utile ${num(c.vitaUtile)} anni`,
-        ),
-        '',
-        "**Metodo a quote costanti** (il piu' comune, e l'unico che vedrai in questo livello): la quota " +
-          "annua di ammortamento di un cespite e' semplicemente il suo costo storico diviso la sua vita " +
-          "utile in anni. Ogni cespite ha la propria quota, calcolata con la stessa identica formula — " +
-          "solo i numeri di riga cambiano.",
-        '',
-        `Il fondo ammortamento non riparte da zero ogni anno: c'e' gia' un saldo accumulato negli anni ` +
-          `precedenti, ${eur(fondoIniziale)}, a cui si somma la quota dell'anno appena costruita riga per ` +
-          `riga. Il fondo cumulato di fine anno, sottratto al costo storico complessivo del parco cespiti, ` +
-          "da' il **valore netto contabile**: quanto valgono ancora, in bilancio, i cespiti che possiedi.",
-        '',
-        "Costruisci la colonna dell'ammortamento annuo, poi il fondo cumulato, poi il valore netto " +
-          'contabile totale — in quest\'ordine, perche\' ognuno si appoggia al precedente.',
-      ].join('\n'),
+            tx('M1-08-DASCHEDULE.8', { p0: c.categoria, p1: eur(c.costoStorico), p2: num(c.vitaUtile) }),
+        ), tx('M1-08-DASCHEDULE.9', { p0: eur(fondoIniziale) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Registro cespiti e piano di ammortamento'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M1-08-DASCHEDULE.10')], { style: STILE_TITOLO }),
             riga(
               `A${HEADER_ROW}`,
-              ['Categoria cespite', 'Costo storico, €', 'Vita utile, anni', 'Ammortamento annuo, €'],
+              [tx('M1-08-DASCHEDULE.11'), tx('M1-08-DASCHEDULE.12'), tx('M1-08-DASCHEDULE.13'), tx('M1-08-DASCHEDULE.14')],
               { style: STILE_TITOLO },
             ),
             colonna(
@@ -245,13 +213,13 @@ export default defineTemplate({
             ),
             cellsAmmortamentoSpec,
 
-            riga(`A${FONDO_TITLE_ROW}`, ['Fondo ammortamento e valore netto contabile'], { style: STILE_TITOLO }),
+            riga(`A${FONDO_TITLE_ROW}`, [tx('M1-08-DASCHEDULE.15')], { style: STILE_TITOLO }),
             colonna(
               `A${R_FONDO_INIZ}`,
               [
-                'Fondo ammortamento iniziale (aggregato), €',
-                'Fondo ammortamento cumulato finale, €',
-                'Valore netto contabile totale, €',
+                tx('M1-08-DASCHEDULE.16'),
+                tx('M1-08-DASCHEDULE.17'),
+                tx('M1-08-DASCHEDULE.18'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -266,25 +234,25 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=B${CESPITE_ROW_FIRST}/C${CESPITE_ROW_FIRST}: costo storico diviso vita utile. Trascina fino a D${CESPITE_ROW_LAST} senza piu' toccarla.`,
+          tx('M1-08-DASCHEDULE.19', { CESPITE_ROW_FIRST, CESPITE_ROW_LAST }),
           8,
           'T1',
         ),
         hint(
           'H2',
-          "Se una cella nel mezzo mostra un numero che non ti convince, controllane la formula con F2: e' li' che si nasconde il ritocco a mano.",
+          tx('M1-08-DASCHEDULE.20'),
           6,
           'T1',
         ),
         hint(
           'H3',
-          `=B${R_FONDO_INIZ}+SUM(${rangeAmmortamenti}): fondo iniziale piu' la somma degli ammortamenti dell'anno.`,
+          tx('M1-08-DASCHEDULE.21', { R_FONDO_INIZ, rangeAmmortamenti }),
           10,
           'T2',
         ),
         hint(
           'H4',
-          `=SUM(${rangeCosti})-B${R_FONDO_FIN}: costo storico complessivo meno il fondo cumulato di fine anno.`,
+          tx('M1-08-DASCHEDULE.22', { rangeCosti, R_FONDO_FIN }),
           10,
           'T3',
         ),

@@ -80,6 +80,7 @@ import {
 import { roundTo } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 const MESI = [
   'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
   'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre',
@@ -115,7 +116,9 @@ const B_AGGIUSTAMENTO = 'B24'; // T3
 export default defineTemplate({
   id: 'M3-05-PEGNWC',
   module: 'M3',
-  title: 'Il peg del NWC e l\'aggiustamento prezzo al closing',
+  get title() {
+    return tx('M3-05-PEGNWC.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 320,
@@ -165,12 +168,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T1',
         prompt:
-          `In ${B_PEG} calcola il PEG del NWC: la media dei 12 valori mensili di NWC storico ` +
-          `(${B_NWC_START}:${B_NWC_END}). Usa una funzione di media, non sommare a mano e dividere per ` +
-          "12: il peg e', per definizione, la media su un ANNO INTERO — un ciclo stagionale completo " +
-          '— proprio perche\' su 12 mesi pieni i mesi sopra e sotto la media si compensano a vicenda, ' +
-          'restituendo un livello di NWC "normale" che non dipende da quale singolo mese capiti di ' +
-          "guardare.",
+          tx('M3-05-PEGNWC.2', { B_PEG, B_NWC_START, B_NWC_END }),
         target: `Model!${B_PEG}`,
         atteso: pegNWC,
         referenzia: [B_NWC_START, B_NWC_END],
@@ -184,11 +182,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_SCOSTAMENTO} calcola lo scostamento dal peg: il NWC effettivo al closing (${B_CLOSING}) ` +
-        `meno il peg appena calcolato (${B_PEG}). Un risultato POSITIVO significa che al closing il NWC ` +
-        'e\' SOPRA il livello concordato come normale; un risultato NEGATIVO significa che e\' SOTTO. ' +
-        "Questo numero, da solo, non e' ancora l'aggiustamento di prezzo: e' il prossimo task a " +
-        'tradurlo in un compenso o in una penalita\'.',
+        tx('M3-05-PEGNWC.3', { B_SCOSTAMENTO, B_CLOSING, B_PEG }),
       target: `Model!${B_SCOSTAMENTO}`,
       atteso: scostamento,
       referenzia: [B_CLOSING, B_PEG],
@@ -200,17 +194,7 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        `In ${B_AGGIUSTAMENTO} calcola l'aggiustamento di prezzo per il VENDITORE: ha LO STESSO SEGNO ` +
-        `dello scostamento appena calcolato (${B_SCOSTAMENTO}) — non va invertito. Il perche' e' ` +
-        "economico, non solo aritmetico: se al closing il NWC e' SOPRA il peg (scostamento positivo), " +
-        "il venditore ha lasciato nella societa' PIU' capitale circolante — piu' cassa, piu' crediti, " +
-        "piu' magazzino netto di debiti — di quanto concordato come normale, un valore che passa al " +
-        "compratore; il prezzo si aggiusta AL RIALZO a favore del venditore (aggiustamento POSITIVO, un " +
-        "compenso). Se invece il NWC e' SOTTO il peg (scostamento negativo), il venditore ha lasciato " +
-        "MENO capitale circolante del normale: il compratore dovra' reintegrarlo di tasca propria dopo " +
-        "il closing, quindi il prezzo si aggiusta AL RIBASSO (aggiustamento NEGATIVO, una penalita'). " +
-        "Per questo l'aggiustamento COINCIDE con lo scostamento: la tentazione di invertirne il segno, " +
-        'perche\' "un aggiustamento dovrebbe correggere", e\' proprio l\'errore da evitare qui.',
+        tx('M3-05-PEGNWC.4', { B_AGGIUSTAMENTO, B_SCOSTAMENTO }),
       target: `Model!${B_AGGIUSTAMENTO}`,
       atteso: aggiustamento,
       referenzia: [B_SCOSTAMENTO],
@@ -229,61 +213,29 @@ export default defineTemplate({
     return {
       templateId: 'M3-05-PEGNWC',
       seed: rng.seed,
-      brief: [
-        '## Il peg del NWC: quanto capitale circolante e\' "normale"?',
-        '',
-        "In un'operazione di M&A, compratore e venditore non conoscono in anticipo il NWC esatto che " +
-          "la societa' avra' alla data di closing — e nessuno dei due vuole lasciarlo alla sorte. Si " +
-          'accordano quindi su un livello di NWC "normale", il **peg**, PRIMA del closing: se al closing ' +
-          "il NWC effettivo differisce dal peg, il prezzo si aggiusta. E' il meccanismo che protegge " +
-          "entrambe le parti — dal venditore che \"spreme\" il circolante prima di vendere (non riordina " +
-          "magazzino, incassa tutto, non paga i fornitori) e dal compratore che pretende uno sconto solo " +
-          "perche' il closing e' capitato in un mese stagionalmente debole.",
-        '',
-        "Qui sotto trovi il NWC storico mensile dell'ultimo anno di quest'azienda — le vendite si " +
-          "concentrano a ridosso delle feste di fine anno, quindi il NWC non e' affatto piatto: cresce " +
-          `nei mesi che precedono il picco (piu' magazzino, piu' crediti verso i clienti) fino al massimo ` +
-          `a ${meseMax} (${eur(nwcMax)}), poi scende man mano che gli incassi natalizi arrivano, fino al ` +
-          `minimo a ${meseMin} (${eur(nwcMin)}).`,
-        '',
-        ...MESI.map((mese, i) => `- ${mese}: ${eur(nwcStorico[i])}`),
-        '',
-        '**Il punto centrale**: proprio perche\' il NWC oscilla cosi\' tanto nel corso dell\'anno, il ' +
-          'NWC di UN singolo mese sarebbe un pessimo termine di paragone — dipenderebbe da quale mese, ' +
-          "per caso, capita di guardare. La soluzione e' usare la media su un ANNO INTERO, un ciclo " +
-          "stagionale completo: su 12 mesi pieni i mesi sopra e sotto la media si compensano a vicenda, " +
-          'e resta un livello "normale" che non dipende dalla stagionalita\'. E\' cosi\' che questo ' +
-          'livello calcola il peg: una AVERAGE semplice sui 12 mesi, non un calcolo piu\' complesso.',
-        '',
-        `Il NWC effettivo alla data di closing e' ${eur(nwcClosing)}.`,
-        '',
-        "Calcola il peg (task 1), lo scostamento del NWC di closing rispetto al peg (task 2) e infine " +
-          "l'aggiustamento di prezzo per il venditore (task 3) — attento al segno di quest'ultimo: " +
-          "coincide con lo scostamento, NON e' il suo opposto, per il motivo economico spiegato nel " +
-          "task stesso.",
-      ].join('\n'),
+      brief: [tx('M3-05-PEGNWC.5', { meseMax, p1: eur(nwcMax), meseMin, p3: eur(nwcMin) }), ...MESI.map((mese, i) => `- ${mese}: ${eur(nwcStorico[i])}`), tx('M3-05-PEGNWC.6', { p0: eur(nwcClosing) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Il peg del NWC e l\'aggiustamento prezzo al closing'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M3-05-PEGNWC.7')], { style: STILE_TITOLO }),
 
-            riga('A3', ['NWC storico mensile (ultimi 12 mesi)'], { style: STILE_TITOLO }),
-            riga('A4', ['Mese', 'NWC storico, €'], { style: STILE_TITOLO }),
+            riga('A3', [tx('M3-05-PEGNWC.8')], { style: STILE_TITOLO }),
+            riga('A4', [tx('M3-05-PEGNWC.19'), tx('M3-05-PEGNWC.9')], { style: STILE_TITOLO }),
             colonna(`A${ROW_STORICO_START}`, [...MESI], { style: STILE_ETICHETTA }),
             colonna(`B${ROW_STORICO_START}`, nwcStorico, { style: STILE_INPUT }),
 
-            riga('A18', ['Dato del closing'], { style: STILE_TITOLO }),
-            colonna('A19', ['NWC effettivo al closing, €'], { style: STILE_ETICHETTA }),
+            riga('A18', [tx('M3-05-PEGNWC.10')], { style: STILE_TITOLO }),
+            colonna('A19', [tx('M3-05-PEGNWC.11')], { style: STILE_ETICHETTA }),
             [{ ref: B_CLOSING, content: nwcClosing, style: STILE_INPUT, locked: true }],
 
-            riga('A21', ['Peg e aggiustamento prezzo'], { style: STILE_TITOLO }),
+            riga('A21', [tx('M3-05-PEGNWC.12')], { style: STILE_TITOLO }),
             colonna(
               'A22',
               [
-                'Peg NWC (media dei 12 mesi), €',
-                'Scostamento dal peg (NWC closing - peg), €',
-                'Aggiustamento prezzo per il venditore, €',
+                tx('M3-05-PEGNWC.13'),
+                tx('M3-05-PEGNWC.14'),
+                tx('M3-05-PEGNWC.15'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -298,22 +250,19 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=AVERAGE(${B_NWC_START}:${B_NWC_END}): la media dei 12 valori mensili, non una somma manuale.`,
+          tx('M3-05-PEGNWC.16', { B_NWC_START, B_NWC_END }),
           10,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_CLOSING}-${B_PEG}: NWC di closing meno peg, in quest'ordine. Positivo = sopra il peg.`,
+          tx('M3-05-PEGNWC.17', { B_CLOSING, B_PEG }),
           8,
           'T2',
         ),
         hint(
           'H3',
-          `=${B_SCOSTAMENTO}: l'aggiustamento ha LO STESSO SEGNO dello scostamento, non va invertito. ` +
-            "NWC sopra il peg -> aggiustamento positivo (il venditore ha lasciato piu' valore, viene " +
-            "compensato). NWC sotto il peg -> aggiustamento negativo (il compratore deve reintegrare, " +
-            'il prezzo scende).',
+          tx('M3-05-PEGNWC.18', { B_SCOSTAMENTO }),
           12,
           'T3',
         ),

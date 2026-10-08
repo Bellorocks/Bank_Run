@@ -56,10 +56,13 @@ import {
   num,
 } from '../../authoring';
 
+import { tx } from '../../../i18n/content';
 export default defineTemplate({
   id: 'M0E-05-RIGHECOLONNE',
   module: 'M0-E',
-  title: 'Inserisci ed elimina senza il mouse',
+  get title() {
+    return tx('M0E-05-RIGHECOLONNE.title');
+  },
   rank: 2,
   mode: 'SPEEDRUN',
   estimatedSeconds: 90,
@@ -99,9 +102,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T1',
         prompt:
-          `In riga 4 c'e' una serie di numeri con un refuso, ${num(refusoCol)}, palesemente fuori scala. ` +
-          `Selezionalo, seleziona l'intera colonna con Ctrl+Spazio, elimina con Ctrl+-. Solo dopo, in A6, ` +
-          `somma quello che resta della serie. Se la somma non torna, il refuso e' ancora dentro.`,
+          tx('M0E-05-RIGHECOLONNE.2', { p0: num(refusoCol) }),
         target: 'Model!A6',
         atteso: sommaRiga,
         referenzia: ['B4'],
@@ -111,9 +112,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T2',
         prompt:
-          `Stesso problema in verticale, colonna A a partire da riga 10: ${num(refusoRiga)} e' un refuso in ` +
-          `mezzo alla serie. Selezionalo, seleziona l'intera riga con Maiusc+Spazio, elimina con Ctrl+-, e ` +
-          `in B9 somma quello che resta.`,
+          tx('M0E-05-RIGHECOLONNE.3', { p0: num(refusoRiga) }),
         target: 'Model!B9',
         atteso: sommaColonna,
         referenzia: ['A10'],
@@ -125,32 +124,15 @@ export default defineTemplate({
     return {
       templateId: 'M0E-05-RIGHECOLONNE',
       seed: rng.seed,
-      brief: [
-        '## Inserisci ed elimina senza il mouse',
-        '',
-        "Drill puro, senza contenuto finanziario. Due refusi da eliminare, come intere righe o colonne,",
-        'non come singole celle vuotate.',
-        '',
-        '**Ctrl+-** elimina la selezione corrente. **Ctrl+Maiusc+"+"** inserisce. Entrambe agiscono su',
-        "cio' che hai selezionato: per colpire una riga o una colonna INTERA, selezionala prima con",
-        '**Maiusc+Spazio** (riga) o **Ctrl+Spazio** (colonna) — non basta selezionare la cella del refuso',
-        "da sola, o Excel elimina solo quella.",
-        '',
-        `In riga 4 c'e una serie orizzontale con un intruso, ${num(refusoCol)}. Eliminalo come colonna`,
-        "intera, poi somma quello che resta in A6. La somma stessa e' la prova: se il refuso e' ancora",
-        'dentro, il totale sballa di migliaia.',
-        '',
-        `Piu' in basso, a partire da riga 10, la stessa cosa in verticale: ${num(refusoRiga)} va eliminato`,
-        'come riga intera, poi la somma della serie ripulita va in B9.',
-      ].join('\n'),
+      brief: [tx('M0E-05-RIGHECOLONNE.4', { p0: num(refusoCol), p1: num(refusoRiga) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Elimina il refuso'], { style: STILE_TITOLO }),
-            blocco('A3', [['Serie orizzontale con un refuso']], { style: STILE_ETICHETTA }),
+            riga('A1', [tx('M0E-05-RIGHECOLONNE.5')], { style: STILE_TITOLO }),
+            blocco('A3', [[tx('M0E-05-RIGHECOLONNE.6')]], { style: STILE_ETICHETTA }),
             riga('B4', rigaCompleta, { style: STILE_INPUT }),
-            blocco('A8', [['Serie verticale con un refuso, qui sotto']], { style: STILE_ETICHETTA }),
+            blocco('A8', [[tx('M0E-05-RIGHECOLONNE.7')]], { style: STILE_ETICHETTA }),
             colonna('A10', colonnaCompleta, { style: STILE_INPUT }),
             areaLibera(['A6', 'B9']),
           ],
@@ -161,13 +143,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `Il refuso e' in ${colRefusoLettera}4. Selezionalo, Ctrl+Spazio per tutta la colonna, Ctrl+- per eliminarla. Poi A6 = somma di quello che resta della serie.`,
+          tx('M0E-05-RIGHECOLONNE.8', { colRefusoLettera }),
           10,
           'T1',
         ),
         hint(
           'H2',
-          `Il refuso e' qualche riga sotto A10. Selezionalo, Maiusc+Spazio per tutta la riga, Ctrl+- per eliminarla. Poi B9 = SUM sui dati rimasti in colonna A.`,
+          tx('M0E-05-RIGHECOLONNE.9'),
           10,
           'T2',
         ),

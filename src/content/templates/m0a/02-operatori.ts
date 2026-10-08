@@ -36,10 +36,13 @@ import {
 } from '../../authoring';
 import { roundTo } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 export default defineTemplate({
   id: 'M0A-02-OPERATORI',
   module: 'M0-A',
-  title: 'Le parentesi non sono decorazione',
+  get title() {
+    return tx('M0A-02-OPERATORI.title');
+  },
   rank: 1,
   mode: 'GUIDED',
   estimatedSeconds: 150,
@@ -69,7 +72,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T1',
         prompt:
-          'In B5 calcola il costo totale di produzione: costo per pezzo moltiplicato per la quantita\', piu\' il costo fisso mensile. Scrivila cosi\' come la leggi: qui l\'ordine delle operazioni gia\' fa la cosa giusta da solo.',
+          tx('M0A-02-OPERATORI.2'),
         target: 'Model!B5',
         atteso: costoTotaleProduzione,
         referenzia: ['B2', 'B3', 'B4'],
@@ -80,7 +83,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T2',
         prompt:
-          'In B10 calcola il margine netto dopo la commissione: prima sottrai il costo fisso mensile (B4, lo stesso di sopra) dai ricavi, poi moltiplica il risultato per (1 meno la commissione). Qui le parentesi non sono facoltative: senza, cambi cosa moltiplica cosa.',
+          tx('M0A-02-OPERATORI.3'),
         target: 'Model!B10',
         atteso: margineNetto,
         referenzia: ['B7', 'B4', 'B9'],
@@ -93,61 +96,27 @@ export default defineTemplate({
     return {
       templateId: 'M0A-02-OPERATORI',
       seed: rng.seed,
-      brief: [
-        '## L\'ordine in cui Excel fa i conti',
-        '',
-        'Una formula non si legge da sinistra a destra come una frase: Excel rispetta le',
-        '**precedenze** della matematica. Moltiplicazione e divisione vengono eseguite prima di',
-        'somma e sottrazione, sempre — anche se nella formula sono scritte dopo.',
-        '',
-        `Se scrivi \`=2+3*4\` il risultato e' ${num(2 + 3 * 4)}, non ${num((2 + 3) * 4)}: prima si calcola`,
-        `\`3*4\`, poi si somma \`2\`. Per ottenere ${num((2 + 3) * 4)} servirebbero le parentesi: \`=(2+3)*4\`.`,
-        'Le parentesi non decorano la formula: dicono a Excel quale pezzo calcolare per primo.',
-        '',
-        '### Lo scenario',
-        '',
-        'Una piccola produzione di gadget personalizzati. Ogni pezzo costa',
-        `${eur(u)} da produrre, questo mese ne sono usciti ${num(q)}, e ci sono`,
-        `${eur(F)} di costi fissi mensili (affitto, utenze) indipendenti da quanto si produce.`,
-        '',
-        `Il primo task e' il caso semplice: **costo per pezzo × quantita', piu' il costo fisso**.`,
-        'Scritta cosi\' com\'e\' descritta a parole, la formula e\' gia\' corretta — la moltiplicazione',
-        'vince sulla somma da sola, senza bisogno di parentesi.',
-        '',
-        `I ricavi del mese sono ${eur(R)}. La piattaforma di vendita online trattiene una`,
-        `commissione del ${pct(c)} sul margine che resta dopo aver coperto il costo fisso mensile.`,
-        'Il margine netto e\':',
-        '',
-        '`= (Ricavi − CostoFisso) × (1 − Commissione)`',
-        '',
-        'Qui le parentesi servono davvero. Guarda cosa succede a toglierle: se scrivessi',
-        '`=Ricavi-CostoFisso*1-Commissione`, Excel calcolerebbe prima `CostoFisso*1` (che non cambia',
-        'niente) e poi sottrarrebbe sia quello sia la commissione da Ricavi, una dopo l\'altra —',
-        `come se la commissione, che e' una frazione (${pct(c)}), fosse un importo intero in euro da togliere`,
-        `di netto. Il risultato verrebbe ${eur(risultatoSenzaParentesi, 2)}, ben lontano dal`,
-        `margine vero di ${eur(margineNetto, 2)}. Lo sbaglio non e' un arrotondamento: e\' aver`,
-        'moltiplicato la cosa sbagliata per la cosa sbagliata.',
-      ].join('\n'),
+      brief: [tx('M0A-02-OPERATORI.4', { p0: num(2 + 3 * 4), p1: num((2 + 3) * 4), p2: num((2 + 3) * 4), p3: eur(u), p4: num(q), p5: eur(F), p6: eur(R), p7: pct(c), p8: pct(c), p9: eur(risultatoSenzaParentesi, 2), p10: eur(margineNetto, 2) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Produzione e vendita di gadget'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M0A-02-OPERATORI.5')], { style: STILE_TITOLO }),
             blocco('A2', [
-              ['Costo di produzione per pezzo'],
-              ['Quantita\' prodotta'],
-              ['Costo fisso mensile'],
-              ['Costo totale di produzione'],
+              [tx('M0A-02-OPERATORI.6')],
+              [tx('M0A-02-OPERATORI.7')],
+              [tx('M0A-02-OPERATORI.8')],
+              [tx('M0A-02-OPERATORI.9')],
             ], { style: STILE_ETICHETTA }),
             blocco('B2', [[u], [q], [F]], { style: STILE_INPUT }),
 
             blocco('A7', [
-              ['Ricavi del mese'],
+              [tx('M0A-02-OPERATORI.10')],
             ], { style: STILE_ETICHETTA }),
             blocco('B7', [[R]], { style: STILE_INPUT }),
             blocco('A9', [
-              ['Commissione piattaforma di vendita'],
-              ['Margine netto dopo la commissione'],
+              [tx('M0A-02-OPERATORI.11')],
+              [tx('M0A-02-OPERATORI.12')],
             ], { style: STILE_ETICHETTA }),
             blocco('B9', [[c]], { style: STILE_INPUT_PCT }),
 
@@ -160,13 +129,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          'Moltiplicazione prima, somma dopo: Excel lo fa da solo. Scrivi la formula cosi\' come la leggi, senza parentesi.',
+          tx('M0A-02-OPERATORI.13'),
           8,
           'T1',
         ),
         hint(
           'H2',
-          'Fai prima (B7-B4) fra parentesi, poi moltiplica tutto per (1-B9), anche questo fra parentesi. Due gruppi, due coppie di parentesi.',
+          tx('M0A-02-OPERATORI.14'),
           12,
           'T2',
         ),

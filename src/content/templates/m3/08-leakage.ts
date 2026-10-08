@@ -67,21 +67,22 @@ import {
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
-const PERMESSO = [
-  'Stipendio mensile ordinario del management-venditore, come da contratto',
-  "Canone di locazione ordinario per l'immobile aziendale, dovuto al venditore a condizioni di mercato",
-  'Bonus annuale del management previsto dal piano di incentivazione ordinario',
-  'Dividendo ordinario deliberato PRIMA della locked box date',
-  'Rimborso spese di viaggio ordinarie del management, documentate',
-] as const;
+import { tx } from '../../../i18n/content';
+const PERMESSO = () => ([
+  tx('M3-08-LEAKAGE.1'),
+  tx('M3-08-LEAKAGE.2'),
+  tx('M3-08-LEAKAGE.3'),
+  tx('M3-08-LEAKAGE.4'),
+  tx('M3-08-LEAKAGE.5'),
+] as const);
 
-const NON_PERMESSO = [
-  'Dividendo straordinario deliberato DOPO la locked box date',
-  "Spese personali del venditore pagate con la carta aziendale",
-  'Bonus una tantum al management-venditore, non previsto dal contratto',
-  "Management fee straordinaria pagata a una societa' riconducibile al venditore",
-  "Estinzione di un debito personale del venditore con cassa dell'azienda",
-] as const;
+const NON_PERMESSO = () => ([
+  tx('M3-08-LEAKAGE.6'),
+  tx('M3-08-LEAKAGE.7'),
+  tx('M3-08-LEAKAGE.8'),
+  tx('M3-08-LEAKAGE.9'),
+  tx('M3-08-LEAKAGE.10'),
+] as const);
 
 interface Movimento {
   readonly descrizione: string;
@@ -100,7 +101,9 @@ const DATA_START = 8;
 export default defineTemplate({
   id: 'M3-08-LEAKAGE',
   module: 'M3',
-  title: 'Leakage: valore che esce a beneficio del venditore',
+  get title() {
+    return tx('M3-08-LEAKAGE.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 270,
@@ -122,8 +125,8 @@ export default defineTemplate({
     const kNonPermesso = r.int(1, n - 1);
     const nPermesso = n - kNonPermesso;
 
-    const descrizioniPermesso = r.shuffle([...PERMESSO]).slice(0, nPermesso);
-    const descrizioniNonPermesso = r.shuffle([...NON_PERMESSO]).slice(0, kNonPermesso);
+    const descrizioniPermesso = r.shuffle([...PERMESSO()]).slice(0, nPermesso);
+    const descrizioniNonPermesso = r.shuffle([...NON_PERMESSO()]).slice(0, kNonPermesso);
 
     const movimentiPermesso: Movimento[] = descrizioniPermesso.map((descrizione) => ({
       descrizione,
@@ -164,14 +167,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T1',
         prompt:
-          `In ${C_LEAKAGE} calcola il leakage non permesso totale: la somma dei SOLI importi con ` +
-          `Tipo = "non permesso" nell'elenco qui sopra (${rifTipo}:B${DATA_END} per il tipo, ` +
-          `${rifImporti}:C${DATA_END} per gli importi). Le voci "permesso" sono valore che sarebbe ` +
-          "uscito dall'azienda comunque, quali che fossero i piani di vendita — gia' concordate nel " +
-          "contratto — e NON vanno toccate: sommare l'intero elenco, incluse le voci permesse, non e' " +
-          "solo impreciso ma un errore concettuale grave, esattamente come normalizzare l'EBITDA " +
-          "sommando anche le rettifiche ricorrenti (M2). Serve una funzione che sommi solo le righe che " +
-          'rispettano il criterio.',
+          tx('M3-08-LEAKAGE.13', { C_LEAKAGE, rifTipo, DATA_END, rifImporti }),
         target: `Model!${C_LEAKAGE}`,
         atteso: leakageNonPermesso,
         referenzia: [rifTipo, rifImporti],
@@ -188,11 +184,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${C_PREZZO_RETT} calcola il prezzo finale rettificato a carico del compratore: il prezzo ` +
-        `concordato al signing (${B_PREZZO}) MENO il leakage non permesso appena isolato (${C_LEAKAGE}). ` +
-        "Quel leakage ha gia' fatto uscire valore dall'azienda a beneficio del venditore, prima del " +
-        "closing: il compratore lo recupera riducendo quanto paga, quindi si SOTTRAE dal prezzo — non " +
-        'si aggiunge.',
+        tx('M3-08-LEAKAGE.14', { C_PREZZO_RETT, B_PREZZO, C_LEAKAGE }),
       target: `Model!${C_PREZZO_RETT}`,
       atteso: prezzoRettificato,
       referenzia: [B_PREZZO, C_LEAKAGE],
@@ -206,58 +198,29 @@ export default defineTemplate({
     return {
       templateId: 'M3-08-LEAKAGE',
       seed: rng.seed,
-      brief: [
-        '## Leakage: valore che esce a beneficio del venditore',
-        '',
-        "Nello schema locked box (livello precedente) il prezzo si fissa alla locked box date e non si " +
-          "aggiusta piu' sui conti reali al closing. Ma fra quella data e il closing effettivo l'azienda " +
-          "resta gestita dal VENDITORE — e in quella finestra il venditore potrebbe far uscire valore " +
-          "dall'azienda a proprio beneficio, prima di consegnarla. Quel valore in uscita si chiama " +
-          '**leakage**, e i contratti di locked box lo regolano esplicitamente distinguendo due casi.',
-        '',
-        '- **Leakage permesso** ("permitted leakage"): concordato in anticipo nel contratto — lo ' +
-          "stipendio ordinario del management-venditore, un affitto a mercato dovuto al venditore, un " +
-          "dividendo gia' deliberato prima della locked box date. E' valore che sarebbe uscito comunque, " +
-          "sotto qualunque proprietario: NON richiede compensazione.",
-        '- **Leakage non permesso** ("unpermitted leakage"): tutto il resto — un dividendo straordinario ' +
-          "deliberato dopo la locked box date, spese personali del venditore pagate con cassa aziendale, " +
-          "una management fee straordinaria verso una societa' del venditore. E' valore che il " +
-          "compratore non ha mai visto e su cui non ha mai potuto contare: va rimborsato al compratore " +
-          '**euro per euro**, riducendo il prezzo finale.',
-        '',
-        `Il prezzo concordato al signing e' ${eurM(prezzoConcordato)} (${eur(prezzoConcordato)}). Qui ` +
-          `sotto trovi ${num(n)} movimenti avvenuti fra la locked box date e il closing, ciascuno ` +
-          'etichettato Tipo = "permesso" oppure Tipo = "non permesso", in ordine sparso.',
-        '',
-        "Sommare l'intero elenco indiscriminatamente sarebbe un errore concettuale, non un dettaglio — " +
-          "esattamente lo stesso tipo di disciplina che hai gia' allenato in M2 isolando le sole voci " +
-          "straordinarie in un elenco di spese legali, o i soli addback legittimi in un elenco misto: " +
-          `il totale di TUTTI i movimenti e' ${eur(totaleElencoCompleto)}, ma solo una parte di quel ` +
-          "numero e' leakage non permesso, ed e' quella parte che riduce il prezzo. Isola prima le righe " +
-          'giuste, poi somma.',
-      ].join('\n'),
+      brief: [tx('M3-08-LEAKAGE.15', { p0: eurM(prezzoConcordato), p1: eur(prezzoConcordato), p2: num(n), p3: eur(totaleElencoCompleto) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga(`A${ROW_TITOLO}`, ['Leakage: locked box date → closing'], { style: STILE_TITOLO }),
+            riga(`A${ROW_TITOLO}`, [tx('M3-08-LEAKAGE.16')], { style: STILE_TITOLO }),
 
-            riga(`A${ROW_SEZ1}`, ['Dati concordati al signing'], { style: STILE_TITOLO }),
-            colonna(`A${ROW_PREZZO}`, ['Prezzo concordato, €'], { style: STILE_ETICHETTA }),
+            riga(`A${ROW_SEZ1}`, [tx('M3-08-LEAKAGE.17')], { style: STILE_TITOLO }),
+            colonna(`A${ROW_PREZZO}`, [tx('M3-08-LEAKAGE.18')], { style: STILE_ETICHETTA }),
             [{ ref: B_PREZZO, content: prezzoConcordato, style: STILE_INPUT, locked: true }],
 
-            riga(`A${ROW_SEZ2}`, ['Movimenti fra locked box date e closing — elenco completo'], {
+            riga(`A${ROW_SEZ2}`, [tx('M3-08-LEAKAGE.19')], {
               style: STILE_TITOLO,
             }),
-            riga(`A${ROW_HEADER}`, ['Movimento', 'Tipo', 'Importo (€)'], { style: STILE_TITOLO }),
+            riga(`A${ROW_HEADER}`, [tx('M3-08-LEAKAGE.26'), tx('M3-08-LEAKAGE.27'), tx('M3-08-LEAKAGE.20')], { style: STILE_TITOLO }),
             colonna(`A${DATA_START}`, movimenti.map((m) => m.descrizione), { style: STILE_ETICHETTA }),
-            colonna(`B${DATA_START}`, movimenti.map((m) => m.tipo), { style: STILE_ETICHETTA }),
+            colonna(`B${DATA_START}`, movimenti.map((m) => (m.tipo === 'permesso' ? tx('M3-08-LEAKAGE.tok.permesso') : tx('M3-08-LEAKAGE.12'))), { style: STILE_ETICHETTA }),
             colonna(`C${DATA_START}`, movimenti.map((m) => m.importo), { style: STILE_INPUT }),
 
-            riga(`A${ROW_SEZ3}`, ['Rettifica del prezzo'], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ3}`, [tx('M3-08-LEAKAGE.21')], { style: STILE_TITOLO }),
             colonna(
               `A${ROW_LEAKAGE}`,
-              ['Leakage non permesso totale, €', 'Prezzo finale rettificato, €'],
+              [tx('M3-08-LEAKAGE.22'), tx('M3-08-LEAKAGE.23')],
               { style: STILE_ETICHETTA },
             ),
             [{ ref: C_LEAKAGE, content: null, locked: false, style: STILE_FORMULA }],
@@ -270,15 +233,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=SUMIF(${rifTipo}:B${DATA_END},"non permesso",${rifImporti}:C${DATA_END}): somma solo gli ` +
-            'importi delle righe con Tipo uguale a "non permesso", ignorando le righe "permesso".',
+          tx('M3-08-LEAKAGE.24', { rifTipo, DATA_END, rifImporti }),
           12,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_PREZZO}-${C_LEAKAGE}: prezzo concordato MENO il leakage non permesso. Il venditore ne ha ` +
-            "gia' beneficiato prima del closing, quindi il compratore lo recupera riducendo il prezzo.",
+          tx('M3-08-LEAKAGE.25', { B_PREZZO, C_LEAKAGE }),
           8,
           'T2',
         ),

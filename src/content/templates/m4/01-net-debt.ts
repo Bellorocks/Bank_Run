@@ -58,19 +58,20 @@ import {
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
-const FINANZIARIE = [
-  'Mutuo bancario a medio termine',
-  'Prestito obbligazionario',
-  'Finanziamento soci fruttifero',
-  'Linea di credito bancaria a breve (utilizzata)',
-] as const;
+import { tx } from '../../../i18n/content';
+const FINANZIARIE = () => ([
+  tx('M4-01-NETDEBT.1'),
+  tx('M4-01-NETDEBT.2'),
+  tx('M4-01-NETDEBT.3'),
+  tx('M4-01-NETDEBT.4'),
+] as const);
 
-const OPERATIVE = [
-  'Debiti verso fornitori',
-  'Debiti verso il personale per stipendi da pagare',
-  "Debiti tributari (IVA da versare)",
-  'Debiti verso istituti previdenziali',
-] as const;
+const OPERATIVE = () => ([
+  tx('M4-01-NETDEBT.5'),
+  tx('M4-01-NETDEBT.6'),
+  tx('M4-01-NETDEBT.7'),
+  tx('M4-01-NETDEBT.8'),
+] as const);
 
 interface Voce {
   readonly descrizione: string;
@@ -87,7 +88,9 @@ const DATA_START = 5;
 export default defineTemplate({
   id: 'M4-01-NETDEBT',
   module: 'M4',
-  title: 'Net Debt: cosa entra e cosa no',
+  get title() {
+    return tx('M4-01-NETDEBT.title');
+  },
   rank: 1,
   mode: 'GUIDED',
   estimatedSeconds: 260,
@@ -104,8 +107,8 @@ export default defineTemplate({
     const kFinanziarie = r.int(2, n - 2);
     const kOperative = n - kFinanziarie;
 
-    const descrizioniFinanziarie = r.shuffle([...FINANZIARIE]).slice(0, kFinanziarie);
-    const descrizioniOperative = r.shuffle([...OPERATIVE]).slice(0, kOperative);
+    const descrizioniFinanziarie = r.shuffle([...FINANZIARIE()]).slice(0, kFinanziarie);
+    const descrizioniOperative = r.shuffle([...OPERATIVE()]).slice(0, kOperative);
 
     const vociFinanziarie: Voce[] = descrizioniFinanziarie.map((descrizione) => ({
       descrizione,
@@ -149,13 +152,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T1',
         prompt:
-          `In ${C_T1} calcola il debito finanziario lordo: la somma dei SOLI importi con Tipo = ` +
-          `"finanziario" nell'elenco qui sopra (${rifTipo}:B${DATA_END} per il tipo, ` +
-          `${rifImporti}:C${DATA_END} per gli importi). Le voci "operativo" (fornitori, personale, ` +
-          "erario, istituti previdenziali) sono debiti del ciclo operativo, non finanziamenti: NON vanno " +
-          "toccate. Sommare l'intero elenco, incluse le voci operative, non e' solo impreciso ma un " +
-          "errore concettuale grave — gonfieresti il net debt e quindi ridurresti l'equity value in modo " +
-          "ingiustificato. Serve una funzione che sommi solo le righe che rispettano il criterio.",
+          tx('M4-01-NETDEBT.10', { C_T1, rifTipo, DATA_END, rifImporti }),
         target: `Model!${C_T1}`,
         atteso: debitoFinanziarioLordo,
         referenzia: [rifTipo, rifImporti],
@@ -172,9 +169,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${C_T2} calcola il Net Debt: il debito finanziario lordo appena isolato (${C_T1}) meno la ` +
-        `cassa e i mezzi equivalenti (${C_CASSA}). La cassa e' disponibilita' immediata: riduce il debito ` +
-        'netto quanto il debito finanziario lo aumenta.',
+        tx('M4-01-NETDEBT.11', { C_T2, C_T1, C_CASSA }),
       target: `Model!${C_T2}`,
       atteso: netDebt,
       referenzia: [C_T1, C_CASSA],
@@ -188,50 +183,26 @@ export default defineTemplate({
     return {
       templateId: 'M4-01-NETDEBT',
       seed: rng.seed,
-      brief: [
-        '## Net Debt: non tutti i debiti sono debito finanziario',
-        '',
-        "Il Net Debt (posizione finanziaria netta) e' il primo pezzo del ponte fra Enterprise Value ed " +
-          "Equity Value, e nella sua forma piu' semplice e':",
-        '',
-        '> **Net Debt = Debito finanziario lordo - Cassa e mezzi equivalenti**',
-        '',
-        "La parte che sbaglia chi inizia non e' la sottrazione: e' capire COSA conta come debito " +
-          '"finanziario". Un elenco di voci di passivo mescola quasi sempre due famiglie diverse:',
-        '',
-        "- voci **finanziarie** (mutui, prestiti obbligazionari, finanziamenti soci fruttiferi, linee di " +
-          "credito utilizzate): soldi presi in prestito da una controparte finanziaria, con un costo " +
-          'esplicito in interessi. Queste ENTRANO nel debito finanziario lordo.',
-        "- voci **operative** (debiti verso fornitori, verso il personale, verso l'erario, verso gli " +
-          "istituti previdenziali): soldi dovuti come parte normale della gestione corrente, non un " +
-          'finanziamento. Anche se sono "debiti" in senso contabile, NON entrano nel debito finanziario ' +
-          "lordo: sono gia' materia di capitale circolante, non di net debt.",
-        '',
-        `Qui sotto trovi ${num(n)} voci di passivo, ciascuna etichettata Tipo = "finanziario" oppure ` +
-          'Tipo = "operativo", in ordine sparso. Trattarle tutte allo stesso modo sarebbe un errore ' +
-          `concettuale, non un dettaglio: il totale di TUTTE le voci e' ${eur(totaleElencoCompleto)}, ma ` +
-          "solo una parte di quel numero e' davvero debito finanziario. Isola prima le righe giuste, poi " +
-          `somma. La cassa e i mezzi equivalenti, gia' data, sono ${eur(cassa)}.`,
-      ].join('\n'),
+      brief: [tx('M4-01-NETDEBT.12', { p0: num(n), p1: eur(totaleElencoCompleto), p2: eur(cassa) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga(`A${ROW_TITOLO}`, ['Net Debt: cosa entra e cosa no'], { style: STILE_TITOLO }),
-            riga(`A${ROW_SEZ1}`, ['Passivo: voci da classificare'], { style: STILE_TITOLO }),
-            riga(`A${ROW_HEADER}`, ['Voce', 'Tipo', 'Importo (€)'], { style: STILE_TITOLO }),
+            riga(`A${ROW_TITOLO}`, [tx('M4-01-NETDEBT.13')], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ1}`, [tx('M4-01-NETDEBT.14')], { style: STILE_TITOLO }),
+            riga(`A${ROW_HEADER}`, [tx('M4-01-NETDEBT.23'), tx('M4-01-NETDEBT.24'), tx('M4-01-NETDEBT.15')], { style: STILE_TITOLO }),
             colonna(`A${DATA_START}`, voci.map((v) => v.descrizione), { style: STILE_ETICHETTA }),
-            colonna(`B${DATA_START}`, voci.map((v) => v.tipo), { style: STILE_ETICHETTA }),
+            colonna(`B${DATA_START}`, voci.map((v) => tx(`M4-01-NETDEBT.tok.${v.tipo}`)), { style: STILE_ETICHETTA }),
             colonna(`C${DATA_START}`, voci.map((v) => v.importo), { style: STILE_INPUT }),
 
-            riga(`A${ROW_SEZ2}`, ['Altri dati'], { style: STILE_TITOLO }),
-            colonna(`A${ROW_CASSA}`, ['Cassa e mezzi equivalenti, €'], { style: STILE_ETICHETTA }),
+            riga(`A${ROW_SEZ2}`, [tx('M4-01-NETDEBT.16')], { style: STILE_TITOLO }),
+            colonna(`A${ROW_CASSA}`, [tx('M4-01-NETDEBT.17')], { style: STILE_ETICHETTA }),
             [{ ref: C_CASSA, content: cassa, style: STILE_INPUT, locked: true }],
 
-            riga(`A${ROW_SEZ3}`, ['Net Debt'], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ3}`, [tx('M4-01-NETDEBT.18')], { style: STILE_TITOLO }),
             colonna(
               `A${ROW_T1}`,
-              ['Debito finanziario lordo (solo voci "finanziario"), €', 'Net Debt, €'],
+              [tx('M4-01-NETDEBT.19'), tx('M4-01-NETDEBT.20')],
               { style: STILE_ETICHETTA },
             ),
             [{ ref: C_T1, content: null, locked: false, style: STILE_FORMULA }],
@@ -244,14 +215,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=SUMIF(${rifTipo}:B${DATA_END},"finanziario",${rifImporti}:C${DATA_END}): somma solo gli ` +
-            'importi delle righe con Tipo uguale a "finanziario", ignorando le righe "operativo".',
+          tx('M4-01-NETDEBT.21', { rifTipo, DATA_END, rifImporti }),
           12,
           'T1',
         ),
         hint(
           'H2',
-          `=${C_T1}-${C_CASSA}: debito finanziario lordo meno cassa e mezzi equivalenti.`,
+          tx('M4-01-NETDEBT.22', { C_T1, C_CASSA }),
           8,
           'T2',
         ),

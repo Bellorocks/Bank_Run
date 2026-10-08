@@ -73,6 +73,7 @@ import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 // Stili locali: il prezzo corrente per azione va a due decimali (un formato
 // non coperto da STILE_INPUT, che e' senza decimali), e il valore di mercato
 // delle azioni da conversione (T2) puo' avere centesimi perche' e' un
@@ -102,7 +103,9 @@ const B_T3 = `B${ROW_T3}`;
 export default defineTemplate({
   id: 'M4-09-CONVERTIBILI',
   module: 'M4',
-  title: "Bond convertibili: l'if-converted test",
+  get title() {
+    return tx('M4-09-CONVERTIBILI.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 260,
@@ -161,12 +164,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_T1} calcola le azioni POTENZIALI da conversione: se tutto il bond convertibile ` +
-        `venisse convertito, quante azioni nascerebbero? Il rapporto di conversione in ${B_RAPPORTO} e' ` +
-        "espresso per ogni €1.000 di nominale, quindi devi prima dividere il valore nominale in " +
-        `${B_NOMINALE} per 1.000 (quante "unita' da mille euro" ci sono nel bond), poi moltiplicare per ` +
-        "il rapporto di conversione. E' un calcolo meccanico, fissato dal regolamento del prestito: non " +
-        "dipende ancora dal prezzo dell'azione, questo e' solo QUANTE azioni nascerebbero SE si convertisse.",
+        tx('M4-09-CONVERTIBILI.2', { B_T1, B_RAPPORTO, B_NOMINALE }),
       target: `Model!${B_T1}`,
       atteso: azioniPotenziali,
       referenzia: [B_NOMINALE, B_RAPPORTO],
@@ -178,11 +176,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_T2} calcola il valore di mercato delle azioni ottenute dalla conversione: le azioni ` +
-        `potenziali appena calcolate (${B_T1}) moltiplicate per il prezzo CORRENTE dell'azione (${B_PREZZO}) ` +
-        "— non per un prezzo di emissione o per il valore nominale del bond, per il prezzo che l'azione " +
-        "vale OGGI sul mercato. E' il termine di paragone che nel prossimo task decide se al detentore " +
-        'conviene convertire oppure no.',
+        tx('M4-09-CONVERTIBILI.3', { B_T2, B_T1, B_PREZZO }),
       target: `Model!${B_T2}`,
       atteso: valoreMercatoConversione,
       referenzia: [B_T1, B_PREZZO],
@@ -194,15 +188,7 @@ export default defineTemplate({
     const t3: Task = {
       id: 'T3',
       prompt:
-        `In ${B_T3} applica l'if-converted test e calcola la diluizione EFFETTIVA. A differenza delle ` +
-        "opzioni (Treasury Stock Method), il bond convertibile non diluisce sempre un po': o si converte " +
-        "del tutto, o non si converte affatto. Il detentore converte SOLO SE conviene — cioe' SOLO SE il " +
-        `valore di mercato delle azioni da conversione (${B_T2}) supera il valore nominale del bond ` +
-        `(${B_NOMINALE}): in quel caso rinuncia al rimborso in cambio di azioni che valgono di piu', e la ` +
-        `diluizione e' pari alle azioni potenziali (${B_T1}). Se invece il valore di mercato NON supera il ` +
-        "nominale, il detentore tiene il bond fino a scadenza e si fa rimborsare: il bond resta debito, e " +
-        "la diluizione e' ZERO — non ridotta, esattamente zero. Serve un IF: " +
-        `=IF(${B_T2}>${B_NOMINALE}, ${B_T1}, 0).`,
+        tx('M4-09-CONVERTIBILI.4', { B_T3, B_T2, B_NOMINALE, B_T1 }),
       targetCell: `Model!${B_T3}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -220,51 +206,20 @@ export default defineTemplate({
     return {
       templateId: 'M4-09-CONVERTIBILI',
       seed: rng.seed,
-      brief: [
-        "## Bond convertibili: l'if-converted test",
-        '',
-        "Un'opzione o un warrant, se e' in the money, diluisce sempre un po' — il Treasury Stock " +
-          "Method (M4-08) calcola di QUANTO. Un **bond convertibile** e' diverso: e' un titolo di debito " +
-          "che il detentore puo' scegliere di convertire in azioni, oppure no. Non c'e' via di mezzo — " +
-          "o si converte del tutto, o non si converte affatto — quindi non serve il TSM, serve un test " +
-          'binario, il cosiddetto **if-converted test**:',
-        '',
-        '> **Si converte SOLO SE il valore di mercato delle azioni ottenute dalla conversione supera il ' +
-          'valore nominale del bond.**',
-        '',
-        "Se conviene, il detentore rinuncia al rimborso del nominale (e alle cedole future) in cambio di " +
-          "azioni che valgono di piu': il bond esce dal debito e diventa capitale, e le nuove azioni " +
-          "diluiscono gli azionisti esistenti. Se NON conviene, il detentore tiene il bond fino a " +
-          "scadenza e si fa rimborsare il nominale in contanti: il bond resta debito, punto — la " +
-          "diluizione e' zero, non ridotta.",
-        '',
-        '1. **Azioni potenziali** = (valore nominale / 1.000) × rapporto di conversione — quante azioni ' +
-          "nascerebbero SE tutto il bond venisse convertito. E' un dato meccanico del regolamento del " +
-          "prestito, fissato all'emissione: non dipende dal prezzo dell'azione.",
-        "2. **Valore di mercato della conversione** = azioni potenziali × prezzo CORRENTE dell'azione — " +
-          "quanto varrebbero oggi, sul mercato, le azioni che il detentore riceverebbe.",
-        "3. **Diluizione effettiva (if-converted)** = SE il valore di mercato supera il valore nominale, " +
-          "le azioni potenziali; ALTRIMENTI zero. Un IF, non un aggiustamento continuo.",
-        '',
-        `Il valore nominale del bond, gia' dato, e' ${eur(valoreNominale)}; il rapporto di conversione, ` +
-          `gia' dato, e' ${num(rapportoConversione)} azioni per ogni €1.000 di nominale; il prezzo ` +
-          `corrente per azione, gia' dato, e' ${eur(prezzoCorrente, 2)}. Segui i tre passi in cascata: ` +
-          "prima le azioni potenziali, poi il loro valore di mercato, infine il test che decide se la " +
-          'diluizione scatta davvero.',
-      ].join('\n'),
+      brief: [tx('M4-09-CONVERTIBILI.5', { p0: eur(valoreNominale), p1: num(rapportoConversione), p2: eur(prezzoCorrente, 2) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga(`A${ROW_TITOLO}`, ["Bond convertibili: l'if-converted test"], { style: STILE_TITOLO }),
+            riga(`A${ROW_TITOLO}`, [tx('M4-09-CONVERTIBILI.6')], { style: STILE_TITOLO }),
 
-            riga(`A${ROW_SEZ1}`, ['Dati del bond convertibile'], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ1}`, [tx('M4-09-CONVERTIBILI.7')], { style: STILE_TITOLO }),
             colonna(
               `A${ROW_NOMINALE}`,
               [
-                'Valore nominale del bond convertibile, €',
-                'Rapporto di conversione (azioni per ogni €1.000 di nominale)',
-                'Prezzo corrente per azione, €',
+                tx('M4-09-CONVERTIBILI.8'),
+                tx('M4-09-CONVERTIBILI.9'),
+                tx('M4-09-CONVERTIBILI.10'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -272,13 +227,13 @@ export default defineTemplate({
             [{ ref: B_RAPPORTO, content: rapportoConversione, style: STILE_INPUT, locked: true }],
             [{ ref: B_PREZZO, content: prezzoCorrente, style: STILE_INPUT_PREZZO, locked: true }],
 
-            riga(`A${ROW_SEZ2}`, ['If-converted test'], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ2}`, [tx('M4-09-CONVERTIBILI.11')], { style: STILE_TITOLO }),
             colonna(
               `A${ROW_T1}`,
               [
-                'Azioni potenziali da conversione',
-                'Valore di mercato delle azioni da conversione, €',
-                'Diluizione effettiva (if-converted), azioni',
+                tx('M4-09-CONVERTIBILI.12'),
+                tx('M4-09-CONVERTIBILI.13'),
+                tx('M4-09-CONVERTIBILI.14'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -293,23 +248,19 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=(${B_NOMINALE}/1000)*${B_RAPPORTO}: il valore nominale diviso 1.000 (quante unita' da mille ` +
-            "euro ci sono nel bond), moltiplicato per il rapporto di conversione.",
+          tx('M4-09-CONVERTIBILI.15', { B_NOMINALE, B_RAPPORTO }),
           12,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_T1}*${B_PREZZO}: le azioni potenziali moltiplicate per il prezzo corrente dell'azione ` +
-            '(non per lo strike, non per il nominale — per il prezzo di mercato di oggi).',
+          tx('M4-09-CONVERTIBILI.16', { B_T1, B_PREZZO }),
           10,
           'T2',
         ),
         hint(
           'H3',
-          `=IF(${B_T2}>${B_NOMINALE}, ${B_T1}, 0): se il valore di mercato della conversione supera il ` +
-            "nominale del bond conviene convertire (diluizione = azioni potenziali), altrimenti il bond " +
-            "resta debito e la diluizione e' zero.",
+          tx('M4-09-CONVERTIBILI.17', { B_T2, B_NOMINALE, B_T1 }),
           14,
           'T3',
         ),

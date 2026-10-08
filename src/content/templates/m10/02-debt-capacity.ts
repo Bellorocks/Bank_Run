@@ -35,6 +35,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // Geometria fissa
 const B_EBITDA = 'B4'; // EBITDA (dato)
 const B_CFADS = 'B5'; // CFADS Annuo (dato)
@@ -50,7 +51,9 @@ const B_VINCOLO = 'B14'; // T4: quale vincolo morde ("LEVERAGE" / "DSCR")
 export default defineTemplate({
   id: 'M10-02-DEBTCAPACITY',
   module: 'M10',
-  title: 'Debt capacity: calcolo del massimo debito sostenibile',
+  get title() {
+    return tx('M10-02-DEBTCAPACITY.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -81,45 +84,28 @@ export default defineTemplate({
     const effCap = Math.min(capLev, capDscr);
     const vincolo = capLev <= capDscr ? 'LEVERAGE' : 'DSCR';
 
-    const brief = [
-      `Determina la massima **Debt Capacity (Capacità di Indebitamento)** per finanziare un nuovo piano di investimenti.`,
-      ``,
-      `Parametri aziendali e vincoli bancari:`,
-      `- **EBITDA Annuo**: ${eur(ebitda)}`,
-      `- **Flusso di Cassa Operativo (CFADS)**: ${eur(cfads)}/anno`,
-      `- **Vincolo 1 (Max Leverage Bancario)**: ${multiplo(maxLev)}`,
-      `- **Vincolo 2 (Minimo DSCR Richiesto)**: ${multiplo(minDscr)}`,
-      `- **Servizio del debito annuo**: ${pct(debtSvcPct, 0)} del debito (interessi piu' quota capitale)`,
-      ``,
-      'Le banche applicano due vincoli e prestano il **meno** dei due:',
-      '',
-      "- il leverage massimo fissa un tetto in multipli di EBITDA;",
-      "- il DSCR minimo dice quanto servizio del debito il CFADS puo' sostenere ogni anno; dato il servizio " +
-        'annuo per euro di debito, quel servizio massimo si traduce in un debito massimo.',
-      '',
-      "Calcola le due capacita', quella effettiva e fai dire al foglio quale vincolo morde: \"LEVERAGE\" o \"DSCR\".",
-    ].join('\n');
+    const brief = [tx('M10-02-DEBTCAPACITY.2', { p0: eur(ebitda), p1: eur(cfads), p2: multiplo(maxLev), p3: multiplo(minDscr), p4: pct(debtSvcPct, 0) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['CALCOLO DELLA DEBT CAPACITY'], { style: STILE_TITOLO }),
-      riga('A3', ['Parametri Aziendali & Vincoli di Fido', 'Valore'], { style: STILE_TITOLO }),
+      riga('A1', [tx('M10-02-DEBTCAPACITY.3')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M10-02-DEBTCAPACITY.4'), tx('M10-02-DEBTCAPACITY.21')], { style: STILE_TITOLO }),
       colonna('A4', [
-        'EBITDA Annuo (€)',
-        'CFADS Operativo Annuo (€)',
-        'Max Leverage Consentito (x)',
-        'Minimo DSCR Richiesto (x)',
-        'Costo Annuo Servizio Debito (%)',
+        tx('M10-02-DEBTCAPACITY.5'),
+        tx('M10-02-DEBTCAPACITY.6'),
+        tx('M10-02-DEBTCAPACITY.7'),
+        tx('M10-02-DEBTCAPACITY.8'),
+        tx('M10-02-DEBTCAPACITY.9'),
       ], { style: STILE_ETICHETTA }),
       colonna('B4', [ebitda, cfads], { style: STILE_INPUT }),
       colonna(B_MAX_LEV, [maxLev, minDscr], { style: STILE_INPUT_MULTIPLO }),
       colonna(B_DEBT_SVC_PCT, [debtSvcPct], { style: STILE_INPUT_PCT }),
 
-      riga('A10', ['Stima Debt Capacity', 'Importo (€)'], { style: STILE_TITOLO }),
+      riga('A10', [tx('M10-02-DEBTCAPACITY.10'), tx('M10-02-DEBTCAPACITY.11')], { style: STILE_TITOLO }),
       colonna('A11', [
-        'Capacità da Vincolo di Leverage (€)',
-        'Capacità da Vincolo di Flusso (DSCR, €)',
-        'DEBT CAPACITY EFFETTIVA SOSTENIBILE (€)',
-        'Vincolo che morde',
+        tx('M10-02-DEBTCAPACITY.12'),
+        tx('M10-02-DEBTCAPACITY.13'),
+        tx('M10-02-DEBTCAPACITY.14'),
+        tx('M10-02-DEBTCAPACITY.15'),
       ], { style: STILE_ETICHETTA }),
       colonna(B_CAP_LEV, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_CAP_DSCR, [null], { style: STILE_FORMULA, locked: false }),
@@ -130,7 +116,7 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `In ${B_CAP_LEV} il debito massimo concesso dal vincolo di leverage.`,
+        prompt: tx('M10-02-DEBTCAPACITY.16', { B_CAP_LEV }),
         target: `Model!${B_CAP_LEV}`,
         atteso: capLev,
         referenzia: [B_EBITDA, B_MAX_LEV],
@@ -140,7 +126,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T2',
-        prompt: `In ${B_CAP_DSCR} il debito massimo concesso dal vincolo di DSCR.`,
+        prompt: tx('M10-02-DEBTCAPACITY.17', { B_CAP_DSCR }),
         target: `Model!${B_CAP_DSCR}`,
         atteso: capDscr,
         referenzia: [B_CFADS, B_MIN_DSCR, B_DEBT_SVC_PCT],
@@ -150,7 +136,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T3',
-        prompt: `In ${B_EFF_CAP} la debt capacity effettiva.`,
+        prompt: tx('M10-02-DEBTCAPACITY.18', { B_EFF_CAP }),
         target: `Model!${B_EFF_CAP}`,
         atteso: effCap,
         referenzia: [B_CAP_LEV, B_CAP_DSCR],
@@ -160,7 +146,7 @@ export default defineTemplate({
       }),
       {
         id: 'T4',
-        prompt: `In ${B_VINCOLO} il vincolo che morde, scritto da una formula: "LEVERAGE" oppure "DSCR".`,
+        prompt: tx('M10-02-DEBTCAPACITY.19', { B_VINCOLO }),
         targetCell: `Model!${B_VINCOLO}`,
         check: [
           { kind: 'mustBeFormula' as const },
@@ -182,7 +168,7 @@ export default defineTemplate({
       startAt: `Model!${B_CAP_LEV}`,
       hints: [
         hint('H1', '=B4*B6', 10, 'T1'),
-        hint('H2', '=B5/B7/B8: servizio massimo sostenibile, diviso il servizio per euro di debito.', 15, 'T2'),
+        hint('H2', tx('M10-02-DEBTCAPACITY.20'), 15, 'T2'),
         hint('H3', '=MIN(B11,B12)', 10, 'T3'),
         hint('H4', '=IF(B11<=B12,"LEVERAGE","DSCR")', 10, 'T4'),
       ],

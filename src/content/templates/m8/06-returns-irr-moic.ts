@@ -33,6 +33,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // Geometria fissa
 const B_ENTRY_EQ = 'B4'; // Equity investita (dato)
 const B_EXIT_EQ = 'B5'; // Equity all'uscita (dato)
@@ -46,7 +47,9 @@ const B_SPREAD = 'B12'; // T3
 export default defineTemplate({
   id: 'M8-06-RETURNSIRRMOIC',
   module: 'M8',
-  title: 'Rendimenti LBO: calcolo analitico di MoIC e IRR',
+  get title() {
+    return tx('M8-06-RETURNSIRRMOIC.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -66,30 +69,18 @@ export default defineTemplate({
     const actualIrr = Math.pow(actualMoic, 1 / years) - 1;
     const spread = actualIrr - hurdleRate;
 
-    const brief = [
-      "Il comitato investimenti vuole i rendimenti dell'operazione.",
-      '',
-      `- **Equity investita dallo sponsor**: ${eur(entryEq)}`,
-      `- **Equity incassata all'uscita**: ${eur(exitEq)}, dopo **${years} anni**`,
-      `- **Hurdle rate** del fondo: ${pct(hurdleRate, 0)}`,
-      '',
-      'Nessun dividendo o versamento intermedio: un solo flusso in uscita e uno in entrata. Il **MoIC** dice ' +
-        "quante volte torna il capitale; l'**IRR** dice a che tasso annuo composto e' cresciuto. Lo stesso " +
-        'MoIC in 3 anni o in 7 anni sono due investimenti molto diversi.',
-      '',
-      "Calcola MoIC, IRR e lo scarto dell'IRR rispetto all'hurdle (positivo se lo supera).",
-    ].join('\n');
+    const brief = [tx('M8-06-RETURNSIRRMOIC.2', { p0: eur(entryEq), p1: eur(exitEq), years, p3: pct(hurdleRate, 0) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['RENDIMENTI LBO (RETURNS)'], { style: STILE_TITOLO }),
-      riga('A3', ['Parametri', 'Valore'], { style: STILE_TITOLO }),
+      riga('A1', [tx('M8-06-RETURNSIRRMOIC.3')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M8-06-RETURNSIRRMOIC.15'), tx('M8-06-RETURNSIRRMOIC.16')], { style: STILE_TITOLO }),
       colonna(
         'A4',
         [
-          "Equity investita all'ingresso, €",
-          "Equity incassata all'uscita, €",
-          'Durata dell\'investimento, anni',
-          'Hurdle rate (IRR minimo richiesto)',
+          tx('M8-06-RETURNSIRRMOIC.4'),
+          tx('M8-06-RETURNSIRRMOIC.5'),
+          tx('M8-06-RETURNSIRRMOIC.6'),
+          tx('M8-06-RETURNSIRRMOIC.7'),
         ],
         { style: STILE_ETICHETTA },
       ),
@@ -97,8 +88,8 @@ export default defineTemplate({
       [{ ref: B_YEARS, content: years, style: { ...STILE_INPUT, numFmt: '0' }, locked: true }],
       [{ ref: B_HURDLE, content: hurdleRate, style: STILE_INPUT_PCT, locked: true }],
 
-      riga('A9', ['Metriche di rendimento', 'Risultato'], { style: STILE_TITOLO }),
-      colonna('A10', ['MoIC', 'IRR annuo composto', 'Scarto IRR vs hurdle'], { style: STILE_ETICHETTA }),
+      riga('A9', [tx('M8-06-RETURNSIRRMOIC.8'), tx('M8-06-RETURNSIRRMOIC.17')], { style: STILE_TITOLO }),
+      colonna('A10', [tx('M8-06-RETURNSIRRMOIC.18'), tx('M8-06-RETURNSIRRMOIC.9'), tx('M8-06-RETURNSIRRMOIC.10')], { style: STILE_ETICHETTA }),
       colonna(B_MOIC, [null], { style: { ...STILE_FORMULA, numFmt: '0.00x' }, locked: false }),
       colonna(B_IRR, [null], { style: STILE_FORMULA_PCT, locked: false }),
       colonna(B_SPREAD, [null], { style: { ...STILE_TOTALE, numFmt: '0.0%' }, locked: false }),
@@ -107,7 +98,7 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `In ${B_MOIC} il MoIC dello sponsor.`,
+        prompt: tx('M8-06-RETURNSIRRMOIC.11', { B_MOIC }),
         target: `Model!${B_MOIC}`,
         atteso: actualMoic,
         referenzia: [B_EXIT_EQ, B_ENTRY_EQ],
@@ -117,7 +108,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T2',
-        prompt: `In ${B_IRR} l'IRR: il tasso annuo composto che trasforma l'equity investita in quella incassata in ${B_YEARS} anni.`,
+        prompt: tx('M8-06-RETURNSIRRMOIC.12', { B_IRR, B_YEARS }),
         target: `Model!${B_IRR}`,
         atteso: actualIrr,
         referenzia: [B_YEARS],
@@ -127,7 +118,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T3',
-        prompt: `In ${B_SPREAD} di quanto l'IRR supera l'hurdle (negativo se resta sotto).`,
+        prompt: tx('M8-06-RETURNSIRRMOIC.13', { B_SPREAD }),
         target: `Model!${B_SPREAD}`,
         atteso: spread,
         referenzia: [B_IRR, B_HURDLE],
@@ -147,7 +138,7 @@ export default defineTemplate({
       startAt: `Model!${B_MOIC}`,
       hints: [
         hint('H1', '=B5/B4', 10, 'T1'),
-        hint('H2', '=B10^(1/B6)-1, oppure =(B5/B4)^(1/B6)-1: radice N-esima del MoIC, meno 1.', 15, 'T2'),
+        hint('H2', tx('M8-06-RETURNSIRRMOIC.14'), 15, 'T2'),
         hint('H3', '=B11-B7', 10, 'T3'),
       ],
     };

@@ -37,18 +37,21 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 /** Pool delle possibili voci di spesa personale: se ne scelgono 3 o 4, senza ripetizione. */
-const POOL_SPESE_PERSONALI = [
-  'Auto aziendale a uso personale del socio',
-  'Spese di rappresentanza non documentate',
-  'Viaggi e vacanze non di lavoro',
-  'Quota abbonamento club privato',
-] as const;
+const POOL_SPESE_PERSONALI = () => ([
+  tx('M2-04-COSTIPERSONALISOCIO.1'),
+  tx('M2-04-COSTIPERSONALISOCIO.2'),
+  tx('M2-04-COSTIPERSONALISOCIO.3'),
+  tx('M2-04-COSTIPERSONALISOCIO.4'),
+] as const);
 
 export default defineTemplate({
   id: 'M2-04-COSTIPERSONALISOCIO',
   module: 'M2',
-  title: 'Costi personali del socio: la rettifica come somma di un elenco',
+  get title() {
+    return tx('M2-04-COSTIPERSONALISOCIO.title');
+  },
   rank: 1,
   mode: 'PRACTICE',
   estimatedSeconds: 240,
@@ -60,7 +63,7 @@ export default defineTemplate({
     // base non devono correlarsi fra loro.
     const rVoci = rng.fork('voci');
     const nVoci = rVoci.int(3, 4);
-    const labelsScelte = rVoci.shuffle(POOL_SPESE_PERSONALI).slice(0, nVoci);
+    const labelsScelte = rVoci.shuffle(POOL_SPESE_PERSONALI()).slice(0, nVoci);
 
     const rImporti = rng.fork('importi');
     const importi = labelsScelte.map(() => roundTo(triangular(rImporti, 800, 3200, 11000), 100));
@@ -86,11 +89,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T1',
         prompt:
-          `In B${RETTIFICA_ROW} calcola la rettifica totale: somma le ${nVoci} voci di spesa personale del ` +
-          `socio contabilizzate come costi aziendali (${rangeSpese}). Sono tutte spese personali, non ` +
-          "aziendali, e sono gia' dentro i costi che hanno determinato l'EBITDA riportato: hanno GONFIATO " +
-          "i costi (quindi SGONFIATO l'EBITDA riportato), percio' vanno TUTTE riaggiunte, con segno " +
-          'positivo — nessuna eccezione in questo elenco. Usa SUM sull\'intero range.',
+          tx('M2-04-COSTIPERSONALISOCIO.6', { RETTIFICA_ROW, nVoci, rangeSpese }),
         target: `Model!B${RETTIFICA_ROW}`,
         atteso: rettificaTotale,
         referenzia: [`B${LIST_FIRST}`, `B${LIST_LAST}`],
@@ -104,8 +103,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In B${NORM_ROW} calcola l'EBITDA normalizzato: l'EBITDA riportato (B${EBITDA_RIP_ROW}) piu' la ` +
-        `rettifica totale delle spese personali che hai appena calcolato (B${RETTIFICA_ROW}).`,
+        tx('M2-04-COSTIPERSONALISOCIO.7', { NORM_ROW, EBITDA_RIP_ROW, RETTIFICA_ROW }),
       target: `Model!B${NORM_ROW}`,
       atteso: ebitdaNormalizzato,
       referenzia: [`B${EBITDA_RIP_ROW}`, `B${RETTIFICA_ROW}`],
@@ -119,38 +117,17 @@ export default defineTemplate({
     return {
       templateId: 'M2-04-COSTIPERSONALISOCIO',
       seed: rng.seed,
-      brief: [
-        "## Le spese del socio non sono spese dell'azienda",
-        '',
-        "Non tutte le rettifiche sono una differenza fra due numeri. A volte sono un ELENCO di voci",
-        "che, singolarmente, sembrano normali costi aziendali — ma sono in realta' spese personali",
-        "del socio, pagate con la carta dell'azienda e finite nel conto economico come se fossero",
-        "costi operativi. E' una delle forme piu' comuni di poste infragruppo in una PMI a controllo",
-        "familiare.",
-        '',
-        `L'EBITDA riportato di quest'anno e' ${eur(ebitdaRiportato)}. Dentro ai costi che lo hanno`,
-        `determinato ci sono anche queste ${nVoci} voci, tutte estranee al business:`,
-        '',
-        ...labelsScelte.map((l, i) => `- **${l}**: ${eur(importi[i])}`),
-        '',
-        "Qui non c'e' un segno da indovinare: sono TUTTE spese personali che hanno gonfiato i costi",
-        "aziendali (e quindi sgonfiato l'EBITDA riportato). Vanno TUTTE riaggiunte, con segno",
-        "positivo — a differenza di altre rettifiche di questo modulo, qui non c'e' nessuna voce da",
-        "sottrarre. Prima somma l'intero elenco in un'unica rettifica totale, poi usala per",
-        "normalizzare l'EBITDA con la stessa formula generale vista in apertura di modulo:",
-        '',
-        '> **EBITDA normalizzato = EBITDA riportato + Σ rettifiche**',
-      ].join('\n'),
+      brief: [tx('M2-04-COSTIPERSONALISOCIO.8', { p0: eur(ebitdaRiportato), nVoci }), ...labelsScelte.map((l, i) => `- **${l}**: ${eur(importi[i])}`), tx('M2-04-COSTIPERSONALISOCIO.9')].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ["Costi personali del socio contabilizzati come costi aziendali"], { style: STILE_TITOLO }),
-            riga(`A3`, ['Dati di partenza'], { style: STILE_TITOLO }),
-            colonna(`A${EBITDA_RIP_ROW}`, ['EBITDA riportato (da bilancio), €'], { style: STILE_ETICHETTA }),
+            riga('A1', [tx('M2-04-COSTIPERSONALISOCIO.10')], { style: STILE_TITOLO }),
+            riga(`A3`, [tx('M2-04-COSTIPERSONALISOCIO.11')], { style: STILE_TITOLO }),
+            colonna(`A${EBITDA_RIP_ROW}`, [tx('M2-04-COSTIPERSONALISOCIO.12')], { style: STILE_ETICHETTA }),
             [{ ref: `B${EBITDA_RIP_ROW}`, content: ebitdaRiportato, style: STILE_INPUT, locked: true }],
 
-            riga(`A${SEZ_SPESE_TITLE_ROW}`, ['Spese personali del socio contabilizzate come costi aziendali, €'], {
+            riga(`A${SEZ_SPESE_TITLE_ROW}`, [tx('M2-04-COSTIPERSONALISOCIO.13')], {
               style: STILE_TITOLO,
             }),
             colonna(`A${LIST_FIRST}`, labelsScelte, { style: STILE_ETICHETTA }),
@@ -160,13 +137,13 @@ export default defineTemplate({
               { style: STILE_INPUT },
             ),
 
-            colonna(`A${RETTIFICA_ROW}`, ["Totale rettifica: spese personali da riaggiungere, €"], {
+            colonna(`A${RETTIFICA_ROW}`, [tx('M2-04-COSTIPERSONALISOCIO.14')], {
               style: STILE_ETICHETTA,
             }),
             [{ ref: `B${RETTIFICA_ROW}`, content: null, locked: false, style: STILE_FORMULA }],
 
-            riga(`A${SEZ_NORM_TITLE_ROW}`, ['Normalizzazione'], { style: STILE_TITOLO }),
-            colonna(`A${NORM_ROW}`, ['EBITDA normalizzato, €'], { style: STILE_ETICHETTA }),
+            riga(`A${SEZ_NORM_TITLE_ROW}`, [tx('M2-04-COSTIPERSONALISOCIO.18')], { style: STILE_TITOLO }),
+            colonna(`A${NORM_ROW}`, [tx('M2-04-COSTIPERSONALISOCIO.15')], { style: STILE_ETICHETTA }),
             [{ ref: `B${NORM_ROW}`, content: null, locked: false, style: STILE_FORMULA }],
           ],
           { colWidths: { A: 460, B: 140 }, frozenRows: 1 },
@@ -176,13 +153,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=SUM(${rangeSpese}): somma tutte le voci dell'elenco, sono tutte da riaggiungere, nessuna esclusa.`,
+          tx('M2-04-COSTIPERSONALISOCIO.16', { rangeSpese }),
           8,
           'T1',
         ),
         hint(
           'H2',
-          `=B${EBITDA_RIP_ROW}+B${RETTIFICA_ROW}: EBITDA riportato piu' la rettifica totale appena calcolata.`,
+          tx('M2-04-COSTIPERSONALISOCIO.17', { EBITDA_RIP_ROW, RETTIFICA_ROW }),
           8,
           'T2',
         ),

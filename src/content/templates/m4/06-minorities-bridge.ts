@@ -67,6 +67,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
 const B_EQV_GREZZO = 'B4'; // Equity Value grezzo dal bridge (dato, bloccato)
 const B_MINORITIES = 'B5'; // Valore stimato delle minorities (dato, bloccato)
@@ -78,7 +79,9 @@ const B_IMPATTO_PCT = 'B10'; // T2
 export default defineTemplate({
   id: 'M4-06-MINORITIESBRIDGE',
   module: 'M4',
-  title: "Minorities e partecipazioni non consolidate nel bridge",
+  get title() {
+    return tx('M4-06-MINORITIESBRIDGE.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 240,
@@ -117,15 +120,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_EQV_GRUPPO} calcola l'Equity Value di pertinenza DEL GRUPPO: l'Equity Value grezzo dal ` +
-        `bridge (${B_EQV_GREZZO}) MENO il valore delle minorities (${B_MINORITIES}) PIU' il valore delle ` +
-        `partecipazioni non consolidate (${B_PARTECIPAZIONI}). Le minorities si tolgono perche' l'Equity ` +
-        "Value grezzo e' costruito su un Enterprise Value che include GIA' il 100% delle controllate " +
-        "consolidate integralmente — anche la fetta che spetta ai terzi, non al gruppo. Le partecipazioni " +
-        "non consolidate si aggiungono per il motivo opposto: sono valore vero, di pertinenza del gruppo, " +
-        "ma il loro EBITDA non e' mai entrato nell'Enterprise Value di partenza perche' non si consolidano " +
-        'riga per riga (metodo del patrimonio netto) — senza questo pezzo l\'Equity Value dimenticherebbe ' +
-        'un pezzo di patrimonio legittimo del gruppo.',
+        tx('M4-06-MINORITIESBRIDGE.2', { B_EQV_GRUPPO, B_EQV_GREZZO, B_MINORITIES, B_PARTECIPAZIONI }),
       target: `Model!${B_EQV_GRUPPO}`,
       atteso: equityValueGruppo,
       referenzia: [B_EQV_GREZZO, B_MINORITIES, B_PARTECIPAZIONI],
@@ -137,12 +132,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_IMPATTO_PCT} calcola l'impatto percentuale NETTO di questo aggiustamento sull'Equity ` +
-        `Value grezzo: le partecipazioni non consolidate (${B_PARTECIPAZIONI}) MENO le minorities ` +
-        `(${B_MINORITIES}), il tutto diviso per l'Equity Value grezzo (${B_EQV_GREZZO}). Non basta guardare ` +
-        "i due importi in valore assoluto: un compratore vuole sapere quanto, in percentuale, l'aggiustamento " +
-        "legato al consolidamento sposta l'Equity Value rispetto al bridge grezzo — in un verso o nell'altro " +
-        "a seconda di quale dei due pesi di piu'.",
+        tx('M4-06-MINORITIESBRIDGE.3', { B_IMPATTO_PCT, B_PARTECIPAZIONI, B_MINORITIES, B_EQV_GREZZO }),
       target: `Model!${B_IMPATTO_PCT}`,
       atteso: impattoNettoPct,
       referenzia: [B_PARTECIPAZIONI, B_MINORITIES, B_EQV_GREZZO],
@@ -156,50 +146,20 @@ export default defineTemplate({
     return {
       templateId: 'M4-06-MINORITIESBRIDGE',
       seed: rng.seed,
-      brief: [
-        "## L'ultimo aggiustamento: minorities e partecipazioni non consolidate",
-        '',
-        "Il bridge da Enterprise Value a Equity Value che hai gia' costruito (M4-05) si ferma al pezzo " +
-          "debt-like/cash-like. Manca un ultimo aggiustamento, legato a COME e' stato costruito il gruppo " +
-          "consolidato — lo stesso argomento di M1-12, qui riletto dal lato dell'Equity Value:",
-        '',
-        '> **Equity Value (di pertinenza del gruppo) = Equity Value (grezzo) - Minorities + Partecipazioni ' +
-          'non consolidate**',
-        '',
-        "- **Minorities** (quota di terzi in una controllata consolidata integralmente): l'Enterprise " +
-          "Value di partenza e' costruito su un EBITDA che include GIA' il 100% della controllata, non " +
-          "solo la quota del gruppo (e' cosi' che funziona il consolidamento integrale: si somma tutto e " +
-          "POI si toglie la fetta dei terzi). Quel 100% include anche valore che non e' del gruppo: le " +
-          'minorities SI SOTTRAGGONO.',
-        "- **Partecipazioni non consolidate** (partecipate valutate col metodo del patrimonio netto): il " +
-          "gruppo non le controlla, quindi non le consolida mai riga per riga — il loro EBITDA non e' MAI " +
-          "entrato nell'Enterprise Value di partenza. Il loro valore pero' e' reale e appartiene al gruppo " +
-          "(e' un asset in bilancio): le partecipazioni SI SOMMANO.",
-        '',
-        "Le due voci si muovono in direzioni opposte per ragioni opposte: le minorities sono valore GIA' " +
-          "incluso nell'Enterprise Value ma non di pertinenza del gruppo (si toglie); le partecipazioni " +
-          "non consolidate sono valore DI pertinenza del gruppo ma mai incluso nell'Enterprise Value (si " +
-          'aggiunge). Confonderle — o dimenticarne una — e\' l\'errore piu\' comune su questo pezzo del bridge.',
-        '',
-        `Qui sotto trovi l'Equity Value grezzo dal bridge, gia' dato: ${eur(equityValueGrezzo)}. Il ` +
-          `valore stimato delle minorities, gia' dato, e' ${eur(minoritiesValue)}; il valore delle ` +
-          `partecipazioni non consolidate, gia' dato, e' ${eur(partecipazioniValue)}. Componi prima ` +
-          "l'Equity Value di pertinenza del gruppo (task 1), poi misura quanto pesa l'aggiustamento in " +
-          'proporzione (task 2).',
-      ].join('\n'),
+      brief: [tx('M4-06-MINORITIESBRIDGE.4', { p0: eur(equityValueGrezzo), p1: eur(minoritiesValue), p2: eur(partecipazioniValue) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Minorities e partecipazioni non consolidate nel bridge'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M4-06-MINORITIESBRIDGE.5')], { style: STILE_TITOLO }),
 
-            riga('A3', ['Dati di base (dal bridge)'], { style: STILE_TITOLO }),
+            riga('A3', [tx('M4-06-MINORITIESBRIDGE.6')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'Equity Value grezzo dal bridge, €',
-                'Valore stimato delle minorities (quota di terzi), €',
-                "Valore delle partecipazioni non consolidate (equity method), €",
+                tx('M4-06-MINORITIESBRIDGE.7'),
+                tx('M4-06-MINORITIESBRIDGE.8'),
+                tx('M4-06-MINORITIESBRIDGE.9'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -209,12 +169,12 @@ export default defineTemplate({
               { ref: B_PARTECIPAZIONI, content: partecipazioniValue, style: STILE_INPUT, locked: true },
             ],
 
-            riga('A8', ["Equity Value di pertinenza del gruppo"], { style: STILE_TITOLO }),
+            riga('A8', [tx('M4-06-MINORITIESBRIDGE.10')], { style: STILE_TITOLO }),
             colonna(
               'A9',
               [
-                'Equity Value di pertinenza del gruppo, €',
-                "Impatto netto dell'aggiustamento sull'Equity Value grezzo, %",
+                tx('M4-06-MINORITIESBRIDGE.11'),
+                tx('M4-06-MINORITIESBRIDGE.12'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -228,17 +188,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_EQV_GREZZO}-${B_MINORITIES}+${B_PARTECIPAZIONI}: Equity Value grezzo meno le minorities ` +
-            "(valore incluso nell'EV ma non del gruppo), piu' le partecipazioni non consolidate (valore " +
-            "del gruppo ma non incluso nell'EV).",
+          tx('M4-06-MINORITIESBRIDGE.13', { B_EQV_GREZZO, B_MINORITIES, B_PARTECIPAZIONI }),
           14,
           'T1',
         ),
         hint(
           'H2',
-          `=(${B_PARTECIPAZIONI}-${B_MINORITIES})/${B_EQV_GREZZO}: partecipazioni meno minorities, ` +
-            "diviso l'Equity Value grezzo — l'impatto netto in percentuale, non in valore assoluto " +
-            `(qui vale ${pct(impattoNettoPct)}).`,
+          tx('M4-06-MINORITIESBRIDGE.14', { B_PARTECIPAZIONI, B_MINORITIES, B_EQV_GREZZO, p3: pct(impattoNettoPct) }),
           14,
           'T2',
         ),

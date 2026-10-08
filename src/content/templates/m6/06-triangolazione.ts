@@ -87,6 +87,7 @@ import { roundTo, triangular } from '../../../rng/distributions';
 import { revenue } from '../../../rng/finance';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
 const B_EV_COMPS = 'B4'; // EV implicito da comps (dato, bloccato — risultato concettuale di M5)
 const B_EV_PRECEDENTI = 'B5'; // EV implicito da precedenti (dato, bloccato — risultato concettuale di M6)
@@ -101,7 +102,9 @@ const rangeValori = `${B_EV_COMPS}:${B_EV_DCF}`; // B4:B6, i tre EV impliciti
 export default defineTemplate({
   id: 'M6-06-TRIANGOLAZIONE',
   module: 'M6',
-  title: 'Triangolazione: comps, precedenti e DCF che divergono',
+  get title() {
+    return tx('M6-06-TRIANGOLAZIONE.title');
+  },
   rank: 4,
   mode: 'PRACTICE',
   estimatedSeconds: 360,
@@ -157,11 +160,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T1',
         prompt:
-          `In ${B_AMPIEZZA} calcola l'AMPIEZZA del range di triangolazione: il valore piu' ALTO fra i tre ` +
-          `EV impliciti (${rangeValori}) meno il valore piu' BASSO — cioe' MAX(${rangeValori})-` +
-          `MIN(${rangeValori}). E' quanto e' largo, in euro, l'intervallo dentro cui comps, precedenti e ` +
-          "DCF collocano l'Enterprise Value del target: piu' e' largo, meno i tre metodi sono d'accordo fra " +
-          'loro, e piu' + "' serve capire il perche' prima di usarne uno solo.",
+          tx('M6-06-TRIANGOLAZIONE.2', { B_AMPIEZZA, rangeValori }),
         target: `Model!${B_AMPIEZZA}`,
         atteso: ampiezza,
         referenzia: [B_EV_COMPS, B_EV_PRECEDENTI, B_EV_DCF],
@@ -179,11 +178,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T2',
         prompt:
-          `In ${B_MEDIA} calcola il valore MEDIO semplice dei tre metodi: AVERAGE(${rangeValori}). E' una ` +
-          "sintesi naive — pesa comps, precedenti e DCF allo stesso identico modo, senza sapere se uno dei " +
-          "tre e' distorto (un mercato dei comps insolitamente caldo, un DCF con assunzioni troppo " +
-          "ottimistiche, un precedente pagato in un ciclo di mercato molto diverso da oggi). E' un punto di " +
-          "partenza per la triangolazione, non necessariamente il numero da scrivere nel term sheet.",
+          tx('M6-06-TRIANGOLAZIONE.3', { B_MEDIA, rangeValori }),
         target: `Model!${B_MEDIA}`,
         atteso: media,
         referenzia: [B_EV_COMPS, B_EV_PRECEDENTI, B_EV_DCF],
@@ -198,14 +193,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T3',
         prompt:
-          `In ${B_SCOSTAMENTO_DCF} calcola lo SCOSTAMENTO % del DCF rispetto alla media di comps e ` +
-          `precedenti — SENZA includere il DCF in quella media (altrimenti il DCF finirebbe confrontato ` +
-          `in parte con se stesso): (${B_EV_DCF}-AVERAGE(${B_EV_COMPS},${B_EV_PRECEDENTI}))/` +
-          `AVERAGE(${B_EV_COMPS},${B_EV_PRECEDENTI}). Un risultato positivo dice che il DCF vale PIU' di ` +
-          "quanto suggeriscano i due metodi basati sul mercato; negativo, che vale MENO. In entrambi i " +
-          "casi non e' automaticamente un errore: il DCF riflette assunzioni interne (crescita, margini, " +
-          "WACC) che per costruzione non devono coincidere col sentiment di mercato — lo scostamento e' " +
-          "l'innesco per chiedersi perche', non un segnale da correggere a tavolino.",
+          tx('M6-06-TRIANGOLAZIONE.4', { B_SCOSTAMENTO_DCF, B_EV_DCF, B_EV_COMPS, B_EV_PRECEDENTI }),
         target: `Model!${B_SCOSTAMENTO_DCF}`,
         atteso: scostamentoDcf,
         referenzia: [B_EV_DCF, B_EV_COMPS, B_EV_PRECEDENTI],
@@ -221,44 +209,19 @@ export default defineTemplate({
     return {
       templateId: 'M6-06-TRIANGOLAZIONE',
       seed: rng.seed,
-      brief: [
-        '## Triangolazione: comps, precedenti e DCF che divergono',
-        '',
-        "Tre metodi diversi per stimare lo stesso Enterprise Value RARAMENTE producono lo stesso numero " +
-          "— e non e' un errore da correggere, e' informazione.",
-        '',
-        "**I comps trading** riflettono il sentiment di mercato CORRENTE: un mercato azionario ottimista " +
-          "spinge in alto i multipli anche quando i fondamentali del target non sono cambiati di una " +
-          "virgola; un mercato pessimista li comprime allo stesso modo.",
-        '',
-        "**I precedenti** (i livelli di questo modulo) riflettono premi di controllo pagati in transazioni " +
-          "STORICHE — un fatto realmente accaduto, ma un fatto del passato, magari in un ciclo di mercato " +
-          "molto diverso da quello di oggi.",
-        '',
-        "**Il DCF** (materia del prossimo modulo, qui dato come input) riflette assunzioni INTERNE — " +
-          "crescita, margini, WACC — scelte da chi costruisce il modello: possono essere piu' o meno " +
-          "prudenti, e non dipendono dall'umore del mercato in un giorno preciso.",
-        '',
-        "Nessuno dei tre e' \"quello giusto\" per definizione. Triangolare non vuol dire scegliere un " +
-          "vincitore: vuol dire capire PERCHE' i tre numeri divergono, e quale intervallo resta " +
-          "effettivamente difendibile.",
-        '',
-        `**Il caso.** Per lo stesso target, i tre metodi implicano: EV da comps ${eurM(evComps)}, EV da ` +
-          `precedenti ${eurM(evPrecedenti)}, EV da DCF ${eurM(evDcf)} (il DCF vero e proprio e' materia ` +
-          "del modulo successivo: qui arriva gia' calcolato, come dato).",
-      ].join('\n'),
+      brief: [tx('M6-06-TRIANGOLAZIONE.5', { p0: eurM(evComps), p1: eurM(evPrecedenti), p2: eurM(evDcf) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Triangolazione: comps, precedenti e DCF che divergono'], { style: STILE_TITOLO }),
-            riga('A3', ["I tre valori impliciti dell'Enterprise Value"], { style: STILE_TITOLO }),
+            riga('A1', [tx('M6-06-TRIANGOLAZIONE.6')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M6-06-TRIANGOLAZIONE.7')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'EV implicito da comps, €',
-                'EV implicito da precedenti, €',
-                'EV implicito da DCF (dato, vedi nota), €',
+                tx('M6-06-TRIANGOLAZIONE.8'),
+                tx('M6-06-TRIANGOLAZIONE.9'),
+                tx('M6-06-TRIANGOLAZIONE.10'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -266,13 +229,13 @@ export default defineTemplate({
             [{ ref: B_EV_PRECEDENTI, content: evPrecedenti, style: STILE_INPUT, locked: true }],
             [{ ref: B_EV_DCF, content: evDcf, style: STILE_INPUT, locked: true }],
 
-            riga('A8', ['Triangolazione: range, media e scostamento del DCF'], { style: STILE_TITOLO }),
+            riga('A8', [tx('M6-06-TRIANGOLAZIONE.11')], { style: STILE_TITOLO }),
             colonna(
               'A9',
               [
-                "Ampiezza del range (valore piu' alto − valore piu' basso), €",
-                'Valore medio semplice dei tre metodi, €',
-                'Scostamento % del DCF vs. media di comps e precedenti (DCF escluso dalla media)',
+                tx('M6-06-TRIANGOLAZIONE.12'),
+                tx('M6-06-TRIANGOLAZIONE.13'),
+                tx('M6-06-TRIANGOLAZIONE.14'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -287,23 +250,19 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=MAX(${rangeValori})-MIN(${rangeValori}): il piu' alto dei tre meno il piu' basso (qui vale ` +
-            `${eurM(ampiezza)}).`,
+          tx('M6-06-TRIANGOLAZIONE.15', { rangeValori, p1: eurM(ampiezza) }),
           10,
           'T1',
         ),
         hint(
           'H2',
-          `=AVERAGE(${rangeValori}): media semplice dei tre EV (qui vale ${eurM(media)}).`,
+          tx('M6-06-TRIANGOLAZIONE.16', { rangeValori, p1: eurM(media) }),
           10,
           'T2',
         ),
         hint(
           'H3',
-          `=(${B_EV_DCF}-AVERAGE(${B_EV_COMPS},${B_EV_PRECEDENTI}))/AVERAGE(${B_EV_COMPS},${B_EV_PRECEDENTI}): ` +
-            `DCF meno la media di comps e precedenti, diviso quella stessa media (qui vale ` +
-            `${pct(scostamentoDcf)} — con EV da comps ${eurM(evComps)}, precedenti ${eurM(evPrecedenti)} e ` +
-            `DCF ${eurM(evDcf)}, cioe' un multiplo di divergenza di ${multiplo(Math.max(evComps, evPrecedenti, evDcf) / Math.min(evComps, evPrecedenti, evDcf))} fra il piu' alto e il piu' basso, con ${num(valori.length)} metodi a confronto).`,
+          tx('M6-06-TRIANGOLAZIONE.17', { B_EV_DCF, B_EV_COMPS, B_EV_PRECEDENTI, p3: pct(scostamentoDcf), p4: eurM(evComps), p5: eurM(evPrecedenti), p6: eurM(evDcf), p7: multiplo(Math.max(evComps, evPrecedenti, evDcf) / Math.min(evComps, evPrecedenti, evDcf)), p8: num(valori.length) }),
           14,
           'T3',
         ),

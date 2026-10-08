@@ -99,35 +99,36 @@ import {
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
-const DEBT_LIKE = [
-  'TFR (trattamento di fine rapporto)',
-  'Fondo pensione integrativo per i dipendenti',
-  'Passivita\' leasing IFRS16 (canoni futuri attualizzati)',
-  "Earn-out da pagare al venditore al raggiungimento degli obiettivi post-closing",
-  "Contenzioso legale in corso, valore atteso gia' ponderato per la probabilita' di soccombenza",
-  "Dividendi deliberati dall'assemblea e non ancora pagati ai soci",
-  'Debiti finanziari residui verso i soci (finanziamento soci fruttifero)',
-  'Interessi maturati e non ancora liquidati su un mutuo bancario in essere',
-  "Quota di prezzo differita (deferred consideration) da un'acquisizione pregressa, ancora da versare",
-] as const;
+import { tx } from '../../../i18n/content';
+const DEBT_LIKE = () => ([
+  tx('M4-05-BRIDGECOMPLETO.1'),
+  tx('M4-05-BRIDGECOMPLETO.2'),
+  tx('M4-05-BRIDGECOMPLETO.3'),
+  tx('M4-05-BRIDGECOMPLETO.4'),
+  tx('M4-05-BRIDGECOMPLETO.5'),
+  tx('M4-05-BRIDGECOMPLETO.6'),
+  tx('M4-05-BRIDGECOMPLETO.7'),
+  tx('M4-05-BRIDGECOMPLETO.8'),
+  tx('M4-05-BRIDGECOMPLETO.9'),
+] as const);
 
-const CASH_LIKE = [
-  'Titoli e strumenti finanziari disponibili per la vendita, facilmente liquidabili',
-  "Immobile non strumentale all'attivita' caratteristica, gia' destinato alla vendita",
-  'Credito finanziario verso una societa\' terza, estraneo al ciclo operativo',
-  "Credito IVA gia' validato dall'Agenzia delle Entrate, in attesa di incasso",
-  'Deposito cauzionale svincolato, non piu\' necessario a garanzia di alcun contratto',
-] as const;
+const CASH_LIKE = () => ([
+  tx('M4-05-BRIDGECOMPLETO.10'),
+  tx('M4-05-BRIDGECOMPLETO.11'),
+  tx('M4-05-BRIDGECOMPLETO.12'),
+  tx('M4-05-BRIDGECOMPLETO.13'),
+  tx('M4-05-BRIDGECOMPLETO.14'),
+] as const);
 
-const IRRILEVANTE = [
-  'Debiti verso fornitori scaduti da oltre 60 giorni',
-  "Debiti verso l'erario per IVA di periodo, in scadenza regolare",
-  "Credito d'imposta gia' interamente contabilizzato a riduzione delle imposte correnti nel conto economico",
-  'Impegno di acquisto pluriennale di materie prime a prezzi di mercato correnti',
-  "Garanzia bancaria prestata a favore di un cliente nel corso ordinario del business, mai escussa",
-  'Magazzino di prodotti finiti in attesa di spedizione',
-  "Fondo svalutazione crediti verso clienti, gia' portato a riduzione dei crediti in bilancio",
-] as const;
+const IRRILEVANTE = () => ([
+  tx('M4-05-BRIDGECOMPLETO.15'),
+  tx('M4-05-BRIDGECOMPLETO.16'),
+  tx('M4-05-BRIDGECOMPLETO.17'),
+  tx('M4-05-BRIDGECOMPLETO.18'),
+  tx('M4-05-BRIDGECOMPLETO.19'),
+  tx('M4-05-BRIDGECOMPLETO.20'),
+  tx('M4-05-BRIDGECOMPLETO.21'),
+] as const);
 
 type Categoria = 'debt-like' | 'cash-like' | 'irrilevante';
 
@@ -152,7 +153,9 @@ const C_NETDEBT_BASE = `C${ROW_NETDEBT_BASE}`;
 export default defineTemplate({
   id: 'M4-05-BRIDGECOMPLETO',
   module: 'M4',
-  title: 'Il bridge completo: da Enterprise Value a Equity Value',
+  get title() {
+    return tx('M4-05-BRIDGECOMPLETO.title');
+  },
   rank: 4,
   mode: 'PRACTICE',
   estimatedSeconds: 360,
@@ -182,12 +185,12 @@ export default defineTemplate({
     // del livello varrebbe zero per costruzione e non testerebbe nulla.
     const n = rDati.int(10, 12);
     const kDebt = rDati.int(3, 4);
-    const kCash = rDati.int(3, Math.min(CASH_LIKE.length, n - kDebt - 2));
+    const kCash = rDati.int(3, Math.min(CASH_LIKE().length, n - kDebt - 2));
     const kIrr = n - kDebt - kCash;
 
-    const descrizioniDebt = rVoci.shuffle([...DEBT_LIKE]).slice(0, kDebt);
-    const descrizioniCash = rVoci.shuffle([...CASH_LIKE]).slice(0, kCash);
-    const descrizioniIrr = rVoci.shuffle([...IRRILEVANTE]).slice(0, kIrr);
+    const descrizioniDebt = rVoci.shuffle([...DEBT_LIKE()]).slice(0, kDebt);
+    const descrizioniCash = rVoci.shuffle([...CASH_LIKE()]).slice(0, kCash);
+    const descrizioniIrr = rVoci.shuffle([...IRRILEVANTE()]).slice(0, kIrr);
 
     // Stessa distribuzione per tutte e tre le categorie: la dimensione
     // dell'importo non deve mai essere un indizio su cui classificare una
@@ -243,14 +246,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T1',
         prompt:
-          `In ${C_T1} calcola il totale delle poste debt-like: la somma dei SOLI importi con ` +
-          `Categoria = "debt-like" nella tabella qui sopra (${rifCategoria}:B${DATA_END} per la ` +
-          `categoria, ${rifImporti}:C${DATA_END} per gli importi). Ogni posta debt-like e' un impegno ` +
-          "finanziario o assimilabile verso terzi (dipendenti, controparte del leasing, venditore, soci, " +
-          "un ex-titolare di un'acquisizione precedente) che un compratore erediterebbe e dovrebbe onorare " +
-          "esattamente come un mutuo bancario: per questo SI SOMMA al net debt, non va confusa con le " +
-          'poste "cash-like" o "irrilevante" che compaiono nelle stesse righe. Serve una funzione che ' +
-          'sommi solo le righe che rispettano il criterio.',
+          tx('M4-05-BRIDGECOMPLETO.23', { C_T1, rifCategoria, DATA_END, rifImporti }),
         target: `Model!${C_T1}`,
         atteso: totaleDebtLike,
         referenzia: [rifCategoria, rifImporti],
@@ -268,14 +264,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T2',
         prompt:
-          `In ${C_T2} calcola il totale delle poste cash-like: la somma dei SOLI importi con Categoria ` +
-          `= "cash-like" nella stessa tabella (${rifCategoria}:B${DATA_END} per la categoria, ` +
-          `${rifImporti}:C${DATA_END} per gli importi). Ogni posta cash-like e' un'attivita' non ` +
-          'operativa che si comporta come cassa anche se non lo e\' in senso stretto — facilmente ' +
-          "liquidabile o gia' liquidata nella sostanza (titoli disponibili per la vendita, un immobile " +
-          "non strumentale, un credito finanziario verso terzi, un credito IVA gia' validato, un deposito " +
-          "svincolato): per questo si SOTTRAE dal net debt, cioe' SI SOMMA all'equity value — l'opposto " +
-          'del debt-like. Serve di nuovo una funzione che sommi solo le righe che rispettano il criterio.',
+          tx('M4-05-BRIDGECOMPLETO.24', { C_T2, rifCategoria, DATA_END, rifImporti }),
         target: `Model!${C_T2}`,
         atteso: totaleCashLike,
         referenzia: [rifCategoria, rifImporti],
@@ -292,15 +281,7 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        `In ${C_T3} chiudi il bridge e calcola l'Equity Value: Enterprise Value (${C_EV}) meno il Net ` +
-        `Debt di base (${C_NETDEBT_BASE}) meno il totale debt-like appena isolato (${C_T1}) PIU' il ` +
-        `totale cash-like appena isolato (${C_T2}). Il segno di ciascun pezzo non e' arbitrario: il Net ` +
-        "Debt di base SI SOTTRAE perche' e' debito da ripagare prima che resti qualcosa agli azionisti; " +
-        "il totale debt-like SI SOTTRAE per lo stesso motivo — sono altri impegni verso terzi che il " +
-        "compratore eredita, riducono ulteriormente cio' che resta all'equity; il totale cash-like SI " +
-        "SOMMA perche' e' valore realmente disponibile che aumenta cio' che resta agli azionisti, " +
-        "esattamente come la cassa. Le poste \"irrilevante\" non compaiono in questa formula: restano " +
-        "fuori dal bridge, gia' escluse dai due totali che referenzi qui.",
+        tx('M4-05-BRIDGECOMPLETO.25', { C_T3, C_EV, C_NETDEBT_BASE, C_T1, C_T2 }),
       target: `Model!${C_T3}`,
       atteso: equityValue,
       referenzia: [C_EV, C_NETDEBT_BASE, C_T1, C_T2],
@@ -314,58 +295,30 @@ export default defineTemplate({
     return {
       templateId: 'M4-05-BRIDGECOMPLETO',
       seed: rng.seed,
-      brief: [
-        '## Il bridge completo: da Enterprise Value a Equity Value',
-        '',
-        "Un elenco di poste \"strane\" — earn-out, contenziosi, titoli disponibili per la vendita, " +
-          "debiti scaduti verso fornitori — mette alla prova la stessa disciplina imparata nei livelli " +
-          "precedenti del modulo, ma tutta insieme: ogni posta appartiene a UNA delle tre categorie del " +
-          'bridge, e va trattata di conseguenza.',
-        '',
-        '- **debt-like**: un impegno finanziario o assimilabile verso terzi che il compratore ' +
-          "erediterebbe e dovrebbe onorare come un mutuo. SI SOMMA al Net Debt di base: riduce l'Equity " +
-          "Value.",
-        '- **cash-like**: un\'attivita\' non operativa che si comporta come cassa — facilmente ' +
-          "liquidabile o gia' liquidata nella sostanza, anche se non e' \"cassa\" in senso stretto. SI " +
-          "SOTTRAE dal Net Debt di base, cioe' SI SOMMA all'Equity Value: l'opposto del debt-like.",
-        "- **irrilevante**: appartiene altrove — gia' materia di capitale circolante, gia' contabilizzata " +
-          "altrove, o semplicemente non un'obbligazione finanziaria. Non tocca il bridge: va lasciata " +
-          'fuori da entrambe le somme.',
-        '',
-        `Qui sotto trovi ${num(n)} poste, ciascuna gia' etichettata con la sua Categoria, in ordine ` +
-          "sparso — le tre categorie non sono raggruppate, quindi l'unico modo corretto di isolare le " +
-          "righe giuste e' leggere la colonna Categoria, non la posizione nella tabella. Il totale delle " +
-          `poste "irrilevante" e' ${eur(totaleIrrilevante)}: un numero reale, che pero' non deve comparire ` +
-          'in nessuna delle formule di questo livello.',
-        '',
-        `L'Enterprise Value, gia' dato, e' ${eur(enterpriseValue)}; il Net Debt di base, gia' dato, e' ` +
-          `${eur(netDebtBase)}. Isola prima il totale debt-like (task 1) e il totale cash-like (task 2), ` +
-          "poi componi il bridge completo (task 3) — attento al segno di ciascun pezzo, ribadito nel " +
-          'prompt del task 3 stesso.',
-      ].join('\n'),
+      brief: [tx('M4-05-BRIDGECOMPLETO.26', { p0: num(n), p1: eur(totaleIrrilevante), p2: eur(enterpriseValue), p3: eur(netDebtBase) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga(`A${ROW_TITOLO}`, ['Il bridge completo: da Enterprise Value a Equity Value'], {
+            riga(`A${ROW_TITOLO}`, [tx('M4-05-BRIDGECOMPLETO.27')], {
               style: STILE_TITOLO,
             }),
 
-            riga(`A${ROW_SEZ1}`, ['Dati di base'], { style: STILE_TITOLO }),
-            colonna(`A${ROW_EV}`, ['Enterprise Value, €', 'Net Debt di base, €'], { style: STILE_ETICHETTA }),
+            riga(`A${ROW_SEZ1}`, [tx('M4-05-BRIDGECOMPLETO.28')], { style: STILE_TITOLO }),
+            colonna(`A${ROW_EV}`, [tx('M4-05-BRIDGECOMPLETO.29'), tx('M4-05-BRIDGECOMPLETO.30')], { style: STILE_ETICHETTA }),
             [{ ref: C_EV, content: enterpriseValue, style: STILE_INPUT, locked: true }],
             [{ ref: C_NETDEBT_BASE, content: netDebtBase, style: STILE_INPUT, locked: true }],
 
-            riga(`A${ROW_SEZ2}`, ["Poste da classificare (categoria gia' assegnata)"], { style: STILE_TITOLO }),
-            riga(`A${ROW_HEADER}`, ['Voce', 'Categoria', 'Importo (€)'], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ2}`, [tx('M4-05-BRIDGECOMPLETO.31')], { style: STILE_TITOLO }),
+            riga(`A${ROW_HEADER}`, [tx('M4-05-BRIDGECOMPLETO.40'), tx('M4-05-BRIDGECOMPLETO.41'), tx('M4-05-BRIDGECOMPLETO.32')], { style: STILE_TITOLO }),
             colonna(`A${DATA_START}`, voci.map((v) => v.descrizione), { style: STILE_ETICHETTA }),
-            colonna(`B${DATA_START}`, voci.map((v) => v.categoria), { style: STILE_ETICHETTA }),
+            colonna(`B${DATA_START}`, voci.map((v) => tx(`M4-05-BRIDGECOMPLETO.tok.${v.categoria}`)), { style: STILE_ETICHETTA }),
             colonna(`C${DATA_START}`, voci.map((v) => v.importo), { style: STILE_INPUT }),
 
-            riga(`A${ROW_SEZ3}`, ['Bridge: da Enterprise Value a Equity Value'], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ3}`, [tx('M4-05-BRIDGECOMPLETO.33')], { style: STILE_TITOLO }),
             colonna(
               `A${ROW_T1}`,
-              ['Totale poste debt-like (Σ), €', 'Totale poste cash-like (Σ), €', 'Equity Value, €'],
+              [tx('M4-05-BRIDGECOMPLETO.34'), tx('M4-05-BRIDGECOMPLETO.35'), tx('M4-05-BRIDGECOMPLETO.36')],
               { style: STILE_ETICHETTA },
             ),
             [{ ref: C_T1, content: null, locked: false, style: STILE_FORMULA }],
@@ -379,23 +332,19 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=SUMIF(${rifCategoria}:B${DATA_END},"debt-like",${rifImporti}:C${DATA_END}): somma solo gli ` +
-            'importi delle righe con Categoria uguale a "debt-like".',
+          tx('M4-05-BRIDGECOMPLETO.37', { rifCategoria, DATA_END, rifImporti }),
           12,
           'T1',
         ),
         hint(
           'H2',
-          `=SUMIF(${rifCategoria}:B${DATA_END},"cash-like",${rifImporti}:C${DATA_END}): somma solo gli ` +
-            'importi delle righe con Categoria uguale a "cash-like".',
+          tx('M4-05-BRIDGECOMPLETO.38', { rifCategoria, DATA_END, rifImporti }),
           12,
           'T2',
         ),
         hint(
           'H3',
-          `=${C_EV}-${C_NETDEBT_BASE}-${C_T1}+${C_T2}: Enterprise Value meno Net Debt di base meno il ` +
-            "totale debt-like, PIU' il totale cash-like. Debt-like e Net Debt riducono l'equity, " +
-            "cash-like lo aumenta.",
+          tx('M4-05-BRIDGECOMPLETO.39', { C_EV, C_NETDEBT_BASE, C_T1, C_T2 }),
           14,
           'T3',
         ),

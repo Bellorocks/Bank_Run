@@ -72,6 +72,7 @@ import {
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
 const B_FCF = 'B4'; // FCF dell'ultimo anno esplicito della proiezione (dato, bloccato)
 const B_G = 'B5'; // Tasso di crescita perpetuo g, basso e costante (dato, bloccato)
@@ -87,7 +88,9 @@ const MARGINE_MINIMO_WACC_G = 0.04;
 export default defineTemplate({
   id: 'M7-09-GORDONGROWTH',
   module: 'M7',
-  title: 'Terminal value: il metodo Gordon growth',
+  get title() {
+    return tx('M7-09-GORDONGROWTH.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -130,12 +133,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_FCF1} calcola il FCF normalizzato del PRIMO anno della perpetuita': il FCF ` +
-        `dell'ultimo anno esplicito (${B_FCF}) moltiplicato per (1 + g), con g in ${B_G}. ` +
-        'Formula: FCF(primo anno perpetuita\') = FCF(ultimo anno esplicito) × (1 + g). Il primo ' +
-        "flusso della rendita perpetua che stai per scontare NON e' il FCF dell'ultimo anno " +
-        "esplicito: arriva un anno DOPO, quindi e' gia' cresciuto di un periodo al tasso g. Usa le " +
-        'due celle date, senza copiare i numeri a mano.',
+        tx('M7-09-GORDONGROWTH.2', { B_FCF1, B_FCF, B_G }),
       target: `Model!${B_FCF1}`,
       atteso: fcf1,
       referenzia: [B_FCF, B_G],
@@ -155,13 +153,7 @@ export default defineTemplate({
     const t2: Task = {
       id: 'T2',
       prompt:
-        `In ${B_TV} calcola il Terminal Value col metodo Gordon growth: il FCF normalizzato ` +
-        `del primo anno di perpetuita' appena calcolato in T1 (${B_FCF1} — NON ricalcolarlo da ` +
-        `zero) diviso per (WACC - g), con WACC in ${B_WACC} e g in ${B_G}. ` +
-        `Formula: Terminal Value = ${B_FCF1} / (${B_WACC} - ${B_G}). ATTENZIONE all'ordine della ` +
-        `sottrazione al denominatore: WACC MENO g (${B_WACC} - ${B_G}), mai il contrario — invertirlo ` +
-        "ribalta il segno del terminal value, e un'azienda non puo' valere un importo negativo. " +
-        'Usa le tre celle date, senza copiare i numeri a mano.',
+        tx('M7-09-GORDONGROWTH.3', { B_TV, B_FCF1, B_WACC, B_G }),
       targetCell: `Model!${B_TV}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -171,9 +163,7 @@ export default defineTemplate({
           tolerance: 0.001,
           toleranceMode: 'relative',
           message:
-            "Il valore non torna: controlla che tu stia dividendo per (WACC - g) e non per " +
-            `(g - WACC), e che il numeratore sia ${B_FCF1} (il FCF gia' cresciuto di T1), non il FCF ` +
-            "dell'ultimo anno esplicito preso direttamente.",
+            tx('M7-09-GORDONGROWTH.4', { B_FCF1 }),
         },
         { kind: 'mustReference', cells: [B_FCF1, B_WACC, B_G] },
         { kind: 'mustNotContainLiteral', except: [] },
@@ -187,52 +177,19 @@ export default defineTemplate({
     return {
       templateId: 'M7-09-GORDONGROWTH',
       seed: rng.seed,
-      brief: [
-        '## Terminal value: il metodo Gordon growth',
-        '',
-        "Un DCF sconta esplicitamente solo un numero finito di anni. Oltre quell'orizzonte, il " +
-          "valore residuo dell'azienda si comprime in un UNICO numero, il **terminal value** — che di " +
-          'solito pesa la maggioranza del valore attuale totale.',
-        '',
-        "**Il metodo piu' comune, Gordon growth**, assume che oltre l'ultimo anno esplicito il FCF " +
-          "continui a crescere per sempre a un tasso COSTANTE g, basso — la crescita di un'economia " +
-          "matura, mai quella di un'azienda in iper-crescita: nessuna azienda cresce piu' veloce del " +
-          "PIL nominale all'infinito. Il valore attuale di questa rendita perpetua crescente e':",
-        '',
-        '> **Terminal Value = FCF(primo anno di perpetuita\') / (WACC − g)**',
-        '',
-        '**Quale FCF va al numeratore, e perche\'.** Il primo flusso della perpetuita\' NON e\' il FCF ' +
-          "dell'ultimo anno esplicito: arriva un anno DOPO, quindi e' gia' cresciuto di un periodo al " +
-          'tasso g:',
-        '',
-        '> **FCF(primo anno perpetuita\') = FCF(ultimo anno esplicito) × (1 + g)**',
-        '',
-        'Usare direttamente il FCF dell\'ultimo anno esplicito, senza farlo crescere, sottostimerebbe ' +
-          "SISTEMATICAMENTE il terminal value: un errore piccolo in apparenza che si applica pero' " +
-          "all'intera perpetuita', propagandosi per intero nel numero che di solito pesa piu' di meta' " +
-          'della valutazione.',
-        '',
-        '*Il vincolo che tiene in piedi la formula:* **WACC deve restare sempre significativamente ' +
-          'maggiore di g.** Se i due si avvicinassero, il denominatore collasserebbe verso zero e il ' +
-          'terminal value esploderebbe; se WACC scendesse sotto g, il denominatore diventerebbe ' +
-          "negativo e il risultato perderebbe ogni senso economico — un'azienda non puo' valere un " +
-          'importo negativo.',
-        '',
-        `**I dati**, gia' pronti come assunzioni: FCF dell'ultimo anno esplicito della proiezione ` +
-          `${eurM(fcfUltimoAnno)}, tasso di crescita perpetuo g ${pct(g, 1)}, WACC ${pct(wacc, 1)}.`,
-      ].join('\n'),
+      brief: [tx('M7-09-GORDONGROWTH.5', { p0: eurM(fcfUltimoAnno), p1: pct(g, 1), p2: pct(wacc, 1) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Terminal value: il metodo Gordon growth'], { style: STILE_TITOLO }),
-            riga('A3', ['Assunzioni'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M7-09-GORDONGROWTH.6')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M7-09-GORDONGROWTH.14')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                "FCF dell'ultimo anno esplicito della proiezione, €",
-                'Tasso di crescita perpetuo g',
-                'WACC',
+                tx('M7-09-GORDONGROWTH.7'),
+                tx('M7-09-GORDONGROWTH.8'),
+                tx('M7-09-GORDONGROWTH.15'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -242,12 +199,12 @@ export default defineTemplate({
               { ref: B_WACC, content: wacc, style: STILE_INPUT_PCT, locked: true },
             ],
 
-            riga('A8', ['Terminal value (Gordon growth)'], { style: STILE_TITOLO }),
+            riga('A8', [tx('M7-09-GORDONGROWTH.9')], { style: STILE_TITOLO }),
             colonna(
               'A9',
               [
-                "FCF normalizzato, primo anno di perpetuita', €",
-                'Terminal value, €',
+                tx('M7-09-GORDONGROWTH.10'),
+                tx('M7-09-GORDONGROWTH.11'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -259,10 +216,10 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', `=${B_FCF}*(1+${B_G}): FCF dell'ultimo anno esplicito per (1 + g).`, 10, 'T1'),
+        hint('H1', tx('M7-09-GORDONGROWTH.12', { B_FCF, B_G }), 10, 'T1'),
         hint(
           'H2',
-          `=${B_FCF1}/(${B_WACC}-${B_G}): il FCF di T1 diviso per (WACC - g), non (g - WACC).`,
+          tx('M7-09-GORDONGROWTH.13', { B_FCF1, B_WACC, B_G }),
           10,
           'T2',
         ),

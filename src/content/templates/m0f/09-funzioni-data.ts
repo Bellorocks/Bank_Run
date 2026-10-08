@@ -41,6 +41,7 @@ import { DEFAULT_FORMATS } from '../../../engine/numberFormat';
 import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 
+import { tx } from '../../../i18n/content';
 const MS_PER_DAY = 86_400_000;
 
 /**
@@ -81,7 +82,9 @@ const STILE_RISULTATO_NUM: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt
 export default defineTemplate({
   id: 'M0F-09-FUNZIONIDATA',
   module: 'M0-F',
-  title: 'Le date sono numeri, anche quando si spostano',
+  get title() {
+    return tx('M0F-09-FUNZIONIDATA.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -118,9 +121,7 @@ export default defineTemplate({
       {
         id: 'T1',
         prompt:
-          "In B6 trova l'ultimo giorno del mese, " + mesiEomonth + " mesi dopo la data di riferimento " +
-          "(B2): usa EOMONTH(data, mesi). Non ti serve sapere quanti giorni ha quel mese: e' esattamente " +
-          "il problema che EOMONTH risolve da solo.",
+          tx('M0F-09-FUNZIONIDATA.2', { mesiEomonth }),
         targetCell: 'Model!B6',
         check: [
           { kind: 'mustBeFormula' as const },
@@ -130,7 +131,7 @@ export default defineTemplate({
             kind: 'value' as const,
             expected: attesoEomonth,
             message:
-              "Non torna l'ultimo giorno del mese. EOMONTH(B2," + mesiEomonth + ") deve puntare a B2, non a un numero riscritto a mano.",
+              tx('M0F-09-FUNZIONIDATA.3', { mesiEomonth }),
           },
         ],
         skills: ['xl.date-functions'],
@@ -139,9 +140,7 @@ export default defineTemplate({
       {
         id: 'T2',
         prompt:
-          'In B9 trova la data esatta, ' + mesiEdate + ' mesi dopo B2 (stesso giorno del mese, non ' +
-          "l'ultimo): usa EDATE(data, mesi). E' la differenza con EOMONTH: EDATE conserva il giorno, " +
-          "EOMONTH lo ignora e ti da' sempre il 30 o il 31 (o il 28/29 di febbraio).",
+          tx('M0F-09-FUNZIONIDATA.4', { mesiEdate }),
         targetCell: 'Model!B9',
         check: [
           { kind: 'mustBeFormula' as const },
@@ -151,7 +150,7 @@ export default defineTemplate({
             kind: 'value' as const,
             expected: attesoEdate,
             message:
-              "Non torna la data. EDATE(B2," + mesiEdate + ") deve mantenere lo stesso giorno del mese di B2, spostato di " + mesiEdate + " mesi.",
+              tx('M0F-09-FUNZIONIDATA.5', { mesiEdate }),
           },
         ],
         skills: ['xl.date-functions'],
@@ -161,9 +160,7 @@ export default defineTemplate({
         const base = taskFormula({
           id: 'T3',
           prompt:
-            'In B13 calcola la frazione di anno fra la data di riferimento (B2) e la seconda data (B12): ' +
-            'YEARFRAC(inizio, fine). E cosi che si annualizza un periodo che non dura esattamente 12 mesi — ' +
-            'utile ogni volta che serve calendarizzare un LTM o uno stub period.',
+            tx('M0F-09-FUNZIONIDATA.6'),
           target: 'Model!B13',
           atteso: attesoYearfrac,
           referenzia: ['B2', 'B12'],
@@ -180,40 +177,23 @@ export default defineTemplate({
     return {
       templateId: 'M0F-09-FUNZIONIDATA',
       seed: rng.seed,
-      brief: [
-        '## Le date sono numeri, anche quando si spostano',
-        '',
-        "Lo sai gia': una data in Excel e' un numero, il conteggio dei giorni dal 1 gennaio 1900. Le tre",
-        "funzioni di questo livello lavorano su quel numero, ma restituiscono ancora un numero-data,",
-        "quindi vanno lette con lo stesso formato `gg/mm/aaaa` — il vestito cambia, il contenuto no.",
-        '',
-        '- **EOMONTH(data, mesi)** — l\'ultimo giorno del mese, N mesi dopo (o prima, con un numero',
-        '  negativo). Non importa quanti giorni ha quel mese: EOMONTH lo sa gia\'.',
-        '- **EDATE(data, mesi)** — la stessa identica data, N mesi dopo. Il giorno del mese non cambia,',
-        '  solo il mese (e l\'eventuale anno).',
-        '- **YEARFRAC(inizio, fine)** — la frazione di anno fra due date. Un periodo di 6 mesi da 0,5,',
-        '  uno di 18 mesi da 1,5: e\' cosi\' che si annualizza un dato che copre un periodo non standard.',
-        '',
-        `La data di riferimento (B2) e' costruita con \`=DATE(${anno},${mese},${giorno})\`, non scritta a`,
-        'mano: e\' la stessa cosa che fai tu quando componi una data da tre numeri separati invece di',
-        'digitarla per intero.',
-      ].join('\n'),
+      brief: [tx('M0F-09-FUNZIONIDATA.7', { anno, mese, giorno })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Funzioni data'], { style: STILE_TITOLO }),
-            blocco('A2', [['Data di riferimento']], { style: STILE_ETICHETTA }),
+            riga('A1', [tx('M0F-09-FUNZIONIDATA.8')], { style: STILE_TITOLO }),
+            blocco('A2', [[tx('M0F-09-FUNZIONIDATA.9')]], { style: STILE_ETICHETTA }),
             blocco('B2', [[`=DATE(${anno},${mese},${giorno})`]], { style: STILE_INPUT_DATA }),
 
-            blocco('A5', [[`Ultimo giorno del mese, ${mesiEomonth} mesi dopo`]], { style: STILE_ETICHETTA }),
+            blocco('A5', [[tx('M0F-09-FUNZIONIDATA.10', { mesiEomonth })]], { style: STILE_ETICHETTA }),
             [{ ref: 'B6', content: null, locked: false, style: STILE_RISULTATO_DATA }],
-            blocco('A8', [[`Stessa data, ${mesiEdate} mesi dopo`]], { style: STILE_ETICHETTA }),
+            blocco('A8', [[tx('M0F-09-FUNZIONIDATA.11', { mesiEdate })]], { style: STILE_ETICHETTA }),
             [{ ref: 'B9', content: null, locked: false, style: STILE_RISULTATO_DATA }],
 
-            blocco('A11', [['Seconda data (per YEARFRAC)']], { style: STILE_ETICHETTA }),
+            blocco('A11', [[tx('M0F-09-FUNZIONIDATA.12')]], { style: STILE_ETICHETTA }),
             blocco('B12', [[`=DATE(${annoFine},${meseFine},${giornoFine})`]], { style: STILE_INPUT_DATA }),
-            blocco('A13', [['Frazione di anno fra B2 e B12']], { style: STILE_ETICHETTA }),
+            blocco('A13', [[tx('M0F-09-FUNZIONIDATA.13')]], { style: STILE_ETICHETTA }),
             [{ ref: 'B13', content: null, locked: false, style: STILE_RISULTATO_NUM }],
           ],
           { colWidths: { A: 260, B: 140 }, frozenRows: 1 },
@@ -221,9 +201,9 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', `EOMONTH(B2,${mesiEomonth}) in B6.`, 8, 'T1'),
-        hint('H2', `EDATE(B2,${mesiEdate}) in B9.`, 8, 'T2'),
-        hint('H3', 'YEARFRAC(B2,B12) in B13.', 8, 'T3'),
+        hint('H1', tx('M0F-09-FUNZIONIDATA.14', { mesiEomonth }), 8, 'T1'),
+        hint('H2', tx('M0F-09-FUNZIONIDATA.15', { mesiEdate }), 8, 'T2'),
+        hint('H3', tx('M0F-09-FUNZIONIDATA.16'), 8, 'T3'),
       ],
       parScore: par(tasks, { letturaSecondi: 90 }),
       startAt: 'Model!B6',

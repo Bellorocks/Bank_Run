@@ -30,6 +30,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { contentNumberLocale, tx } from '../../../i18n/content';
 // Geometria fissa
 const B_TGT_SHARES = 'B4'; // Azioni Target (dato)
 const B_OFFER_PX = 'B5'; // Prezzo Offerta Target (€) (dato)
@@ -46,7 +47,9 @@ const B_EXCH_RATIO = 'B16'; // T4: Exchange ratio = B15 / B4
 export default defineTemplate({
   id: 'M9-01-CONSIDERATION',
   module: 'M9',
-  title: 'Consideration: cash, stock o mix e nuove azioni emesse',
+  get title() {
+    return tx('M9-01-CONSIDERATION.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -68,43 +71,29 @@ export default defineTemplate({
     const newShares = (totPurchase * pctStock) / acqPx;
     const exchRatio = newShares / tgtShares;
 
-    const brief = [
-      `Struttura il corrispettivo di acquisizione (Consideration) per l'OPA amichevole su **Target Spa**.`,
-      ``,
-      `Dati dell'offerta:`,
-      `- **Numero Azioni Target**: ${tgtShares.toLocaleString('it-IT')}`,
-      `- **Prezzo di Offerta Target**: ${eur(offerPx, 2)}`,
-      `- **Prezzo Corrente Azione Acquirer**: ${eur(acqPx, 2)}`,
-      `- **Struttura Corrispettivo**: ${pct(pctCash, 0)} Cash / ${pct(pctStock, 0)} Stock`,
-      ``,
-      "La parte cash va finanziata (cassa in bilancio o nuovo debito); la parte stock si paga emettendo " +
-        "nuove azioni dell'acquirente al suo prezzo corrente, e diluisce i suoi azionisti. L'**exchange " +
-        "ratio** dice quante azioni dell'acquirente riceve ogni azionista della target per ciascuna azione.",
-      '',
-      "Calcola controvalore, cassa necessaria, nuove azioni da emettere ed exchange ratio della parte in azioni.",
-    ].join('\n');
+    const brief = [tx('M9-01-CONSIDERATION.2', { p0: tgtShares.toLocaleString(contentNumberLocale()), p1: eur(offerPx, 2), p2: eur(acqPx, 2), p3: pct(pctCash, 0), p4: pct(pctStock, 0) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['STRUTTURA DEL CORRISPETTIVO (M&A CONSIDERATION)'], { style: STILE_TITOLO }),
-      riga('A3', ['Parametri Offerta', 'Valore'], { style: STILE_TITOLO }),
+      riga('A1', [tx('M9-01-CONSIDERATION.3')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M9-01-CONSIDERATION.4'), tx('M9-01-CONSIDERATION.22')], { style: STILE_TITOLO }),
       colonna('A4', [
-        'Numero Azioni Target in Circolazione',
-        'Prezzo di Offerta per Azione Target (€)',
-        'Prezzo per Azione Acquirer (€)',
+        tx('M9-01-CONSIDERATION.5'),
+        tx('M9-01-CONSIDERATION.6'),
+        tx('M9-01-CONSIDERATION.7'),
       ], { style: STILE_ETICHETTA }),
       colonna('B4', [tgtShares, offerPx, acqPx], { style: STILE_INPUT }),
 
-      riga('A8', ['Mix di Finanziamento', 'Quota %'], { style: STILE_TITOLO }),
-      colonna('A9', ['Quota Cash (%)', 'Quota Stock (%)'], { style: STILE_ETICHETTA }),
+      riga('A8', [tx('M9-01-CONSIDERATION.8'), tx('M9-01-CONSIDERATION.9')], { style: STILE_TITOLO }),
+      colonna('A9', [tx('M9-01-CONSIDERATION.10'), tx('M9-01-CONSIDERATION.11')], { style: STILE_ETICHETTA }),
       colonna('B9', [pctCash], { style: { ...STILE_INPUT_PCT, numFmt: '0%' } }),
       [{ ref: B_PCT_STOCK, content: `=1-${B_PCT_CASH}`, style: { ...STILE_FORMULA, numFmt: '0%' }, locked: true }],
 
-      riga('A12', ['Esito della Strutturazione', 'Risultato'], { style: STILE_TITOLO }),
+      riga('A12', [tx('M9-01-CONSIDERATION.12'), tx('M9-01-CONSIDERATION.23')], { style: STILE_TITOLO }),
       colonna('A13', [
-        'Equity Purchase Price Totale (€)',
-        'Cassa Necessaria (Cash Consideration, €)',
-        'Nuove Azioni Acquirer da Emettere (Numero)',
-        'Exchange ratio (azioni acquirer per azione target)',
+        tx('M9-01-CONSIDERATION.13'),
+        tx('M9-01-CONSIDERATION.14'),
+        tx('M9-01-CONSIDERATION.15'),
+        tx('M9-01-CONSIDERATION.16'),
       ], { style: STILE_ETICHETTA }),
       colonna(B_TOT_PURCHASE, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_CASH_REQ, [null], { style: STILE_FORMULA, locked: false }),
@@ -115,7 +104,7 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `In ${B_TOT_PURCHASE} il controvalore totale dell'offerta sull'equity della target.`,
+        prompt: tx('M9-01-CONSIDERATION.17', { B_TOT_PURCHASE }),
         target: `Model!${B_TOT_PURCHASE}`,
         atteso: totPurchase,
         referenzia: [B_TGT_SHARES, B_OFFER_PX],
@@ -125,7 +114,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T2',
-        prompt: `In ${B_CASH_REQ} la cassa da trovare per la parte in contanti.`,
+        prompt: tx('M9-01-CONSIDERATION.18', { B_CASH_REQ }),
         target: `Model!${B_CASH_REQ}`,
         atteso: cashReq,
         referenzia: [B_TOT_PURCHASE, B_PCT_CASH],
@@ -135,7 +124,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T3',
-        prompt: `In ${B_NEW_SHARES} quante nuove azioni l'acquirente deve emettere per pagare la parte in azioni.`,
+        prompt: tx('M9-01-CONSIDERATION.19', { B_NEW_SHARES }),
         target: `Model!${B_NEW_SHARES}`,
         atteso: newShares,
         referenzia: [B_TOT_PURCHASE, B_PCT_STOCK, B_ACQ_PX],
@@ -145,7 +134,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T4',
-        prompt: `In ${B_EXCH_RATIO} l'exchange ratio: azioni dell'acquirente ricevute per ogni azione della target.`,
+        prompt: tx('M9-01-CONSIDERATION.20', { B_EXCH_RATIO }),
         target: `Model!${B_EXCH_RATIO}`,
         atteso: exchRatio,
         referenzia: [B_TGT_SHARES],
@@ -166,7 +155,7 @@ export default defineTemplate({
       hints: [
         hint('H1', '=B4*B5', 10, 'T1'),
         hint('H2', '=B13*B9', 10, 'T2'),
-        hint('H3', "=B13*B10/B6: valore della parte in azioni diviso il prezzo dell'azione acquirer.", 15, 'T3'),
+        hint('H3', tx('M9-01-CONSIDERATION.21'), 15, 'T3'),
         hint('H4', '=B15/B4, oppure =B5*B10/B6.', 10, 'T4'),
       ],
     };

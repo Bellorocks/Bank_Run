@@ -33,23 +33,26 @@ import {
 import { triangular, roundTo } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
-const CLIENTI = [
-  'Meccanica Bolognese Srl',
-  'Ferramenta Adriatica Spa',
-  'Tessile Comasca Srl',
-  'Chimica Vicentina Spa',
-  'Packaging Lombardo Srl',
-  'Elettronica Piemontese Spa',
-  'Logistica Pugliese Srl',
-  'Agroalimentare Siciliana Srl',
-] as const;
+import { tx } from '../../../i18n/content';
+const CLIENTI = () => ([
+  tx('M0C-01-INDEXMATCH.1'),
+  tx('M0C-01-INDEXMATCH.2'),
+  tx('M0C-01-INDEXMATCH.3'),
+  tx('M0C-01-INDEXMATCH.4'),
+  tx('M0C-01-INDEXMATCH.5'),
+  tx('M0C-01-INDEXMATCH.6'),
+  tx('M0C-01-INDEXMATCH.7'),
+  tx('M0C-01-INDEXMATCH.8'),
+] as const);
 
 const DATA_START = 4;
 
 export default defineTemplate({
   id: 'M0C-01-INDEXMATCH',
   module: 'M0-C',
-  title: 'Cercare per nome, non per indice',
+  get title() {
+    return tx('M0C-01-INDEXMATCH.title');
+  },
   rank: 2,
   mode: 'GUIDED',
   estimatedSeconds: 240,
@@ -62,7 +65,7 @@ export default defineTemplate({
     // 6-8 clienti distinti, ordine mescolato: la posizione nell'elenco non
     // deve essere prevedibile dal nome.
     const n = r.int(6, 8);
-    const clienti = r.shuffle(CLIENTI).slice(0, n);
+    const clienti = r.shuffle(CLIENTI()).slice(0, n);
     const fatturati = clienti.map(() => roundTo(triangular(r, 180_000, 650_000, 2_400_000), 5_000));
 
     const dataEnd = DATA_START + n - 1;
@@ -84,16 +87,14 @@ export default defineTemplate({
     const t1: Task = {
       id: 'T1',
       prompt:
-        `In ${celMatch} usa MATCH per trovare a che riga della tabella si trova il cliente scritto in ${celQuery}, ` +
-        `cercandolo nell'elenco ${colNomi}:A${dataEnd}. Il risultato e' un numero di posizione (1 = prima riga della ` +
-        "tabella, non riga 1 del foglio): usa 0 come terzo argomento per pretendere una corrispondenza esatta.",
+        tx('M0C-01-INDEXMATCH.10', { celMatch, celQuery, colNomi, dataEnd }),
       targetCell: `Model!${celMatch}`,
       check: [
         { kind: 'mustBeFormula' },
         {
           kind: 'value',
           expected: posizioneAttesa,
-          message: 'La posizione non torna: conta le righe della tabella a partire dalla prima, non dalla riga del foglio.',
+          message: tx('M0C-01-INDEXMATCH.11'),
         },
         { kind: 'mustReference', cells: [celQuery, colNomi] },
         { kind: 'mustUseFunction', functions: ['MATCH'] },
@@ -106,16 +107,14 @@ export default defineTemplate({
     const t2: Task = {
       id: 'T2',
       prompt:
-        `In ${celResult} recupera il fatturato del cliente cercato, in un'unica formula: INDEX sul range dei ` +
-        `fatturati (${colValori}:B${dataEnd}), con dentro il MATCH che restituisce la posizione del nome in ${celQuery} ` +
-        `dentro l'elenco dei clienti (${colNomi}:A${dataEnd}). Niente VLOOKUP: qui l'indice di colonna non serve.`,
+        tx('M0C-01-INDEXMATCH.12', { celResult, colValori, dataEnd, celQuery, colNomi }),
       targetCell: `Model!${celResult}`,
       check: [
         { kind: 'mustBeFormula' },
         {
           kind: 'value',
           expected: fatturatoAtteso,
-          message: "Il fatturato non corrisponde a quello del cliente cercato: controlla che INDEX legga dal range dei fatturati e MATCH dal range dei nomi, nello stesso ordine.",
+          message: tx('M0C-01-INDEXMATCH.13'),
         },
         { kind: 'mustReference', cells: [colValori, colNomi, celQuery] },
         { kind: 'mustUseFunction', functions: ['INDEX', 'MATCH'], quantifier: 'all' },
@@ -130,39 +129,19 @@ export default defineTemplate({
     return {
       templateId: 'M0C-01-INDEXMATCH',
       seed: rng.seed,
-      brief: [
-        '## Perche\' non si usa VLOOKUP',
-        '',
-        `Sotto c'e' l'elenco fatturato dei ${num_(n)} clienti di quest'anno, con il fatturato annuo di ciascuno.`,
-        `Ti serve il fatturato di un cliente preciso: **${clienteCercato}**, scritto in ${celQuery}.`,
-        '',
-        '`VLOOKUP(valore_cercato, tabella, indice_colonna, 0)` funziona cercando il nome nella prima',
-        "colonna e prendendo il valore dalla colonna numero `indice_colonna` — un numero fisso, contato a mano.",
-        "Il problema arriva il giorno in cui qualcuno inserisce una colonna in mezzo alla tabella (`Settore`,",
-        "`Regione`, qualunque cosa): la tabella slitta, ma quell'indice resta lo stesso numero. VLOOKUP continua",
-        "a prendere la colonna sbagliata, senza nessun errore a video — il foglio sembra funzionare e mente.",
-        "E' cosi' che un modello produce il numero sbagliato in riunione, con tutti convinti che sia quello giusto.",
-        '',
-        '`MATCH(valore_cercato, elenco, 0)` risolve solo meta\' del problema: trova **la posizione** del nome',
-        "dentro il suo elenco (il terzo argomento a 0 pretende una corrispondenza esatta, non approssimata).",
-        '`INDEX(range, posizione)` preleva il valore che sta a quella posizione dentro **un altro range**.',
-        '',
-        "Messi insieme, `INDEX(range_valori, MATCH(nome_cercato, range_nomi, 0))` non contano mai colonne:",
-        "se una colonna si inserisce in mezzo, sia il range dei nomi sia il range dei valori si spostano",
-        "insieme a lei, e la formula resta corretta senza che tu la debba toccare.",
-      ].join('\n'),
+      brief: [tx('M0C-01-INDEXMATCH.14', { p0: num_(n), clienteCercato, celQuery })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Fatturato clienti'], { style: STILE_TITOLO }),
-            riga('A3', ['Cliente', 'Fatturato annuo (€)'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M0C-01-INDEXMATCH.15')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M0C-01-INDEXMATCH.24'), tx('M0C-01-INDEXMATCH.16')], { style: STILE_TITOLO }),
             colonna(colNomi, clienti, { style: STILE_ETICHETTA }),
             colonna(colValori, fatturati, { style: { ...STILE_INPUT, numFmt: '#,##0' } }),
-            riga(`A${queryRow}`, ['Cliente da cercare'], { style: STILE_ETICHETTA }),
+            riga(`A${queryRow}`, [tx('M0C-01-INDEXMATCH.17')], { style: STILE_ETICHETTA }),
             riga(celQuery, [clienteCercato], { style: STILE_INPUT }),
-            riga(`A${matchRow}`, ["Posizione nell'elenco (MATCH)"], { style: STILE_ETICHETTA }),
-            riga(`A${resultRow}`, ['Fatturato trovato (INDEX + MATCH)'], { style: STILE_ETICHETTA }),
+            riga(`A${matchRow}`, [tx('M0C-01-INDEXMATCH.18')], { style: STILE_ETICHETTA }),
+            riga(`A${resultRow}`, [tx('M0C-01-INDEXMATCH.19')], { style: STILE_ETICHETTA }),
             areaLibera([celMatch, celResult]),
           ],
           { colWidths: { A: 260, B: 170 }, frozenRows: 3 },
@@ -170,10 +149,10 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', `MATCH(${celQuery}, ${colNomi}:A${dataEnd}, 0). Lo zero finale vuol dire "solo corrispondenza esatta".`, 10, 'T1'),
-        hint('H2', "Il risultato di MATCH e' la posizione DENTRO l'elenco, non la riga del foglio: se il cliente e' il terzo della tabella, MATCH restituisce 3 anche se quella riga e' la numero 6.", 8, 'T1'),
-        hint('H3', `INDEX(${colValori}:B${dataEnd}, MATCH(${celQuery}, ${colNomi}:A${dataEnd}, 0)): incolla dentro INDEX lo stesso MATCH che hai gia' scritto in ${celMatch}.`, 12, 'T2'),
-        hint('H4', "Se il risultato e' #N/A, il nome cercato non e' scritto esattamente come in tabella: maiuscole e spazi non contano, ma un carattere diverso si'.", 8, 'T2'),
+        hint('H1', tx('M0C-01-INDEXMATCH.20', { celQuery, colNomi, dataEnd }), 10, 'T1'),
+        hint('H2', tx('M0C-01-INDEXMATCH.21'), 8, 'T1'),
+        hint('H3', tx('M0C-01-INDEXMATCH.22', { colValori, dataEnd, celQuery, colNomi, celMatch }), 12, 'T2'),
+        hint('H4', tx('M0C-01-INDEXMATCH.23'), 8, 'T2'),
       ],
       parScore: par(tasks, { letturaSecondi: 70 }),
       startAt: `Model!${celMatch}`,

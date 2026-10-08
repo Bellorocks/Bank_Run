@@ -44,10 +44,13 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 export default defineTemplate({
   id: 'M1-02-RICLASSIFICAZIONE',
   module: 'M1',
-  title: 'Riclassificazione a valore aggiunto e margine di contribuzione',
+  get title() {
+    return tx('M1-02-RICLASSIFICAZIONE.title');
+  },
   rank: 1,
   mode: 'PRACTICE',
   estimatedSeconds: 260,
@@ -83,10 +86,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T1',
         prompt:
-          'In B12 calcola il Valore Aggiunto: (Ricavi + Variazione delle rimanenze) meno la somma dei costi ' +
-          "\"esterni\" — Costi per materie prime (B6), Costi per servizi (B7) e Costi per godimento di beni di " +
-          "terzi (B8). Sono gli acquisti che l'azienda fa da fuori: cio' che produce con le proprie risorse " +
-          "interne — il personale — resta apposta escluso da questo primo calcolo.",
+          tx('M1-02-RICLASSIFICAZIONE.2'),
         target: 'Model!B12',
         atteso: valoreAggiunto,
         referenzia: ['B4', 'B5', 'B6', 'B7', 'B8'],
@@ -100,9 +100,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        "In B13 calcola il MOL (Margine Operativo Lordo, l'EBITDA di questo schema riclassificato): parti dal " +
-        'Valore Aggiunto che hai gia\' calcolato in B12 e sottrai il Costo del personale (B9). Non risommare ' +
-        "tutto da capo — il Valore Aggiunto e' gia' un numero solido, usalo cosi' com'e'.",
+        tx('M1-02-RICLASSIFICAZIONE.3'),
       target: 'Model!B13',
       atteso: mol,
       referenzia: ['B12', 'B9'],
@@ -114,10 +112,7 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        'In B23 calcola il Margine di contribuzione, usando la lettura alternativa qui sotto (righe 18-20), NON ' +
-        'i dati della tabella a valore aggiunto qui sopra: Ricavi (B18) meno Costi variabili (B19). I Costi per ' +
-        'materie prime/servizi/godimento della prima tabella non c\'entrano qui — sono due schemi diversi, con ' +
-        'dati di costo diversi, anche se il fatturato di partenza (Ricavi) e\' lo stesso numero in entrambi.',
+        tx('M1-02-RICLASSIFICAZIONE.4'),
       target: 'Model!B23',
       atteso: margineContribuzione,
       referenzia: ['B18', 'B19'],
@@ -131,46 +126,24 @@ export default defineTemplate({
     return {
       templateId: 'M1-02-RICLASSIFICAZIONE',
       seed: rng.seed,
-      brief: [
-        '## Due letture dello stesso Conto Economico',
-        '',
-        "Il CE qui sotto e' gia' classificato: niente da riordinare, quello lo hai gia' fatto nel livello",
-        "precedente. Qui il compito e' un altro: lo stesso conto economico si legge in due modi diversi,",
-        'per due scopi diversi.',
-        '',
-        '**Schema A — valore aggiunto e MOL** (righe 4-9): raggruppa i costi per **natura**, cioe\' per cosa',
-        "sono — materie prime, servizi, affitti, personale. E' lo schema che vedi nei bilanci pubblicati.",
-        'Il **Valore Aggiunto** e\' quanto resta dei ricavi dopo aver pagato tutto cio\' che viene comprato',
-        "da fuori (i costi \"esterni\"); il **MOL** e' quanto resta dopo aver pagato anche il personale.",
-        '',
-        '**Schema B — margine di contribuzione** (righe 18-20): raggruppa gli STESSI ricavi per',
-        '**comportamento** del costo — variabile (cresce col volume prodotto/venduto) o fisso (non dipende',
-        "dal volume). Sono dati di costo diversi da quelli dello Schema A, generati per un'analisi diversa:",
-        "non e' la stessa scomposizione riletta, e' un taglio analitico alternativo sullo stesso business.",
-        "L'unico numero che i due schemi condividono e' il fatturato — i Ricavi compaiono identici in",
-        'entrambe le tabelle apposta, per farti vedere che la base di partenza e\' la stessa.',
-        '',
-        "**Attenzione**: MOL (Schema A) e Margine di contribuzione (Schema B) non sono la stessa grandezza",
-        "e non hanno motivo di coincidere. Se ti sembrano numeri slegati fra loro, e' perche' lo sono: due",
-        'letture diverse, non due modi di ricontrollare la stessa somma.',
-      ].join('\n'),
+      brief: [tx('M1-02-RICLASSIFICAZIONE.5')].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Conto Economico riclassificato — due letture'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M1-02-RICLASSIFICAZIONE.6')], { style: STILE_TITOLO }),
 
             // --- Schema A: valore aggiunto / MOL, per natura. ----------------
-            riga('A3', ['Voce di Conto Economico', 'Importo (€)'], { style: STILE_TITOLO }),
+            riga('A3', [tx('M1-02-RICLASSIFICAZIONE.7'), tx('M1-02-RICLASSIFICAZIONE.8')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'Ricavi delle vendite e delle prestazioni',
-                'Variazione delle rimanenze di prodotti',
-                'Costi per materie prime e merci',
-                'Costi per servizi',
-                'Costi per godimento di beni di terzi',
-                'Costo del personale',
+                tx('M1-02-RICLASSIFICAZIONE.9'),
+                tx('M1-02-RICLASSIFICAZIONE.10'),
+                tx('M1-02-RICLASSIFICAZIONE.11'),
+                tx('M1-02-RICLASSIFICAZIONE.12'),
+                tx('M1-02-RICLASSIFICAZIONE.13'),
+                tx('M1-02-RICLASSIFICAZIONE.14'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -186,23 +159,23 @@ export default defineTemplate({
               ],
               { style: STILE_INPUT },
             ),
-            riga('A11', ['Riepilogo — valore aggiunto e MOL'], { style: STILE_TITOLO }),
-            colonna('A12', ['Valore Aggiunto', 'MOL / EBITDA (Valore Aggiunto - Costo del personale)'], {
+            riga('A11', [tx('M1-02-RICLASSIFICAZIONE.15')], { style: STILE_TITOLO }),
+            colonna('A12', [tx('M1-02-RICLASSIFICAZIONE.16'), tx('M1-02-RICLASSIFICAZIONE.17')], {
               style: STILE_ETICHETTA,
             }),
             areaLibera(['B12', 'B13']),
 
             // --- Schema B: margine di contribuzione, per comportamento. -----
-            riga('A15', ["Lettura alternativa — costi variabili e costi fissi"], { style: STILE_TITOLO }),
-            riga('A17', ['Voce', 'Importo (€)'], { style: STILE_TITOLO }),
+            riga('A15', [tx('M1-02-RICLASSIFICAZIONE.18')], { style: STILE_TITOLO }),
+            riga('A17', [tx('M1-02-RICLASSIFICAZIONE.28'), tx('M1-02-RICLASSIFICAZIONE.19')], { style: STILE_TITOLO }),
             colonna(
               'A18',
-              ['Ricavi delle vendite e delle prestazioni', 'Costi variabili', 'Costi fissi'],
+              [tx('M1-02-RICLASSIFICAZIONE.20'), tx('M1-02-RICLASSIFICAZIONE.21'), tx('M1-02-RICLASSIFICAZIONE.22')],
               { style: STILE_ETICHETTA },
             ),
             blocco('B18', [[ricavi], [costiVariabili], [costiFissi]], { style: STILE_INPUT }),
-            riga('A22', ['Riepilogo — margine di contribuzione'], { style: STILE_TITOLO }),
-            colonna('A23', ['Margine di contribuzione'], { style: STILE_ETICHETTA }),
+            riga('A22', [tx('M1-02-RICLASSIFICAZIONE.23')], { style: STILE_TITOLO }),
+            colonna('A23', [tx('M1-02-RICLASSIFICAZIONE.24')], { style: STILE_ETICHETTA }),
             areaLibera(['B23']),
           ],
           { colWidths: { A: 380, B: 130 }, frozenRows: 0 },
@@ -210,9 +183,9 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', '=B4+B5-B6-B7-B8 : ricavi piu\' variazione rimanenze, meno i tre costi "esterni".', 10, 'T1'),
-        hint('H2', '=B12-B9 : il Valore Aggiunto che hai gia\' scritto, meno il costo del personale.', 8, 'T2'),
-        hint('H3', '=B18-B19 : Ricavi della seconda tabella meno Costi variabili, non i dati della prima.', 8, 'T3'),
+        hint('H1', tx('M1-02-RICLASSIFICAZIONE.25'), 10, 'T1'),
+        hint('H2', tx('M1-02-RICLASSIFICAZIONE.26'), 8, 'T2'),
+        hint('H3', tx('M1-02-RICLASSIFICAZIONE.27'), 8, 'T3'),
       ],
       parScore: par(tasks, { letturaSecondi: 75 }),
       startAt: 'Model!B12',

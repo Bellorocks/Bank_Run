@@ -55,6 +55,7 @@ import { roundTo, triangular } from '../../../rng/distributions';
 import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 
+import { tx } from '../../../i18n/content';
 /** Output di una formula che restituisce un multiplo: nero, "x". */
 const STILE_FORMULA_MULTIPLO: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: '0.0x' };
 
@@ -69,7 +70,9 @@ const B_STEP2 = 'B10'; // T2: multiplo aggiustato finale (size + crescita/margin
 export default defineTemplate({
   id: 'M5-08-AGGIUSTAMENTISIZE',
   module: 'M5',
-  title: 'Aggiustamenti al multiplo: size, crescita, margine',
+  get title() {
+    return tx('M5-08-AGGIUSTAMENTISIZE.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -101,16 +104,13 @@ export default defineTemplate({
 
     const direzioneCrescita =
       segnoCrescita > 0
-        ? 'cresce piu\' rapidamente e/o margina di piu\' dei suoi peer quotati'
-        : 'cresce piu\' lentamente e/o margina meno dei suoi peer quotati';
+        ? tx('M5-08-AGGIUSTAMENTISIZE.2')
+        : tx('M5-08-AGGIUSTAMENTISIZE.3');
 
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_STEP1} applica alla mediana del comp set (${B_MEDIANA}) SOLO l'aggiustamento per size ` +
-        `(${B_SIZE}): multiplo mediano × (1 + aggiustamento size). Il target e' piu' grande dei peer del ` +
-        "comp set, quindi merita un multiplo piu' alto del loro — meno liquidita' e meno diversificazione " +
-        "sono rischi tipici del peer piccolo, non del target. Formula: " + `${B_MEDIANA}*(1+${B_SIZE}).`,
+        tx('M5-08-AGGIUSTAMENTISIZE.4', { B_STEP1, B_MEDIANA, B_SIZE }),
       target: `Model!${B_STEP1}`,
       atteso: multiploStep1,
       referenzia: [B_MEDIANA, B_SIZE],
@@ -122,14 +122,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_STEP2} applica l'aggiustamento per crescita/margine (${B_CRESCITA}) al risultato di T1 ` +
-        `(${B_STEP1}), NON alla mediana originaria (${B_MEDIANA}): ${B_STEP1} × (1 + aggiustamento ` +
-        "crescita/margine). I due aggiustamenti si compongono in SEQUENZA, moltiplicativamente, non si " +
-        "sommano: ciascuno e' una percentuale applicata sulla base GIA' corretta dal passo precedente, " +
-        `non sulla mediana originaria. Sommare le due percentuali (${B_MEDIANA}*(1+${B_SIZE}+${B_CRESCITA})) ` +
-        "sembra equivalente ma non lo e': ignora l'interazione fra i due fattori e distorce leggermente " +
-        "il risultato, in un verso o nell'altro a seconda dei segni. Formula: " +
-        `${B_STEP1}*(1+${B_CRESCITA}).`,
+        tx('M5-08-AGGIUSTAMENTISIZE.5', { B_STEP2, B_CRESCITA, B_STEP1, B_MEDIANA, B_SIZE }),
       target: `Model!${B_STEP2}`,
       atteso: multiploStep2,
       referenzia: [B_STEP1, B_CRESCITA],
@@ -143,45 +136,19 @@ export default defineTemplate({
     return {
       templateId: 'M5-08-AGGIUSTAMENTISIZE',
       seed: rng.seed,
-      brief: [
-        '## Aggiustamenti al multiplo: size, crescita, margine',
-        '',
-        "La mediana del comp set e' un multiplo di mercato osservato su societa' CONFRONTABILI, non " +
-          "identiche al target. Se il target si discosta dal peer set su assi che il mercato prezza — " +
-          "dimensione, crescita, marginalita' — applicargli quel multiplo cosi' com'e' significa ignorare " +
-          "quello scostamento. Prima di applicare la mediana al target, si aggiusta.",
-        '',
-        "**Size.** Un'azienda piu' piccola dei suoi peer quotati comanda tipicamente un multiplo piu' " +
-          "basso: meno liquidita' del titolo, meno diversificazione di prodotto e cliente, piu' rischio " +
-          "percepito da chi compra. Il target di oggi e' piu' grande del comp set, quindi l'aggiustamento " +
-          `va nella direzione opposta: +${pct(aggSize)} sul multiplo mediano.`,
-        '',
-        "**Crescita/margine.** Un target che cresce piu' velocemente o margina di piu' dei suoi peer " +
-          "merita un multiplo piu' alto; il contrario se cresce meno o margina meno. Il target di oggi " +
-          `${direzioneCrescita}: l'aggiustamento e' ${aggCrescita >= 0 ? '+' : ''}${pct(aggCrescita)} sul ` +
-          "multiplo, con il segno che riflette la direzione.",
-        '',
-        "**L'ordine conta, ma non come pensi.** I due aggiustamenti si applicano in SEQUENZA, " +
-          "moltiplicativamente — ciascuno sulla base gia' corretta dal passo precedente — non sommati " +
-          "sulla mediana originaria. Sommare due percentuali su basi diverse e' un errore comune: sembra " +
-          "un'approssimazione ragionevole, ma ignora l'interazione fra i due fattori e distorce il " +
-          "risultato.",
-        '',
-        `**I dati.** Multiplo mediano del comp set: ${multiplo(medianaMultiplo)}. Aggiustamento size: ` +
-          `+${pct(aggSize)}. Aggiustamento crescita/margine: ${aggCrescita >= 0 ? '+' : ''}${pct(aggCrescita)}.`,
-      ].join('\n'),
+      brief: [tx('M5-08-AGGIUSTAMENTISIZE.6', { p0: pct(aggSize), direzioneCrescita, p2: aggCrescita >= 0 ? '+' : '', p3: pct(aggCrescita), p4: multiplo(medianaMultiplo), p5: pct(aggSize), p6: aggCrescita >= 0 ? '+' : '', p7: pct(aggCrescita) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Aggiustamenti al multiplo: size, crescita, margine'], { style: STILE_TITOLO }),
-            riga('A3', ['Dati del comp set e del target'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M5-08-AGGIUSTAMENTISIZE.7')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M5-08-AGGIUSTAMENTISIZE.8')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'Multiplo mediano del comp set (EV/EBITDA), x',
-                'Aggiustamento per size, pp',
-                'Aggiustamento per crescita/margine, pp',
+                tx('M5-08-AGGIUSTAMENTISIZE.9'),
+                tx('M5-08-AGGIUSTAMENTISIZE.10'),
+                tx('M5-08-AGGIUSTAMENTISIZE.11'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -191,12 +158,12 @@ export default defineTemplate({
               { ref: B_CRESCITA, content: aggCrescita, style: STILE_INPUT_PCT, locked: true },
             ],
 
-            riga('A8', ['Multiplo aggiustato'], { style: STILE_TITOLO }),
+            riga('A8', [tx('M5-08-AGGIUSTAMENTISIZE.12')], { style: STILE_TITOLO }),
             colonna(
               'A9',
               [
-                'Multiplo aggiustato per size, x',
-                'Multiplo aggiustato finale (size + crescita/margine), x',
+                tx('M5-08-AGGIUSTAMENTISIZE.13'),
+                tx('M5-08-AGGIUSTAMENTISIZE.14'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -210,16 +177,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_MEDIANA}*(1+${B_SIZE}) — qui vale ${multiplo(multiploStep1)}: la mediana aumentata ` +
-            `dell'aggiustamento size, ${pct(aggSize)}.`,
+          tx('M5-08-AGGIUSTAMENTISIZE.15', { B_MEDIANA, B_SIZE, p2: multiplo(multiploStep1), p3: pct(aggSize) }),
           8,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_STEP1}*(1+${B_CRESCITA}) — qui vale ${multiplo(multiploStep2)}: il risultato di T1, non ` +
-            `la mediana originaria, corretto per l'aggiustamento crescita/margine ` +
-            `(${aggCrescita >= 0 ? '+' : ''}${pct(aggCrescita)}).`,
+          tx('M5-08-AGGIUSTAMENTISIZE.16', { B_STEP1, B_CRESCITA, p2: multiplo(multiploStep2), p3: aggCrescita >= 0 ? '+' : '', p4: pct(aggCrescita) }),
           10,
           'T2',
         ),

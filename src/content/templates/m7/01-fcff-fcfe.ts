@@ -68,6 +68,7 @@ import {
   STILE_TITOLO,
 } from '../../authoring';
 
+import { tx } from '../../../i18n/content';
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
 const B_EBIT = 'B4'; // EBIT dell'anno (dato, bloccato)
 const B_ALIQ = 'B5'; // Aliquota fiscale, fissa 24% (dato, bloccato)
@@ -85,7 +86,9 @@ const ALIQUOTA_FISCALE = 0.24; // dato di legge, non randomizzato
 export default defineTemplate({
   id: 'M7-01-FCFFFCFE',
   module: 'M7',
-  title: 'FCFF vs FCFE: due flussi, due tassi di sconto',
+  get title() {
+    return tx('M7-01-FCFFFCFE.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -119,13 +122,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_FCFF} calcola il FCFF (Free Cash Flow to Firm), il flusso di cassa disponibile per TUTTI ` +
-        `i finanziatori (debito ed equity insieme), PRIMA del servizio del debito: parti dall'EBIT ` +
-        `(${B_EBIT}) tassato con l'aliquota fiscale (${B_ALIQ}), aggiungi gli ammortamenti D&A (${B_DA}, ` +
-        `un costo non monetario da riaggiungere), sottrai il Capex (${B_CAPEX}, un'uscita di cassa che ` +
-        `non passa da Conto Economico) e sottrai la ΔNWC (${B_DNWC}, gia' col segno giusto: se positiva ` +
-        "ha assorbito cassa e va sottratta, se negativa ne ha liberata e sottrarla la restituisce — e' lo " +
-        'stesso segno gia\' visto in M3-03).',
+        tx('M7-01-FCFFFCFE.2', { B_FCFF, B_EBIT, B_ALIQ, B_DA, B_CAPEX, B_DNWC }),
       target: `Model!${B_FCFF}`,
       atteso: fcff,
       referenzia: [B_EBIT, B_ALIQ, B_DA, B_CAPEX, B_DNWC],
@@ -137,16 +134,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_FCFE} calcola il FCFE (Free Cash Flow to Equity), il flusso che resta ai SOLI azionisti: ` +
-        `parti dal FCFF appena calcolato (${B_FCFF} — NON ricalcolarlo da zero), sottrai gli interessi ` +
-        `passivi netti al netto dello scudo fiscale (${B_INT} tassato con l'aliquota ${B_ALIQ}: sono gia' ` +
-        'un costo dedotto a Conto Economico, quindi si tassano "in meno" come l\'EBIT prima di sottrarli) ' +
-        `e sottrai il rimborso netto di debito dell'anno (${B_RIMB}, cassa uscita verso i finanziatori di ` +
-        'debito, non disponibile per gli azionisti). ATTENZIONE: il FCFE si scontera\' al costo del ' +
-        'capitale proprio (Ke), MAI al WACC — il WACC e\' una media col costo del debito, piu\' basso, e ' +
-        "userebbe un tasso troppo leggero per il rischio vero di un flusso che spetta solo all'equity, " +
-        'sovrastimandone il valore. Qui non sconti ancora nulla: il punto e\' impararlo per i livelli che ' +
-        'seguono.',
+        tx('M7-01-FCFFFCFE.3', { B_FCFE, B_FCFF, B_INT, B_ALIQ, B_RIMB }),
       target: `Model!${B_FCFE}`,
       atteso: fcfe,
       referenzia: [B_FCFF, B_INT, B_ALIQ, B_RIMB],
@@ -160,55 +148,24 @@ export default defineTemplate({
     return {
       templateId: 'M7-01-FCFFFCFE',
       seed: rng.seed,
-      brief: [
-        '## FCFF vs FCFE: due flussi, due tassi di sconto',
-        '',
-        "Una valutazione DCF sconta un flusso di cassa futuro. Ma \"il\" flusso di cassa non e' uno solo: " +
-          'esistono due versioni, e usare quella sbagliata col tasso sbagliato e\' l\'errore piu\' comune di ' +
-          'chi inizia a costruire un DCF.',
-        '',
-        '- **FCFF (Free Cash Flow to Firm)**: il flusso disponibile per TUTTI i finanziatori dell\'azienda, ' +
-          'debito ED equity insieme, calcolato PRIMA di pagare interessi o rimborsare debito. Si sconta al ' +
-          '**WACC**, il costo medio ponderato di tutte le fonti di capitale (lo costruirai nei prossimi ' +
-          'livelli di questo modulo).',
-        '- **FCFE (Free Cash Flow to Equity)**: il flusso che resta ai SOLI azionisti, dopo che il debito e\' ' +
-          'stato servito (interessi pagati, capitale rimborsato o acceso). Si sconta al **costo del ' +
-          'capitale proprio (Ke)**.',
-        '',
-        '> **FCFF = EBIT × (1 − aliquota) + D&A − Capex − ΔNWC**',
-        '> **FCFE = FCFF − Interessi passivi netti × (1 − aliquota) − Rimborso netto di debito**',
-        '',
-        "**L'errore da non fare, mai**: scontare l'FCFE al WACC. Il WACC e' una media fra il costo del " +
-          'debito (piu\' basso, il debito e\' meno rischioso per chi presta) e il costo dell\'equity (piu\' ' +
-          'alto). L\'FCFE spetta SOLO agli azionisti: il suo rischio e\' quello dell\'equity levered, non una ' +
-          'media col debito. Scontarlo al WACC userebbe un tasso troppo basso per il suo rischio vero, e il ' +
-          "valore dell'equity risulterebbe SOVRASTIMATO. In questo livello non sconti ancora nulla — il " +
-          'punto e\' fissare la distinzione prima di arrivare al WACC e al Ke nei livelli successivi.',
-        '',
-        `Dati dell'anno: EBIT ${eur(ebit)}, aliquota fiscale ${pct(ALIQUOTA_FISCALE)} (l'IRES italiana, ` +
-          `fissa per legge), ammortamenti (D&A) ${eur(da)}, Capex ${eur(capex)}, ΔNWC ${eur(deltaNWC)}, ` +
-          `interessi passivi netti ${eur(interessi)}, rimborso netto di debito dell'anno ${eur(rimborsoDebito)}.`,
-        '',
-        "Calcola prima il FCFF, poi usalo per arrivare al FCFE. Il secondo task NON si ricalcola da zero: " +
-          'parte dal risultato del primo.',
-      ].join('\n'),
+      brief: [tx('M7-01-FCFFFCFE.4', { p0: eur(ebit), p1: pct(ALIQUOTA_FISCALE), p2: eur(da), p3: eur(capex), p4: eur(deltaNWC), p5: eur(interessi), p6: eur(rimborsoDebito) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['FCFF vs FCFE: due flussi, due tassi di sconto'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M7-01-FCFFFCFE.5')], { style: STILE_TITOLO }),
 
-            riga('A3', ['Dati di partenza'], { style: STILE_TITOLO }),
+            riga('A3', [tx('M7-01-FCFFFCFE.6')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                "EBIT dell'anno, €",
-                'Aliquota fiscale',
-                "Ammortamenti (D&A) dell'anno, €",
-                "Capex dell'anno, €",
-                "ΔNWC dell'anno (gia' col segno), €",
-                'Interessi passivi netti, €',
-                "Rimborso netto di debito dell'anno, €",
+                tx('M7-01-FCFFFCFE.7'),
+                tx('M7-01-FCFFFCFE.8'),
+                tx('M7-01-FCFFFCFE.9'),
+                tx('M7-01-FCFFFCFE.10'),
+                tx('M7-01-FCFFFCFE.11'),
+                tx('M7-01-FCFFFCFE.12'),
+                tx('M7-01-FCFFFCFE.13'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -222,10 +179,10 @@ export default defineTemplate({
               { ref: B_RIMB, content: rimborsoDebito, style: STILE_INPUT, locked: true },
             ],
 
-            riga('A13', ['Free Cash Flow'], { style: STILE_TITOLO }),
+            riga('A13', [tx('M7-01-FCFFFCFE.14')], { style: STILE_TITOLO }),
             colonna(
               'A14',
-              ['FCFF (Free Cash Flow to Firm), €', 'FCFE (Free Cash Flow to Equity), €'],
+              [tx('M7-01-FCFFFCFE.15'), tx('M7-01-FCFFFCFE.16')],
               { style: STILE_ETICHETTA },
             ),
             [{ ref: B_FCFF, content: null, locked: false, style: STILE_FORMULA }],
@@ -245,8 +202,7 @@ export default defineTemplate({
         ),
         hint(
           'H2',
-          `=${B_FCFF}-${B_INT}*(1-${B_ALIQ})-${B_RIMB}: FCFF meno interessi al netto dello scudo fiscale, ` +
-            'meno il rimborso netto di debito. Non e\' il WACC che sconta questo flusso: e\' il Ke.',
+          tx('M7-01-FCFFFCFE.17', { B_FCFF, B_INT, B_ALIQ, B_RIMB }),
           10,
           'T2',
         ),

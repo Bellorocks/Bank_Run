@@ -73,6 +73,7 @@ import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 const MS_PER_DAY = 86_400_000;
 
 /** Giorni dal 30/12/1899 (epoca di Excel) — stessa funzione usata in M1-03 e M0F-09. */
@@ -101,7 +102,9 @@ const B_FATTOREANNO = 'B11'; // T3
 export default defineTemplate({
   id: 'M7-03-MIDYEARSTUB',
   module: 'M7',
-  title: 'Mid-year convention e stub period',
+  get title() {
+    return tx('M7-03-MIDYEARSTUB.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 340,
@@ -133,9 +136,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_FRAZIONESTUB} la frazione di stub period: quanto resta del primo anno fiscale, dalla data ` +
-        `di valutazione (${B_DATAVAL}) alla sua fine (${B_FINEFY}), espresso in anni (anno di 365 giorni). ` +
-        'Lavora sulle due celle-data, senza contare i giorni a mano.',
+        tx('M7-03-MIDYEARSTUB.2', { B_FRAZIONESTUB, B_DATAVAL, B_FINEFY }),
       target: `Model!${B_FRAZIONESTUB}`,
       atteso: attesoFrazioneStub,
       referenzia: [B_DATAVAL, B_FINEFY],
@@ -149,8 +150,7 @@ export default defineTemplate({
     const t2: Task = {
       id: 'T2',
       prompt:
-        `In ${B_FATTORESTUB} il fattore di sconto del flusso dello stub period con la mid-year ` +
-        `convention: quel flusso arriva in media a meta' dello stub (${B_FRAZIONESTUB}). WACC in ${B_WACC}.`,
+        tx('M7-03-MIDYEARSTUB.3', { B_FATTORESTUB, B_FRAZIONESTUB, B_WACC }),
       targetCell: `Model!${B_FATTORESTUB}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -160,8 +160,7 @@ export default defineTemplate({
           tolerance: 0.0005,
           toleranceMode: 'absolute',
           message:
-            "Il valore non torna: con la mid-year convention il flusso dello stub si sconta a META' " +
-            "della frazione di stub, non all'intero stub e non a mezzo anno.",
+            tx('M7-03-MIDYEARSTUB.4'),
         },
         { kind: 'mustReference', cells: [B_WACC, B_FRAZIONESTUB] },
         { kind: 'mustNotContainLiteral', except: [1, 2, 0.5, -0.5] },
@@ -173,9 +172,7 @@ export default defineTemplate({
     const t3: Task = {
       id: 'T3',
       prompt:
-        `In ${B_FATTOREANNO} il fattore di sconto del primo anno fiscale PIENO, quello che comincia alla ` +
-        "fine dello stub. Con la mid-year convention il suo flusso arriva a meta' di quell'anno: quanto " +
-        "tempo e' passato, in tutto, dalla data di valutazione?",
+        tx('M7-03-MIDYEARSTUB.5', { B_FATTOREANNO }),
       targetCell: `Model!${B_FATTOREANNO}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -185,8 +182,7 @@ export default defineTemplate({
           tolerance: 0.0005,
           toleranceMode: 'absolute',
           message:
-            "Il valore non torna: il primo anno pieno comincia dopo lo stub, quindi il suo flusso arriva " +
-            "a stub + mezzo anno dalla data di valutazione, non a mezzo anno.",
+            tx('M7-03-MIDYEARSTUB.6'),
         },
         { kind: 'mustReference', cells: [B_WACC, B_FRAZIONESTUB] },
         { kind: 'mustNotContainLiteral', except: [1, 2, 0.5, -0.5] },
@@ -200,56 +196,30 @@ export default defineTemplate({
     return {
       templateId: 'M7-03-MIDYEARSTUB',
       seed: rng.seed,
-      brief: [
-        '## Mid-year convention e stub period',
-        '',
-        "La formula da manuale sconta ogni flusso annuo come se arrivasse tutto il 31/12: esponente " +
-          '-1, -2, -3... Nella realta\' un\'azienda incassa e paga durante TUTTO l\'anno, non in un colpo ' +
-          "solo a fine anno. In media, un flusso distribuito uniformemente arriva a META' del suo " +
-          'periodo: e\' la **mid-year convention**, e cambia l\'esponente da -1 a -0,5 per il primo anno ' +
-          "pieno. Scontare per MENO tempo AUMENTA il valore attuale — un euro fra 6 mesi vale di piu' di " +
-          'un euro fra 12.',
-        '',
-        "C'e' una seconda complicazione, quasi sempre presente in un DCF vero: la data di valutazione " +
-          "quasi mai cade esattamente all'inizio dell'anno fiscale dell'azienda. Il primo periodo che si " +
-          "sconta davvero non e' un anno pieno: e' lo **stub period**, il pezzo di anno fiscale che resta " +
-          "dalla data di valutazione alla sua fine — piu' corto di 12 mesi. La mid-year convention si " +
-          "applica alla META' di QUESTO periodo piu' corto, non alla meta' di un anno intero.",
-        '',
-        "Il primo anno fiscale pieno comincia alla fine dello stub: il suo flusso arriva in media a " +
-          "stub + mezzo anno dalla data di valutazione. L'esponente -0,5 dei manuali vale solo quando si " +
-          "valuta esattamente all'inizio dell'anno fiscale; ogni anno successivo aggiunge 1.",
-        '',
-        `Dati: WACC ${pct(wacc, 1)} (dato, non e\' l'oggetto di questo livello). Data di valutazione ` +
-          `${num(giornoVal)}/${num(meseVal)}/${num(annoVal)}. Fine del primo anno fiscale ` +
-          `${num(fineFY.giorno)}/${num(fineFY.mese)}/${num(fineFY.anno)} — ${num(stubGiorni)} giorni dopo.`,
-        '',
-        "Tre task: la frazione di stub, il fattore di sconto dello stub, il fattore del primo anno pieno. " +
-          'Gli ultimi due riferiscono la frazione di stub: mai ricalcolarla da zero.',
-      ].join('\n'),
+      brief: [tx('M7-03-MIDYEARSTUB.7', { p0: pct(wacc, 1), p1: num(giornoVal), p2: num(meseVal), p3: num(annoVal), p4: num(fineFY.giorno), p5: num(fineFY.mese), p6: num(fineFY.anno), p7: num(stubGiorni) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Mid-year convention e stub period'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M7-03-MIDYEARSTUB.8')], { style: STILE_TITOLO }),
 
-            riga('A3', ['Dati'], { style: STILE_TITOLO }),
+            riga('A3', [tx('M7-03-MIDYEARSTUB.18')], { style: STILE_TITOLO }),
             colonna(
               'A4',
-              ['WACC', 'Data di valutazione', 'Data di fine del primo anno fiscale'],
+              [tx('M7-03-MIDYEARSTUB.19'), tx('M7-03-MIDYEARSTUB.9'), tx('M7-03-MIDYEARSTUB.10')],
               { style: STILE_ETICHETTA },
             ),
             [{ ref: B_WACC, content: wacc, style: STILE_INPUT_PCT, locked: true }],
             [{ ref: B_DATAVAL, content: `=DATE(${annoVal},${meseVal},${giornoVal})`, style: STILE_INPUT_DATA, locked: true }],
             [{ ref: B_FINEFY, content: `=DATE(${fineFY.anno},${fineFY.mese},${fineFY.giorno})`, style: STILE_INPUT_DATA, locked: true }],
 
-            riga('A8', ["Sconto: mid-year convention e stub period"], { style: STILE_TITOLO }),
+            riga('A8', [tx('M7-03-MIDYEARSTUB.11')], { style: STILE_TITOLO }),
             colonna(
               'A9',
               [
-                "Frazione di stub period rimanente nell'anno corrente",
-                'Fattore di sconto, stub period (mid-year)',
-                'Fattore di sconto, primo anno pieno (mid-year)',
+                tx('M7-03-MIDYEARSTUB.12'),
+                tx('M7-03-MIDYEARSTUB.13'),
+                tx('M7-03-MIDYEARSTUB.14'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -262,12 +232,11 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', `=(${B_FINEFY}-${B_DATAVAL})/365: sottrazione diretta fra le due date, poi diviso 365.`, 10, 'T1'),
-        hint('H2', `=(1+${B_WACC})^-(${B_FRAZIONESTUB}/2): si sconta a meta' dello stub.`, 10, 'T2'),
+        hint('H1', tx('M7-03-MIDYEARSTUB.15', { B_FINEFY, B_DATAVAL }), 10, 'T1'),
+        hint('H2', tx('M7-03-MIDYEARSTUB.16', { B_WACC, B_FRAZIONESTUB }), 10, 'T2'),
         hint(
           'H3',
-          `=(1+${B_WACC})^-(${B_FRAZIONESTUB}+0.5), oppure =1/(1+${B_WACC})^(${B_FRAZIONESTUB}+0.5): ` +
-            "lo stub intero piu' mezzo anno.",
+          tx('M7-03-MIDYEARSTUB.17', { B_WACC, B_FRAZIONESTUB }),
           10,
           'T3',
         ),

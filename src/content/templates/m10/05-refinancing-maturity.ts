@@ -30,6 +30,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // Geometria fissa
 const B_TLB_DUE = 'B4'; // Term Loan B in scadenza Y4 (dato)
 const B_NOTES_DUE = 'B5'; // Senior Notes in scadenza Y4 (dato)
@@ -47,7 +48,9 @@ const B_ICR_NEW = 'B16'; // T4: ICR dopo il rifinanziamento = B11 / B14
 export default defineTemplate({
   id: 'M10-05-REFINANCING',
   module: 'M10',
-  title: 'Rifinanziamento: maturity wall e sensitivity ai tassi',
+  get title() {
+    return tx('M10-05-REFINANCING.title');
+  },
   rank: 4,
   mode: 'PRACTICE',
   estimatedSeconds: 360,
@@ -72,53 +75,34 @@ export default defineTemplate({
     const ebitda = roundTo((tlbDue + notesDue) / triangular(r, 3, 4, 5), 500_000);
     const icrNew = ebitda / newInt;
 
-    const brief = [
-      `La società si trova ad affrontare un **Maturity Wall** all'Anno 4 e deve pianificare il rifinanziamento integrale sul mercato dei capitali.`,
-      ``,
-      `Tranche di debito in scadenza:`,
-      `- **Term Loan B**: ${eur(tlbDue)}`,
-      `- **Senior Notes Obbligazionarie**: ${eur(notesDue)}`,
-      `- **Costo Medio del Debito Storico**: ${pct(oldRate)}`,
-      ``,
-      `Condizioni correnti di mercato per la nuova emissione:`,
-      `- **Tasso Benchmark (Euribor / Swap)**: ${pct(newBench)}`,
-      `- **Credit Spread Richiesto dagli Investitori**: ${pct(newSpread)}`,
-      `- **EBITDA atteso nell'anno del rifinanziamento**: ${eur(ebitda)}`,
-      ``,
-      "Quando due tranche scadono insieme, l'azienda deve rifinanziarle tutte alle condizioni di mercato " +
-        "di quel momento: e' il **maturity wall**. Il nuovo tasso e' benchmark piu' spread; se e' piu' alto " +
-        'di quello storico, gli interessi salgono e la copertura scende.',
-      '',
-      "Calcola il debito da rifinanziare, i nuovi interessi annui, quanto costano in piu' (o in meno) di " +
-        'prima, e la copertura degli interessi dopo il rifinanziamento.',
-    ].join('\n');
+    const brief = [tx('M10-05-REFINANCING.2', { p0: eur(tlbDue), p1: eur(notesDue), p2: pct(oldRate), p3: pct(newBench), p4: pct(newSpread), p5: eur(ebitda) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['PIANIFICAZIONE RIFINANZIAMENTO (MATURITY WALL)'], { style: STILE_TITOLO }),
-      riga('A3', ['Debito in Scadenza all\'Anno 4', 'Importo (€) / Tasso'], { style: STILE_TITOLO }),
+      riga('A1', [tx('M10-05-REFINANCING.3')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M10-05-REFINANCING.4'), tx('M10-05-REFINANCING.5')], { style: STILE_TITOLO }),
       colonna('A4', [
-        'Term Loan B in Scadenza (€)',
-        'Senior Notes in Scadenza (€)',
-        'Costo Medio Storico del Debito (%)',
+        tx('M10-05-REFINANCING.6'),
+        tx('M10-05-REFINANCING.7'),
+        tx('M10-05-REFINANCING.8'),
       ], { style: STILE_ETICHETTA }),
       colonna('B4', [tlbDue, notesDue], { style: STILE_INPUT }),
       colonna(B_OLD_RATE, [oldRate], { style: { ...STILE_INPUT_PCT, numFmt: '0.00%' } }),
 
-      riga('A8', ['Nuove Condizioni di Mercato', 'Tasso (%)'], { style: STILE_TITOLO }),
+      riga('A8', [tx('M10-05-REFINANCING.9'), tx('M10-05-REFINANCING.10')], { style: STILE_TITOLO }),
       colonna('A9', [
-        'Tasso Benchmark di Mercato (%)',
-        'Credit Spread Emittente (%)',
-        "EBITDA atteso nell'anno del rifinanziamento (€)",
+        tx('M10-05-REFINANCING.11'),
+        tx('M10-05-REFINANCING.12'),
+        tx('M10-05-REFINANCING.13'),
       ], { style: STILE_ETICHETTA }),
       colonna(B_NEW_BENCH, [newBench, newSpread], { style: { ...STILE_INPUT_PCT, numFmt: '0.00%' } }),
       [{ ref: B_EBITDA, content: ebitda, style: STILE_INPUT, locked: true }],
 
-      riga('A12', ['Impatto Finanziario del Rifinanziamento', 'Risultato (€)'], { style: STILE_TITOLO }),
+      riga('A12', [tx('M10-05-REFINANCING.14'), tx('M10-05-REFINANCING.15')], { style: STILE_TITOLO }),
       colonna('A13', [
-        'Totale Debito da Rifinanziare (Maturity Wall, €)',
-        'Nuovi Oneri Finanziari Annui (€)',
-        'Delta Annuo Oneri Finanziari (Extra Costo, €)',
-        'ICR dopo il rifinanziamento (x)',
+        tx('M10-05-REFINANCING.16'),
+        tx('M10-05-REFINANCING.17'),
+        tx('M10-05-REFINANCING.18'),
+        tx('M10-05-REFINANCING.19'),
       ], { style: STILE_ETICHETTA }),
       colonna(B_TOT_WALL, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_NEW_INT, [null], { style: STILE_FORMULA, locked: false }),
@@ -129,7 +113,7 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `In ${B_TOT_WALL} il debito totale da rifinanziare.`,
+        prompt: tx('M10-05-REFINANCING.20', { B_TOT_WALL }),
         target: `Model!${B_TOT_WALL}`,
         atteso: totWall,
         referenzia: [B_TLB_DUE, B_NOTES_DUE],
@@ -139,7 +123,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T2',
-        prompt: `In ${B_NEW_INT} gli interessi annui alle nuove condizioni di mercato.`,
+        prompt: tx('M10-05-REFINANCING.21', { B_NEW_INT }),
         target: `Model!${B_NEW_INT}`,
         atteso: newInt,
         referenzia: [B_TOT_WALL, B_NEW_BENCH, B_NEW_SPREAD],
@@ -149,7 +133,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T3',
-        prompt: `In ${B_DELTA_INT} di quanto cambiano gli interessi annui rispetto al costo storico (positivo se salgono).`,
+        prompt: tx('M10-05-REFINANCING.22', { B_DELTA_INT }),
         target: `Model!${B_DELTA_INT}`,
         atteso: deltaInt,
         referenzia: [B_NEW_INT, B_TOT_WALL, B_OLD_RATE],
@@ -159,7 +143,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T4',
-        prompt: `In ${B_ICR_NEW} la copertura degli interessi dopo il rifinanziamento.`,
+        prompt: tx('M10-05-REFINANCING.23', { B_ICR_NEW }),
         target: `Model!${B_ICR_NEW}`,
         atteso: icrNew,
         referenzia: [B_EBITDA, B_NEW_INT],

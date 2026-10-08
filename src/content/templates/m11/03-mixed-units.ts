@@ -27,6 +27,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // Geometria fissa
 const B_REV_KEUR = 'B4'; // Ricavi in k€ (dato)
 const B_COST_MEUR = 'B5'; // Costi in M€ (dato)
@@ -41,7 +42,9 @@ const B_FCF_EUR = 'B13'; // Free Cash Flow = B10 - B11 - B12
 export default defineTemplate({
   id: 'M11-03-MIXEDUNITS',
   module: 'M11',
-  title: 'Unità e valute miste: normalizzazione k€, M€ e cambio valuta',
+  get title() {
+    return tx('M11-03-MIXEDUNITS.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -60,40 +63,26 @@ export default defineTemplate({
     const costEur = costMEur * 1_000_000;
     const capexEur = capexUsd / fxRate;
 
-    const brief = [
-      `Normalizza i dati di budget espressi in diverse unità e valute in **Euro assoluti (€)**.`,
-      ``,
-      `Dati grezzi di input:`,
-      `- **Ricavi Operativi**: ${num(revKEur)} k€ (migliaia di euro)`,
-      `- **Costi Operativi**: ${num(costMEur)} M€ (milioni di euro)`,
-      `- **Capex Globale**: $ ${num(capexUsd)} (in Dollari USA)`,
-      `- **Tasso di Cambio EUR/USD**: ${num(fxRate, 3)} (dollari per 1 euro)`,
-      ``,
-      "Ogni fonte usa la sua unita': il commerciale ragiona in migliaia, il controllo di gestione in milioni, " +
-        "la casa madre americana in dollari. Prima di sommarli vanno portati tutti in euro. Occhio al cambio: " +
-        'EUR/USD dice quanti dollari vale un euro, quindi per passare da dollari a euro si divide.',
-      '',
-      "Converti le tre voci; il flusso netto si calcola da solo.",
-    ].join('\n');
+    const brief = [tx('M11-03-MIXEDUNITS.2', { p0: num(revKEur), p1: num(costMEur), p2: num(capexUsd), p3: num(fxRate, 3) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['NORMALIZZAZIONE UNITÀ & CAMBI VALUTA'], { style: STILE_TITOLO }),
-      riga('A3', ['Dati Grezzi (Unità Eterogenee)', 'Valore'], { style: STILE_TITOLO }),
+      riga('A1', [tx('M11-03-MIXEDUNITS.3')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M11-03-MIXEDUNITS.4'), tx('M11-03-MIXEDUNITS.19')], { style: STILE_TITOLO }),
       colonna('A4', [
-        'Ricavi Operativi (k€)',
-        'Costi Operativi (M€)',
-        'Capex Globale (USD $)',
-        'Tasso di Cambio (EUR/USD)',
+        tx('M11-03-MIXEDUNITS.5'),
+        tx('M11-03-MIXEDUNITS.6'),
+        tx('M11-03-MIXEDUNITS.7'),
+        tx('M11-03-MIXEDUNITS.8'),
       ], { style: STILE_ETICHETTA }),
       colonna('B4', [revKEur, costMEur, capexUsd], { style: STILE_INPUT }),
       [{ ref: B_FX_RATE, content: fxRate, style: { ...STILE_INPUT, numFmt: '0.000' }, locked: true }],
 
-      riga('A9', ['Voci Normalizzate in Euro Assoluti (€)', 'Importo (€)'], { style: STILE_TITOLO }),
+      riga('A9', [tx('M11-03-MIXEDUNITS.9'), tx('M11-03-MIXEDUNITS.10')], { style: STILE_TITOLO }),
       colonna('A10', [
-        'Ricavi Normalizzati (€)',
-        'Costi Normalizzati (€)',
-        'Capex Normalizzato (€)',
-        'Flusso di Cassa Operativo Netto (€)',
+        tx('M11-03-MIXEDUNITS.11'),
+        tx('M11-03-MIXEDUNITS.12'),
+        tx('M11-03-MIXEDUNITS.13'),
+        tx('M11-03-MIXEDUNITS.14'),
       ], { style: STILE_ETICHETTA }),
       colonna(B_REV_EUR, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_COST_EUR, [null], { style: STILE_FORMULA, locked: false }),
@@ -104,7 +93,7 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `In ${B_REV_EUR} i ricavi in euro.`,
+        prompt: tx('M11-03-MIXEDUNITS.15', { B_REV_EUR }),
         target: `Model!${B_REV_EUR}`,
         atteso: revEur,
         referenzia: [B_REV_KEUR],
@@ -114,7 +103,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T2',
-        prompt: `In ${B_COST_EUR} i costi in euro.`,
+        prompt: tx('M11-03-MIXEDUNITS.16', { B_COST_EUR }),
         target: `Model!${B_COST_EUR}`,
         atteso: costEur,
         referenzia: [B_COST_MEUR],
@@ -124,7 +113,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T3',
-        prompt: `In ${B_CAPEX_EUR} il capex in euro.`,
+        prompt: tx('M11-03-MIXEDUNITS.17', { B_CAPEX_EUR }),
         target: `Model!${B_CAPEX_EUR}`,
         atteso: capexEur,
         referenzia: [B_CAPEX_USD, B_FX_RATE],
@@ -145,7 +134,7 @@ export default defineTemplate({
       hints: [
         hint('H1', '=B4*1000', 10, 'T1'),
         hint('H2', '=B5*1000000', 10, 'T2'),
-        hint('H3', '=B6/B7: dollari diviso dollari-per-euro = euro.', 10, 'T3'),
+        hint('H3', tx('M11-03-MIXEDUNITS.18'), 10, 'T3'),
       ],
     };
   },

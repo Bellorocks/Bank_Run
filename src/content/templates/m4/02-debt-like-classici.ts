@@ -52,6 +52,7 @@ import {
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 // --- Geometria fissa del foglio. -------------------------------------------
 const ROW_TITOLO = 1;
 const ROW_SEZ_BASE = 3; // "Net Debt di base"
@@ -76,7 +77,9 @@ const B_T2 = `B${ROW_T2}`;
 export default defineTemplate({
   id: 'M4-02-DEBTLIKECLASSICI',
   module: 'M4',
-  title: 'Debt-like items classici: TFR, fondo pensione, leasing',
+  get title() {
+    return tx('M4-02-DEBTLIKECLASSICI.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 240,
@@ -103,11 +106,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T1',
         prompt:
-          `In ${B_T1} calcola il totale delle poste debt-like classiche: la somma di TFR (${B_TFR}), ` +
-          `fondo pensione (${B_FONDO}) e passivita' leasing IFRS16 (${B_LEASING}). Sono tre impegni ` +
-          "diversi ma con la stessa natura economica: soldi che l'azienda deve certamente a terzi " +
-          '(dipendenti, controparte del leasing) e che un compratore si accollerebbe insieme al debito ' +
-          'finanziario vero e proprio.',
+          tx('M4-02-DEBTLIKECLASSICI.2', { B_T1, B_TFR, B_FONDO, B_LEASING }),
         target: `Model!${B_T1}`,
         atteso: totaleDebtLike,
         referenzia: [B_TFR, B_FONDO, B_LEASING],
@@ -124,11 +123,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_T2} calcola il Net Debt aggiustato: il Net Debt di base (${B_NETDEBT_BASE}) PIU' il ` +
-        `totale delle poste debt-like appena calcolato (${B_T1}). Le poste debt-like si SOMMANO al Net ` +
-        "Debt di base — non si sottraggono — perche' aumentano l'indebitamento complessivo che il " +
-        "compratore eredita: a parita' di Enterprise Value, un Net Debt piu' alto significa un Equity " +
-        "Value piu' basso.",
+        tx('M4-02-DEBTLIKECLASSICI.3', { B_T2, B_NETDEBT_BASE, B_T1 }),
       target: `Model!${B_T2}`,
       atteso: netDebtAggiustato,
       referenzia: [B_NETDEBT_BASE, B_T1],
@@ -142,83 +137,58 @@ export default defineTemplate({
     return {
       templateId: 'M4-02-DEBTLIKECLASSICI',
       seed: rng.seed,
-      brief: [
-        '## Debt-like items: debito anche se non si chiama "debito"',
-        '',
-        "Il Net Debt di base (debito finanziario lordo meno cassa, visto in M4-01) non e' l'intera " +
-          "storia. Ci sono impegni che un'azienda ha verso terzi e che NON compaiono nella voce " +
-          '"debito finanziario" del bilancio, ma che nella sostanza economica funzionano esattamente ' +
-          "come debito: un compratore li eredita e dovra' onorarli, un euro alla volta, esattamente " +
-          "come un mutuo bancario. Nel bridge tra Enterprise Value ed Equity Value queste poste si " +
-          'chiamano **"debt-like items"** e si sommano al Net Debt.',
-        '',
-        "Qui sotto trovi tre poste debt-like classiche, gia' costruite come schedule nel modulo " +
-          'precedente:',
-        '',
-        `- **TFR** (${eur(tfr)}): il trattamento di fine rapporto e' un impegno certo dell'azienda ` +
-          "verso i propri dipendenti, maturato anno per anno. Non e' un prestito bancario, ma e' " +
-          'tanto certo quanto un debito: prima o poi va pagato.',
-        `- **Fondo pensione** (${eur(fondoPensione)}): stessa natura del TFR, impegno previdenziale ` +
-          'verso i dipendenti.',
-        `- **Passivita' leasing IFRS16** (${eur(leasing)}): il diritto d'uso di un immobile o di un ` +
-          "bene ha una contropartita finanziaria — canoni futuri ancora da pagare alla controparte " +
-          "del leasing. E' una passivita' finanziaria a tutti gli effetti, anche se non e' un mutuo.",
-        '',
-        `Il Net Debt di base, gia' calcolato, e' ${eur(netDebtBase)}. Il tuo compito: sommare le tre ` +
-          "poste debt-like in un totale, poi aggiungere quel totale al Net Debt di base per ottenere " +
-          "il Net Debt aggiustato — quello che, piu' avanti nel bridge, ridurra' davvero l'Equity Value.",
-      ].join('\n'),
+      brief: [tx('M4-02-DEBTLIKECLASSICI.4', { p0: eur(tfr), p1: eur(fondoPensione), p2: eur(leasing), p3: eur(netDebtBase) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga(`A${ROW_TITOLO}`, ['Debt-like items classici: TFR, fondo pensione, leasing'], {
+            riga(`A${ROW_TITOLO}`, [tx('M4-02-DEBTLIKECLASSICI.5')], {
               style: STILE_TITOLO,
             }),
 
-            riga(`A${ROW_SEZ_BASE}`, ['Net Debt di base'], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ_BASE}`, [tx('M4-02-DEBTLIKECLASSICI.6')], { style: STILE_TITOLO }),
             [
               {
                 ref: `A${ROW_NETDEBT_BASE}`,
-                content: 'Net Debt di base (debito finanziario lordo - cassa), €',
+                content: tx('M4-02-DEBTLIKECLASSICI.7'),
                 locked: true,
                 style: STILE_ETICHETTA,
               },
               { ref: B_NETDEBT_BASE, content: netDebtBase, locked: true, style: STILE_INPUT },
             ],
 
-            riga(`A${ROW_SEZ_DEBTLIKE}`, ['Poste debt-like classiche'], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ_DEBTLIKE}`, [tx('M4-02-DEBTLIKECLASSICI.8')], { style: STILE_TITOLO }),
             [
               {
                 ref: `A${ROW_TFR}`,
-                content: 'TFR (trattamento di fine rapporto), €',
+                content: tx('M4-02-DEBTLIKECLASSICI.9'),
                 locked: true,
                 style: STILE_ETICHETTA,
               },
               { ref: B_TFR, content: tfr, locked: true, style: STILE_INPUT },
-              { ref: `A${ROW_FONDO}`, content: 'Fondo pensione, €', locked: true, style: STILE_ETICHETTA },
+              { ref: `A${ROW_FONDO}`, content: tx('M4-02-DEBTLIKECLASSICI.10'), locked: true, style: STILE_ETICHETTA },
               { ref: B_FONDO, content: fondoPensione, locked: true, style: STILE_INPUT },
               {
                 ref: `A${ROW_LEASING}`,
-                content: "Passivita' leasing IFRS16, €",
+                content: tx('M4-02-DEBTLIKECLASSICI.11'),
                 locked: true,
                 style: STILE_ETICHETTA,
               },
               { ref: B_LEASING, content: leasing, locked: true, style: STILE_INPUT },
             ],
 
-            riga(`A${ROW_SEZ_TOT}`, ['Net Debt aggiustato'], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ_TOT}`, [tx('M4-02-DEBTLIKECLASSICI.12')], { style: STILE_TITOLO }),
             [
               {
                 ref: `A${ROW_T1}`,
-                content: 'Totale poste debt-like classiche, €',
+                content: tx('M4-02-DEBTLIKECLASSICI.13'),
                 locked: true,
                 style: STILE_ETICHETTA,
               },
               { ref: B_T1, content: null, locked: false, style: STILE_FORMULA },
               {
                 ref: `A${ROW_T2}`,
-                content: 'Net Debt aggiustato (base + debt-like), €',
+                content: tx('M4-02-DEBTLIKECLASSICI.14'),
                 locked: true,
                 style: STILE_ETICHETTA,
               },
@@ -232,15 +202,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=SUM(${B_TFR}:${B_LEASING}): TFR, fondo pensione e passivita' leasing sono in righe ` +
-            "contigue, quindi puoi sommarle con un unico range.",
+          tx('M4-02-DEBTLIKECLASSICI.15', { B_TFR, B_LEASING }),
           10,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_NETDEBT_BASE}+${B_T1}: Net Debt di base piu' il totale delle poste debt-like — si ` +
-            'SOMMANO, non si sottraggono.',
+          tx('M4-02-DEBTLIKECLASSICI.16', { B_NETDEBT_BASE, B_T1 }),
           8,
           'T2',
         ),

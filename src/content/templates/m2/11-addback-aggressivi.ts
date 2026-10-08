@@ -46,25 +46,26 @@ import {
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 // Rettifiche LEGITTIME: dietro ciascuna c'e' una prova concreta e verificabile
 // (una fattura, un verbale, un contratto di transazione) — Valida = "SI".
-const LEGITTIME = [
-  "Costi di ristrutturazione di un piano GIA' completato nell'anno, fattura del fornitore disponibile",
-  "Causa legale con ex-fornitore, transazione una tantum liquidata, atto di transazione firmato agli atti",
-  "Consulenza legale per due diligence su un'acquisizione conclusa, fattura dello studio legale disponibile",
-  "Costi di chiusura di una sede secondaria, GIA' chiusa nell'anno, verbale del CdA e fatture di dismissione disponibili",
-  "Penale contrattuale una tantum pagata a un fornitore per recesso anticipato, contratto di transazione disponibile",
-] as const;
+const LEGITTIME = () => ([
+  tx('M2-11-ADDBACKAGGRESSIVI.1'),
+  tx('M2-11-ADDBACKAGGRESSIVI.2'),
+  tx('M2-11-ADDBACKAGGRESSIVI.3'),
+  tx('M2-11-ADDBACKAGGRESSIVI.4'),
+  tx('M2-11-ADDBACKAGGRESSIVI.5'),
+] as const);
 
 // Rettifiche AGGRESSIVE: suonano plausibili ma sono stime, aspirazioni o
 // riclassificazioni opportunistiche — nessun documento dietro — Valida = "NO".
-const AGGRESSIVE = [
-  'Sinergie di procurement stimate dal management, non ancora realizzate',
-  "Risparmio da un piano di efficientamento approvato dal CdA il mese scorso, non ancora avviato",
-  "Costo di manutenzione ordinaria riclassificato come \"straordinario\" dal management, stesso importo dell'anno precedente",
-  "Mancato guadagno stimato per un contratto che il management ritiene \"avrebbe dovuto vincere\"",
-  "Risparmio atteso da una futura rinegoziazione di un contratto di fornitura, trattativa non ancora avviata",
-] as const;
+const AGGRESSIVE = () => ([
+  tx('M2-11-ADDBACKAGGRESSIVI.6'),
+  tx('M2-11-ADDBACKAGGRESSIVI.7'),
+  tx('M2-11-ADDBACKAGGRESSIVI.8'),
+  tx('M2-11-ADDBACKAGGRESSIVI.9'),
+  tx('M2-11-ADDBACKAGGRESSIVI.10'),
+] as const);
 
 interface Rettifica {
   readonly descrizione: string;
@@ -83,7 +84,9 @@ const DATA_START = 8;
 export default defineTemplate({
   id: 'M2-11-ADDBACKAGGRESSIVI',
   module: 'M2',
-  title: 'Addback aggressivi: leggere la prova, non fidarsi dell\'etichetta',
+  get title() {
+    return tx('M2-11-ADDBACKAGGRESSIVI.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 280,
@@ -103,8 +106,8 @@ export default defineTemplate({
     const kValide = r.int(1, n - 1);
     const nAggressive = n - kValide;
 
-    const descrizioniValide = r.shuffle([...LEGITTIME]).slice(0, kValide);
-    const descrizioniAggressive = r.shuffle([...AGGRESSIVE]).slice(0, nAggressive);
+    const descrizioniValide = r.shuffle([...LEGITTIME()]).slice(0, kValide);
+    const descrizioniAggressive = r.shuffle([...AGGRESSIVE()]).slice(0, nAggressive);
 
     const vociValide: Rettifica[] = descrizioniValide.map((descrizione) => ({
       descrizione,
@@ -146,9 +149,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T1',
         prompt:
-          `In ${C_RETTIFICA} la somma delle sole rettifiche che hai giudicato valide, con una funzione ` +
-          'che sommi solo le righe con "SI" nella colonna Valida: se cambi idea su una voce, il totale deve ' +
-          'aggiornarsi da solo.',
+          tx('M2-11-ADDBACKAGGRESSIVI.12', { C_RETTIFICA }),
         target: `Model!${C_RETTIFICA}`,
         atteso: rettifica,
         referenzia: [rifValida, rifImporti],
@@ -165,10 +166,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${C_EBITDA_NORM} calcola l'EBITDA normalizzato DIFENDIBILE: l'EBITDA riportato (${B_EBITDA_RIP}) ` +
-        `piu' le sole rettifiche accettate appena isolate (${C_RETTIFICA}). Le rettifiche accettate sono ` +
-        "costi one-off documentati, gia' dentro l'EBITDA riportato e gia' rimossi da esso: si RIAGGIUNGONO, " +
-        'con segno positivo.',
+        tx('M2-11-ADDBACKAGGRESSIVI.13', { C_EBITDA_NORM, B_EBITDA_RIP, C_RETTIFICA }),
       target: `Model!${C_EBITDA_NORM}`,
       atteso: ebitdaNormalizzato,
       referenzia: [B_EBITDA_RIP, C_RETTIFICA],
@@ -180,16 +178,16 @@ export default defineTemplate({
     // Un task per voce: il giudizio e' del giocatore, non e' scritto nel foglio.
     const giudizi: Task[] = voci.map((v, i) => ({
       id: `V${i + 1}`,
-      prompt: `B${DATA_START + i}: la voce in A${DATA_START + i} e' un addback difendibile? Scrivi SI o NO.`,
+      prompt: tx('M2-11-ADDBACKAGGRESSIVI.14', { p0: DATA_START + i, p1: DATA_START + i }),
       targetCell: `Model!B${DATA_START + i}`,
       check: [
         {
           kind: 'text' as const,
-          expected: v.valida,
+          expected: v.valida === 'SI' ? tx('common.tok.si') : tx('common.tok.no'),
           message:
             v.valida === 'SI'
-              ? "Questa voce ha una prova concreta e verificabile dietro: e' un costo one-off documentato."
-              : "Questa voce non ha un documento dietro: e' una stima, un'aspirazione o una riclassificazione.",
+              ? tx('M2-11-ADDBACKAGGRESSIVI.15')
+              : tx('M2-11-ADDBACKAGGRESSIVI.16'),
         },
       ],
       skills: ['qoe.aggressive'],
@@ -201,50 +199,26 @@ export default defineTemplate({
     return {
       templateId: 'M2-11-ADDBACKAGGRESSIVI',
       seed: rng.seed,
-      brief: [
-        "## Un addback non e' un'opinione: e' un fatto documentabile",
-        '',
-        "Il management di un target propone quasi sempre piu' rettifiche di quante un buyer serio ne " +
-          'accettera\'. Alcune sono legittime: un costo one-off vero, con una fattura o un verbale a ' +
-          "provarlo. Altre SUONANO legittime ma non lo sono — sinergie non ancora realizzate, un piano " +
-          "appena approvato e mai eseguito, un costo ricorrente rietichettato come straordinario per farlo " +
-          "sparire dall'EBITDA riportato.",
-        '',
-        `L'EBITDA riportato e' ${eur(ebitdaRiportato)}. Qui sotto trovi ${num(n)} proposte di rettifica del ` +
-          'management. Per ciascuna decidi tu, nella colonna Valida, se e\' difendibile ("SI") o no ' +
-          '("NO"): e\' nella descrizione che si vede la differenza tra un fatto e una speranza.',
-        '',
-        '- Valida **"SI"**: dietro c\'e\' una prova concreta (fattura, verbale, contratto di transazione). ' +
-          'Si RIAGGIUNGE, rettifica positiva.',
-        '- Valida **"NO"**: e\' una stima, un\'aspirazione o una riclassificazione opportunistica. NON si ' +
-          'tocca — non entra nella somma.',
-        '',
-        'Sommare l\'intero elenco indiscriminatamente sarebbe un errore concettuale, non un dettaglio: il ' +
-          `totale di TUTTE le proposte e' ${eur(totaleElencoCompleto)}, ma solo una parte di quel numero e\' ` +
-          "davvero difendibile davanti a un buyer.",
-        '',
-        "Un buyer serio rigetta le rettifiche che non puoi dimostrare con un documento: se non sai indicare " +
-          "la prova, non e' un addback, e' un'opinione.",
-      ].join('\n'),
+      brief: [tx('M2-11-ADDBACKAGGRESSIVI.17', { p0: eur(ebitdaRiportato), p1: num(n), p2: eur(totaleElencoCompleto) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga(`A${ROW_TITOLO}`, ['Addback aggressivi: leggere la prova, non fidarsi dell\'etichetta'], { style: STILE_TITOLO }),
-            riga(`A${ROW_SEZ1}`, ['Dati di partenza'], { style: STILE_TITOLO }),
-            colonna(`A${ROW_EBITDA}`, ['EBITDA riportato (da bilancio), €'], { style: STILE_ETICHETTA }),
+            riga(`A${ROW_TITOLO}`, [tx('M2-11-ADDBACKAGGRESSIVI.18')], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ1}`, [tx('M2-11-ADDBACKAGGRESSIVI.19')], { style: STILE_TITOLO }),
+            colonna(`A${ROW_EBITDA}`, [tx('M2-11-ADDBACKAGGRESSIVI.20')], { style: STILE_ETICHETTA }),
             [{ ref: B_EBITDA_RIP, content: ebitdaRiportato, style: STILE_INPUT, locked: true }],
 
-            riga(`A${ROW_SEZ2}`, ['Rettifiche proposte dal management — elenco completo'], { style: STILE_TITOLO }),
-            riga(`A${ROW_HEADER}`, ['Voce', 'Valida', 'Importo (€)'], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ2}`, [tx('M2-11-ADDBACKAGGRESSIVI.21')], { style: STILE_TITOLO }),
+            riga(`A${ROW_HEADER}`, [tx('M2-11-ADDBACKAGGRESSIVI.28'), tx('M2-11-ADDBACKAGGRESSIVI.29'), tx('M2-11-ADDBACKAGGRESSIVI.22')], { style: STILE_TITOLO }),
             colonna(`A${DATA_START}`, voci.map((v) => v.descrizione), { style: STILE_ETICHETTA }),
             voci.map((_, i) => ({ ref: `B${DATA_START + i}`, content: null, locked: false })),
             colonna(`C${DATA_START}`, voci.map((v) => v.importo), { style: STILE_INPUT }),
 
-            riga(`A${ROW_SEZ3}`, ['Normalizzazione'], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ3}`, [tx('M2-11-ADDBACKAGGRESSIVI.30')], { style: STILE_TITOLO }),
             colonna(
               `A${ROW_RETT}`,
-              ['Rettifica: totale addback accettati (Valida = "SI"), da riaggiungere, €', 'EBITDA normalizzato difendibile, €'],
+              [tx('M2-11-ADDBACKAGGRESSIVI.23'), tx('M2-11-ADDBACKAGGRESSIVI.24')],
               { style: STILE_ETICHETTA },
             ),
             [{ ref: C_RETTIFICA, content: null, locked: false, style: STILE_FORMULA }],
@@ -257,22 +231,19 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=SUMIF(${rifValida}:B${DATA_END},"SI",${rifImporti}:C${DATA_END}): somma solo gli importi delle ` +
-            'righe con Valida uguale a "SI", ignorando le righe "NO".',
+          tx('M2-11-ADDBACKAGGRESSIVI.25', { rifValida, DATA_END, rifImporti }),
           12,
           'T1',
         ),
         hint(
           'H2',
-          "Prima di applicare il filtro, rileggi le descrizioni: 'approvato il mese scorso' non e' 'gia' " +
-            "eseguito', e 'riclassificato come straordinario' e' quasi sempre un campanello d'allarme.",
+          tx('M2-11-ADDBACKAGGRESSIVI.26'),
           10,
           'T1',
         ),
         hint(
           'H3',
-          `=${B_EBITDA_RIP}+${C_RETTIFICA}: EBITDA riportato piu' la rettifica appena isolata. I costi ` +
-            'documentati hanno gonfiato i costi, quindi si riaggiungono con segno positivo.',
+          tx('M2-11-ADDBACKAGGRESSIVI.27', { B_EBITDA_RIP, C_RETTIFICA }),
           8,
           'T2',
         ),

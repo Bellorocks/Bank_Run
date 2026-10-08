@@ -61,10 +61,13 @@ import {
 } from '../../authoring';
 import { triangular, roundTo } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 export default defineTemplate({
   id: 'M0F-10-COMBOAUDIT',
   module: 'M0-F',
-  title: 'Il modello rotto: ricostruire con l\'audit',
+  get title() {
+    return tx('M0F-10-COMBOAUDIT.title');
+  },
   rank: 3,
   mode: 'BOSS',
   combo: true,
@@ -101,17 +104,14 @@ export default defineTemplate({
       {
         id: 'T1',
         prompt:
-          'Il primo numero sospetto e\' **Ricavi anno 2** (riga 10). Non dare per buono il numero ' +
-          'solo perche\' e\' li\': apri la cella e verifica davvero cosa contiene. Scrivi in D10 il ' +
-          'valore che quella riga dovrebbe avere.',
+          tx('M0F-10-COMBOAUDIT.2'),
         targetCell: 'Model!D10',
         check: [
           {
             kind: 'value' as const,
             expected: ricaviAnno2Corretto,
             message:
-              'Non torna. Ricavi anno 2 dovrebbe discendere da Ricavi anno 1 (B9) applicando la ' +
-              'stessa crescita (B3) usata ovunque nel modello — come fa correttamente Ricavi anno 3.',
+              tx('M0F-10-COMBOAUDIT.3'),
           },
         ],
         skills: ['xl.model-audit', 'xl.errors'],
@@ -120,16 +120,14 @@ export default defineTemplate({
       {
         id: 'T2',
         prompt:
-          'Il secondo numero sospetto e\' **EBITDA anno 3 normalizzato** (riga 13). Verificane la ' +
-          'formula — se serve, F2 per aprirla in modifica — e scrivi in D13 il valore corretto.',
+          tx('M0F-10-COMBOAUDIT.4'),
         targetCell: 'Model!D13',
         check: [
           {
             kind: 'value' as const,
             expected: ebitdaAnno3NormalizzatoCorretto,
             message:
-              'Non torna. I costi one-off (B5) hanno gia\' abbassato l\'EBITDA grezzo (B12): ' +
-              'normalizzare vuol dire toglierli dal conto, cioe\' restituirli.',
+              tx('M0F-10-COMBOAUDIT.5'),
           },
         ],
         skills: ['xl.model-audit', 'xl.f9'],
@@ -138,17 +136,14 @@ export default defineTemplate({
       {
         id: 'T3',
         prompt:
-          'Il terzo numero sospetto e\' **EBIT anno 3** (riga 14). Traccia i precedenti della cella ' +
-          '(Ctrl+[) per vedere da dove parte davvero, poi scrivi in D14 il valore corretto.',
+          tx('M0F-10-COMBOAUDIT.6'),
         targetCell: 'Model!D14',
         check: [
           {
             kind: 'value' as const,
             expected: ebitAnno3Corretto,
             message:
-              'Non torna. EBIT anno 3 deve partire dall\'EBITDA GIA\' normalizzato (riga 13), non da ' +
-              'quello grezzo (riga 12): sono due righe diverse, e la differenza fra loro e\' proprio ' +
-              'la normalizzazione appena fatta.',
+              tx('M0F-10-COMBOAUDIT.7'),
           },
         ],
         skills: ['xl.trace', 'xl.sanity-checks'],
@@ -156,40 +151,7 @@ export default defineTemplate({
       },
     ];
 
-    const brief = [
-      '## Il modello rotto',
-      '',
-      'Chiudiamo il modulo base con l\'esercizio piu\' vicino al lavoro vero: un pezzo di modello',
-      '**gia\' costruito da qualcun altro**, che devi verificare, non scrivere da zero. Nessuna delle',
-      'formule gia\' presenti restituisce un errore Excel — niente `#REF!`, niente `#DIV/0!`. Sono',
-      'tutte **silenziose**: numeri plausibili, che sembrano giusti finche\' non li controlli riga per',
-      'riga. Sono anche il tipo di errore piu\' pericoloso, perche\' nessuno lo segnala da solo.',
-      '',
-      '## Il caso',
-      '',
-      `Una proiezione rapida a tre anni per il comitato investimenti. Ricavi base ${eur(ricaviBase)},`,
-      `crescita attesa ${pct(crescita)} l'anno, margine EBITDA atteso ${pct(margine)}. All'anno 3 si`,
-      `si registrano ${eur(costiOneOff)} di costi one-off, gia' dentro l'EBITDA riportato: normalizzare`,
-      `vuol dire riaggiungerli. Poi ${eur(da)} di ammortamenti e un'aliquota fiscale complessiva del`,
-      `${pct(aliquota)}.`,
-      '',
-      '## Tre numeri sospetti',
-      '',
-      'Il revisore ha gia\' passato un controllo generico e segnala che **tre numeri** di questo',
-      'prospetto non tornano — senza dire perche\', solo quali:',
-      '',
-      '1. **Ricavi anno 2**',
-      '2. **EBITDA anno 3 normalizzato**',
-      '3. **EBIT anno 3**',
-      '',
-      'Verificali uno per uno. Per ciascuno: apri la cella (F2), leggi davvero cosa contiene — e\' un',
-      'calcolo o e\' un numero battuto a mano? — e se serve risali ai precedenti con **Ctrl+[**.',
-      'Nessuno dei tre sara\' mai un numero assurdo: sono tutti dello stesso ordine di grandezza del',
-      'valore giusto, ed e\' proprio per questo che vale la pena controllarli uno per uno invece di',
-      'fidarsi a colpo d\'occhio. Scrivi il valore corretto di ciascuno nella colonna accanto (D): le',
-      'formule originali restano bloccate, il compito e\' capire cosa DOVREBBERO produrre, non',
-      'ripararle sul foglio.',
-    ].join('\n');
+    const brief = [tx('M0F-10-COMBOAUDIT.8', { p0: eur(ricaviBase), p1: pct(crescita), p2: pct(margine), p3: eur(costiOneOff), p4: eur(da), p5: pct(aliquota) })].join('\n');
 
     return {
       templateId: 'M0F-10-COMBOAUDIT',
@@ -199,17 +161,17 @@ export default defineTemplate({
         foglio(
           'Model',
           [
-            riga('A1', ['Proiezione rapida — anno 3'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M0F-10-COMBOAUDIT.9')], { style: STILE_TITOLO }),
 
             colonna(
               'A2',
               [
-                'Ricavi anno base',
-                'Crescita ricavi annua attesa',
-                'Margine EBITDA atteso',
-                'Costi one-off anno 3 (da riclassificare)',
-                'Ammortamenti (D&A) annui',
-                'Aliquota fiscale complessiva',
+                tx('M0F-10-COMBOAUDIT.10'),
+                tx('M0F-10-COMBOAUDIT.11'),
+                tx('M0F-10-COMBOAUDIT.12'),
+                tx('M0F-10-COMBOAUDIT.13'),
+                tx('M0F-10-COMBOAUDIT.14'),
+                tx('M0F-10-COMBOAUDIT.15'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -220,19 +182,19 @@ export default defineTemplate({
             blocco('B6', [[da]], { style: STILE_INPUT }),
             blocco('B7', [[aliquota]], { style: STILE_INPUT_PCT }),
 
-            riga('D8', ['Valore corretto (tuo audit)'], { style: STILE_TITOLO }),
+            riga('D8', [tx('M0F-10-COMBOAUDIT.16')], { style: STILE_TITOLO }),
 
             colonna(
               'A9',
               [
-                'Ricavi anno 1',
-                'Ricavi anno 2',
-                'Ricavi anno 3',
-                'EBITDA anno 3 riportato (prima della normalizzazione)',
-                'EBITDA anno 3 normalizzato',
-                'EBIT anno 3',
-                'Imposte anno 3',
-                'Utile netto anno 3',
+                tx('M0F-10-COMBOAUDIT.17'),
+                tx('M0F-10-COMBOAUDIT.18'),
+                tx('M0F-10-COMBOAUDIT.19'),
+                tx('M0F-10-COMBOAUDIT.20'),
+                tx('M0F-10-COMBOAUDIT.21'),
+                tx('M0F-10-COMBOAUDIT.22'),
+                tx('M0F-10-COMBOAUDIT.23'),
+                tx('M0F-10-COMBOAUDIT.24'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -267,29 +229,24 @@ export default defineTemplate({
       hints: [
         hint(
           'H0',
-          'Nessuno dei tre numeri sospetti produce un errore Excel: sono plausibili ma sbagliati. ' +
-            'Il modo per trovarli e\' leggere ogni formula con F2 o Ctrl+[, mai ricontrollare i totali a mente.',
+          tx('M0F-10-COMBOAUDIT.25'),
           5,
         ),
         hint(
           'H1',
-          'Apri B10 con F2: e\' un numero battuto a mano, non una formula. In D10: =B9*(1+B3), ' +
-            'come fanno B9 e B11 con la riga sopra di loro.',
+          tx('M0F-10-COMBOAUDIT.26'),
           15,
           'T1',
         ),
         hint(
           'H2',
-          'In B13 guarda il segno prima di B5: i costi one-off hanno GIA\' abbassato B12, quindi ' +
-            'normalizzare vuol dire sommarli indietro. Ma B12 eredita l\'errore di B10: in D13 riparti dal tuo D10, =D10*(1+B3)*B4+B5.',
+          tx('M0F-10-COMBOAUDIT.27'),
           15,
           'T2',
         ),
         hint(
           'H3',
-          'Premi Ctrl+[ su B14: la selezione salta su B12 (EBITDA riportato) invece che sull\'EBITDA ' +
-            'normalizzato. Ma anche B13 e\' sbagliato: parti dal valore corretto che hai ricostruito tu. ' +
-            'In D14: =D13-B6.',
+          tx('M0F-10-COMBOAUDIT.28'),
           15,
           'T3',
         ),

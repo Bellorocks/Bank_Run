@@ -31,15 +31,16 @@ import {
 import { triangular, roundTo } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
-const SERIE = [
-  "la filiale di Bologna",
-  'il negozio di Torino Centro',
-  "l'area vendite Nord-Est",
-  'la divisione export',
-  'il punto vendita di Bari',
-  "il canale e-commerce",
-  "l'agenzia di Verona",
-] as const;
+import { tx } from '../../../i18n/content';
+const SERIE = () => ([
+  tx('M0C-05-OFFSET.1'),
+  tx('M0C-05-OFFSET.2'),
+  tx('M0C-05-OFFSET.3'),
+  tx('M0C-05-OFFSET.4'),
+  tx('M0C-05-OFFSET.5'),
+  tx('M0C-05-OFFSET.6'),
+  tx('M0C-05-OFFSET.7'),
+] as const);
 
 const HEADER_ROW = 3;
 const DATA_START = 4;
@@ -47,7 +48,9 @@ const DATA_START = 4;
 export default defineTemplate({
   id: 'M0C-05-OFFSET',
   module: 'M0-C',
-  title: 'OFFSET: il valore che si sposta',
+  get title() {
+    return tx('M0C-05-OFFSET.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 240,
@@ -56,7 +59,7 @@ export default defineTemplate({
 
   generate: (rng) => {
     const r = rng.fork('dati');
-    const filiale = r.pick(SERIE);
+    const filiale = r.pick(SERIE());
 
     const periodi = r.int(8, 10);
 
@@ -91,7 +94,7 @@ export default defineTemplate({
     const t2TargetRef = `B${t2Row}`;
 
     const meseLabels = Array.from({ length: periodi }, (_, i) =>
-      i === periodi - 1 ? `Mese ${i + 1} — l'ultimo dato (l'ancora)` : `Mese ${i + 1}`,
+      i === periodi - 1 ? tx('M0C-05-OFFSET.9', { p0: i + 1 }) : tx('common.mese', { n: i + 1 }),
     );
 
     const expected1 = valori[periodi - 1 - nIndietro];
@@ -100,10 +103,7 @@ export default defineTemplate({
     const t1: Task = {
       id: 'T1',
       prompt:
-        `In ${t1TargetRef} recupera il fatturato di ${nIndietro} mesi prima dell'ultimo dato: parti ` +
-        `dall'ancora in ${ancoraRef} e usa OFFSET per spostarti indietro del numero di mesi scritto ` +
-        `in ${paramNRef}. Il segno meno davanti al riferimento, non un numero battuto a mano: se quel ` +
-        'parametro cambiasse, la formula deve seguirlo.',
+        tx('M0C-05-OFFSET.10', { t1TargetRef, nIndietro, ancoraRef, paramNRef }),
       targetCell: `Model!${t1TargetRef}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -111,8 +111,7 @@ export default defineTemplate({
           kind: 'value',
           expected: expected1,
           message:
-            `Il valore non torna: deve essere il fatturato di ${ancoraRef} spostato indietro di quanto ` +
-            `dice ${paramNRef}, non un altro mese della serie.`,
+            tx('M0C-05-OFFSET.11', { ancoraRef, paramNRef }),
         },
         { kind: 'mustReference', cells: [ancoraRef, paramNRef] },
         { kind: 'mustUseFunction', functions: ['OFFSET'] },
@@ -125,17 +124,14 @@ export default defineTemplate({
     const t2: Task = {
       id: 'T2',
       prompt:
-        `Fai lo stesso in ${t2TargetRef}, ma con un numero di mesi diverso: leggilo da ${paramMRef}, ` +
-        `non da ${paramNRef}. Se la formula che scrivi qui desse lo stesso risultato di prima anche ` +
-        `cambiando parametro, vorrebbe dire che il "${nIndietro}" del task precedente e' rimasto ` +
-        "scritto in chiaro invece che nella cella.",
+        tx('M0C-05-OFFSET.12', { t2TargetRef, paramMRef, paramNRef, nIndietro }),
       targetCell: `Model!${t2TargetRef}`,
       check: [
         { kind: 'mustBeFormula' },
         {
           kind: 'value',
           expected: expected2,
-          message: `Il valore non torna con ${mIndietro} mesi indietro da ${ancoraRef}.`,
+          message: tx('M0C-05-OFFSET.13', { mIndietro, ancoraRef }),
         },
         { kind: 'mustReference', cells: [ancoraRef, paramMRef] },
         { kind: 'mustUseFunction', functions: ['OFFSET'] },
@@ -150,44 +146,21 @@ export default defineTemplate({
     return {
       templateId: 'M0C-05-OFFSET',
       seed: rng.seed,
-      brief: [
-        '## OFFSET: il valore che si sposta da un punto fermo',
-        '',
-        `Hai il fatturato mensile di ${filiale}, per gli ultimi ${periodi} mesi: da Mese 1 (il piu\'`,
-        `vecchio) fino a Mese ${periodi} (il piu\' recente). Quest\'ultimo, in ${ancoraRef}, e\' la tua`,
-        '**ancora**: il punto fermo da cui contare all\'indietro.',
-        '',
-        '`OFFSET(riferimento, righe, colonne)` non cerca un valore come INDEX/MATCH: si **sposta**,',
-        'letteralmente, di un certo numero di righe e colonne a partire dal riferimento che gli dai.',
-        'Righe positive scendono, righe negative salgono; colonne positive vanno a destra, negative a',
-        'sinistra. Per tornare indietro nel tempo lungo una colonna, il numero di righe dev\'essere',
-        'negativo.',
-        '',
-        `Il numero di mesi da contare all\'indietro non va scritto dentro la formula: e\' gia\' in`,
-        `${paramNRef}. Leggilo da li\', con il segno meno davanti — e\' la differenza fra una formula`,
-        'che funziona solo per questo caso e una che funziona anche il giorno in cui quel numero',
-        'cambia. In un modello vero cambia spesso.',
-        '',
-        'Nota tecnica, non solo elogio della funzione: OFFSET e\' **volatile**. Excel la ricalcola a',
-        'ogni modifica del foglio, anche quando nessuno dei suoi argomenti e\' cambiato. Su una tabella',
-        'piccola come questa non se ne accorge nessuno; su un modello con centinaia di OFFSET e\'',
-        'spesso la prima causa quando il ricalcolo comincia a rallentare. Usala quando ti serve',
-        'davvero un riferimento che si sposta, non come sostituto automatico di INDEX/MATCH.',
-      ].join('\n'),
+      brief: [tx('M0C-05-OFFSET.14', { filiale, periodi, ancoraRef, paramNRef })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Serie storica: fatturato mensile'], { style: STILE_TITOLO }),
-            riga(`A${HEADER_ROW}`, ['Mese', 'Fatturato (€)'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M0C-05-OFFSET.15')], { style: STILE_TITOLO }),
+            riga(`A${HEADER_ROW}`, [tx('M0C-05-OFFSET.24'), tx('M0C-05-OFFSET.16')], { style: STILE_TITOLO }),
             colonna(`A${DATA_START}`, meseLabels, { style: STILE_ETICHETTA }),
             colonna(`B${DATA_START}`, valori, { style: STILE_INPUT }),
-            blocco(`A${paramNRow}`, [["Quanti mesi prima dell'ultimo dato (N)"]], { style: STILE_ETICHETTA }),
+            blocco(`A${paramNRow}`, [[tx('M0C-05-OFFSET.17')]], { style: STILE_ETICHETTA }),
             blocco(`B${paramNRow}`, [[nIndietro]], { style: STILE_INPUT }),
-            blocco(`A${t1Row}`, [['Valore di N mesi fa (OFFSET)']], { style: STILE_ETICHETTA }),
-            blocco(`A${paramMRow}`, [['E se il numero di mesi fosse M?']], { style: STILE_ETICHETTA }),
+            blocco(`A${t1Row}`, [[tx('M0C-05-OFFSET.18')]], { style: STILE_ETICHETTA }),
+            blocco(`A${paramMRow}`, [[tx('M0C-05-OFFSET.19')]], { style: STILE_ETICHETTA }),
             blocco(`B${paramMRow}`, [[mIndietro]], { style: STILE_INPUT }),
-            blocco(`A${t2Row}`, [['Valore di M mesi fa (stessa logica)']], { style: STILE_ETICHETTA }),
+            blocco(`A${t2Row}`, [[tx('M0C-05-OFFSET.20')]], { style: STILE_ETICHETTA }),
             areaLibera([t1TargetRef, t2TargetRef]),
           ],
           { colWidths: { A: 320, B: 150 }, frozenRows: HEADER_ROW },
@@ -197,12 +170,12 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `OFFSET(${ancoraRef}, -${paramNRef}, 0): il primo argomento e' il punto fermo, il secondo di quante righe spostarsi (negativo per salire), il terzo di quante colonne (qui 0, restiamo nella stessa colonna).`,
+          tx('M0C-05-OFFSET.21', { ancoraRef, paramNRef }),
           12,
           'T1',
         ),
-        hint('H2', `Il numero di mesi viene da ${paramNRef}, non da ${num(nIndietro)} scritto a mano.`, 8, 'T1'),
-        hint('H3', `Stessa struttura del task precedente, ma il riferimento al numero di mesi deve puntare a ${paramMRef}, non a ${paramNRef}.`, 8, 'T2'),
+        hint('H2', tx('M0C-05-OFFSET.22', { paramNRef, p1: num(nIndietro) }), 8, 'T1'),
+        hint('H3', tx('M0C-05-OFFSET.23', { paramMRef, paramNRef }), 8, 'T2'),
       ],
       parScore: par(tasks, { letturaSecondi: 70 }),
       startAt: `Model!${t1TargetRef}`,

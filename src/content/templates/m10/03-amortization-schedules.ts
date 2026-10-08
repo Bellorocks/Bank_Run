@@ -35,6 +35,7 @@ import {
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 const ANNI = 5;
 const COLONNE = ['C', 'D', 'E', 'F', 'G'] as const;
 
@@ -59,7 +60,9 @@ const B_EXTRA = 'B22';
 export default defineTemplate({
   id: 'M10-03-AMORTIZATION',
   module: 'M10',
-  title: 'Piani di ammortamento: lineare, bullet e balloon',
+  get title() {
+    return tx('M10-03-AMORTIZATION.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 420,
@@ -84,11 +87,11 @@ export default defineTemplate({
     const ultima = COLONNE[ANNI - 1];
     const penultima = COLONNE[ANNI - 2];
     const tasks: Task[] = [
-      rigaTask('T1', `${COLONNE[0]}${ROW_L_QUOTA}:${ultima}${ROW_L_QUOTA}`, 'la quota capitale costante del piano lineare', quotaL, quotaL, [B_PRINCIPAL, B_YEARS]),
+      rigaTask('T1', `${COLONNE[0]}${ROW_L_QUOTA}:${ultima}${ROW_L_QUOTA}`, tx('M10-03-AMORTIZATION.2'), quotaL, quotaL, [B_PRINCIPAL, B_YEARS]),
       rigaTask(
         'T2',
         `${COLONNE[0]}${ROW_L_INT}:${ultima}${ROW_L_INT}`,
-        "gli interessi del piano lineare, sul debito di inizio anno",
+        tx('M10-03-AMORTIZATION.3'),
         intL[0],
         intL[ANNI - 1],
         [`${COLONNE[0]}${ROW_L_INIZ}`, B_RATE],
@@ -96,14 +99,14 @@ export default defineTemplate({
       rigaTask(
         'T3',
         `${COLONNE[0]}${ROW_B_QUOTA}:${penultima}${ROW_B_QUOTA}`,
-        'la piccola quota capitale costante del balloon negli anni 1-4',
+        tx('M10-03-AMORTIZATION.4'),
         quotaB,
         quotaB,
         [B_PRINCIPAL, B_BALLOON_PCT],
       ),
       taskFormula({
         id: 'T4',
-        prompt: `In ${ultima}${ROW_B_QUOTA} la maxirata finale del balloon: tutto il debito ancora in essere all'inizio dell'anno 5.`,
+        prompt: tx('M10-03-AMORTIZATION.5', { ultima, ROW_B_QUOTA }),
         target: `Model!${ultima}${ROW_B_QUOTA}`,
         atteso: balloon,
         referenzia: [`${ultima}${ROW_B_INIZ}`],
@@ -113,7 +116,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T5',
-        prompt: `In ${B_BULLET_INT} gli interessi totali del bullet sui cinque anni: il capitale resta tutto in essere fino alla scadenza.`,
+        prompt: tx('M10-03-AMORTIZATION.6', { B_BULLET_INT }),
         target: `Model!${B_BULLET_INT}`,
         atteso: bulletInt,
         referenzia: [B_PRINCIPAL, B_RATE, B_YEARS],
@@ -123,7 +126,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T6',
-        prompt: `In ${B_EXTRA} quanti interessi in piu' costa il bullet rispetto al piano lineare.`,
+        prompt: tx('M10-03-AMORTIZATION.7', { B_EXTRA }),
         target: `Model!${B_EXTRA}`,
         atteso: extra,
         referenzia: [B_BULLET_INT, `${COLONNE[0]}${ROW_L_INT}`, `${ultima}${ROW_L_INT}`],
@@ -133,21 +136,9 @@ export default defineTemplate({
       }),
     ];
 
-    const brief = [
-      'Lo stesso prestito, tre modi di restituirlo. Confrontali.',
-      '',
-      `- **Capitale**: ${eur(principal)}, durata ${ANNI} anni, tasso ${pct(rate, 2)}`,
-      `- **Lineare**: quota capitale costante ogni anno`,
-      `- **Balloon**: ${pct(balloonPct, 0)} del capitale l'anno negli anni 1-4, poi una maxirata con tutto il resto`,
-      `- **Bullet**: tutto il capitale alla scadenza, solo interessi nel frattempo`,
-      '',
-      "Bullet e balloon alleggeriscono il servizio del debito dei primi anni (per questo piacciono negli LBO), " +
-        "ma il capitale resta piu' a lungo in essere e si paga di piu'. E alla scadenza serve rifinanziare.",
-      '',
-      'Le righe di debito iniziale e finale sono gia\' collegate: costruisci quote capitale e interessi, poi il confronto.',
-    ].join('\n');
+    const brief = [tx('M10-03-AMORTIZATION.8', { p0: eur(principal), ANNI, p2: pct(rate, 2), p3: pct(balloonPct, 0) })].join('\n');
 
-    const intest = ['', ...COLONNE.map((_, i) => `Anno ${i + 1}`)];
+    const intest = ['', ...COLONNE.map((_, i) => tx('common.anno', { n: i + 1 }))];
     const iniz = (row: number, rowFine: number) =>
       riga(`${COLONNE[0]}${row}`, COLONNE.map((_, i) => (i === 0 ? `=${B_PRINCIPAL}` : `=${COLONNE[i - 1]}${rowFine}`)), {
         style: STILE_FORMULA,
@@ -158,9 +149,9 @@ export default defineTemplate({
       cols.map((c) => ({ ref: `${c}${row}`, content: null, locked: false, style: STILE_FORMULA }));
 
     const sheet = foglio('Model', [
-      riga('A1', ['PIANI DI AMMORTAMENTO DEL DEBITO'], { style: STILE_TITOLO }),
-      riga('A3', ['Parametri', 'Valore'], { style: STILE_TITOLO }),
-      colonna('A4', ['Capitale (€)', 'Durata (anni)', "Tasso d'interesse", 'Quota annua balloon, anni 1-4'], {
+      riga('A1', [tx('M10-03-AMORTIZATION.9')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M10-03-AMORTIZATION.27'), tx('M10-03-AMORTIZATION.28')], { style: STILE_TITOLO }),
+      colonna('A4', [tx('M10-03-AMORTIZATION.10'), tx('M10-03-AMORTIZATION.11'), tx('M10-03-AMORTIZATION.12'), tx('M10-03-AMORTIZATION.13')], {
         style: STILE_ETICHETTA,
       }),
       [{ ref: B_PRINCIPAL, content: principal, style: STILE_INPUT, locked: true }],
@@ -168,8 +159,8 @@ export default defineTemplate({
       [{ ref: B_RATE, content: rate, style: { ...STILE_INPUT_PCT, numFmt: '0.00%' }, locked: true }],
       [{ ref: B_BALLOON_PCT, content: balloonPct, style: { ...STILE_INPUT_PCT, numFmt: '0%' }, locked: true }],
 
-      riga('A9', ['Lineare (€)', ...intest.slice(1)], { style: STILE_TITOLO }),
-      colonna(`A${ROW_L_INIZ}`, ['Debito di inizio anno', 'Quota capitale', 'Interessi', 'Debito di fine anno'], {
+      riga('A9', [tx('M10-03-AMORTIZATION.14'), ...intest.slice(1)], { style: STILE_TITOLO }),
+      colonna(`A${ROW_L_INIZ}`, [tx('M10-03-AMORTIZATION.15'), tx('M10-03-AMORTIZATION.16'), tx('M10-03-AMORTIZATION.29'), tx('M10-03-AMORTIZATION.17')], {
         style: STILE_ETICHETTA,
       }),
       iniz(ROW_L_INIZ, ROW_L_FINE),
@@ -177,16 +168,16 @@ export default defineTemplate({
       libere(ROW_L_INT, COLONNE),
       fine(ROW_L_FINE, ROW_L_INIZ, ROW_L_QUOTA),
 
-      riga('A15', ['Balloon (€)', ...intest.slice(1)], { style: STILE_TITOLO }),
-      colonna(`A${ROW_B_INIZ}`, ['Debito di inizio anno', 'Quota capitale', 'Debito di fine anno'], {
+      riga('A15', [tx('M10-03-AMORTIZATION.18'), ...intest.slice(1)], { style: STILE_TITOLO }),
+      colonna(`A${ROW_B_INIZ}`, [tx('M10-03-AMORTIZATION.19'), tx('M10-03-AMORTIZATION.20'), tx('M10-03-AMORTIZATION.21')], {
         style: STILE_ETICHETTA,
       }),
       iniz(ROW_B_INIZ, ROW_B_FINE),
       libere(ROW_B_QUOTA, COLONNE),
       fine(ROW_B_FINE, ROW_B_INIZ, ROW_B_QUOTA),
 
-      riga('A20', ['Confronto', '€'], { style: STILE_TITOLO }),
-      colonna('A21', ['Interessi totali bullet', 'Interessi in piu\' del bullet rispetto al lineare'], {
+      riga('A20', [tx('M10-03-AMORTIZATION.30'), '€'], { style: STILE_TITOLO }),
+      colonna('A21', [tx('M10-03-AMORTIZATION.22'), tx('M10-03-AMORTIZATION.23')], {
         style: STILE_ETICHETTA,
       }),
       [{ ref: B_BULLET_INT, content: null, locked: false, style: STILE_FORMULA }],
@@ -202,9 +193,9 @@ export default defineTemplate({
       parScore: par(tasks, { letturaSecondi: 60 }),
       startAt: `Model!${COLONNE[0]}${ROW_L_QUOTA}`,
       hints: [
-        hint('H1', `In C${ROW_L_QUOTA}: =$B$4/$B$5, copiata a destra.`, 10, 'T1'),
+        hint('H1', tx('M10-03-AMORTIZATION.24', { ROW_L_QUOTA }), 10, 'T1'),
         hint('H2', `In C${ROW_L_INT}: =C${ROW_L_INIZ}*$B$6.`, 10, 'T2'),
-        hint('H3', `In C${ROW_B_QUOTA}: =$B$4*$B$7, fino a F${ROW_B_QUOTA}; in G${ROW_B_QUOTA}: =G${ROW_B_INIZ}.`, 10, 'T3'),
+        hint('H3', tx('M10-03-AMORTIZATION.25', { ROW_B_QUOTA, ROW_B_INIZ }), 10, 'T3'),
         hint('H4', `=B4*B6*B5; poi =B21-SUM(C${ROW_L_INT}:G${ROW_L_INT}).`, 10, 'T6'),
       ],
     };
@@ -222,7 +213,7 @@ function rigaTask(
   const [da, a] = rg.split(':');
   return {
     id,
-    prompt: `${da}:${a}: ${cosa}. Una formula in ${da}, copiata fino a ${a}.`,
+    prompt: tx('M10-03-AMORTIZATION.26', { da, a, cosa }),
     targetCell: `Model!${rg}`,
     check: [
       { kind: 'mustBeFormula' },

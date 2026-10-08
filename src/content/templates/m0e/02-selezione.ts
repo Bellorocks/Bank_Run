@@ -32,12 +32,15 @@ import {
   STILE_TITOLO,
 } from '../../authoring';
 
-const ETICHETTE_RIGA = ['Riga 1', 'Riga 2', 'Riga 3', 'Riga 4', 'Riga 5'] as const;
+import { tx } from '../../../i18n/content';
+const ETICHETTE_RIGA = () => ([tx('M0E-02-SELEZIONE.1'), tx('M0E-02-SELEZIONE.2'), tx('M0E-02-SELEZIONE.3'), tx('M0E-02-SELEZIONE.4'), tx('M0E-02-SELEZIONE.5')] as const);
 
 export default defineTemplate({
   id: 'M0E-02-SELEZIONE',
   module: 'M0-E',
-  title: 'Selezionare senza il mouse',
+  get title() {
+    return tx('M0E-02-SELEZIONE.title');
+  },
   rank: 1,
   mode: 'SPEEDRUN',
   estimatedSeconds: 75,
@@ -60,7 +63,7 @@ export default defineTemplate({
 
     const rigaIdx = r.int(0, 4);
     const rigaNum = 4 + rigaIdx; // le righe dati partono da riga 4
-    const rigaLabel = ETICHETTE_RIGA[rigaIdx];
+    const rigaLabel = ETICHETTE_RIGA()[rigaIdx];
     const rowSum = dati[rigaIdx][0] + dati[rigaIdx][1] + dati[rigaIdx][2];
 
     const grandTotal = dati.reduce((acc, row) => acc + row[0] + row[1] + row[2], 0);
@@ -69,8 +72,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T1',
         prompt:
-          'In B9 somma tutta la colonna B della tabella (Serie A, righe 4-8). ' +
-          'Selezionala in un colpo con Ctrl+Barra spaziatrice, poi scrivi la somma.',
+          tx('M0E-02-SELEZIONE.7'),
         target: 'Model!B9',
         atteso: sumB,
         referenzia: ['B4', 'B5', 'B6', 'B7', 'B8'],
@@ -80,8 +82,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T2',
         prompt:
-          'Ora la colonna D (Serie C), in D9. Stessa scorciatoia: Ctrl+Barra spaziatrice ' +
-          'sulla colonna, poi la formula.',
+          tx('M0E-02-SELEZIONE.8'),
         target: 'Model!D9',
         atteso: sumD,
         referenzia: ['D4', 'D5', 'D6', 'D7', 'D8'],
@@ -91,9 +92,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T3',
         prompt:
-          `In E${rigaNum} somma orizzontalmente i tre valori di "${rigaLabel}" (colonne B, C, D ` +
-          "di quella riga sola). Qui la scorciatoia e' Maiusc+Barra spaziatrice: seleziona l'intera " +
-          'riga della tabella in un colpo.',
+          tx('M0E-02-SELEZIONE.9', { rigaNum, rigaLabel }),
         target: `Model!E${rigaNum}`,
         atteso: rowSum,
         referenzia: [`B${rigaNum}`, `C${rigaNum}`, `D${rigaNum}`],
@@ -103,9 +102,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T4',
         prompt:
-          'In B11 somma tutti i 15 numeri della tabella in una sola formula. Mettiti dentro alla ' +
-          'tabella e premi Ctrl+A: selezioni la "current region", il blocco di dati che ti circonda, ' +
-          "senza le etichette intorno. Poi scrivi la somma.",
+          tx('M0E-02-SELEZIONE.10'),
         target: 'Model!B11',
         atteso: grandTotal,
         referenzia: ['B4', 'D4', 'B8', 'D8'],
@@ -117,35 +114,19 @@ export default defineTemplate({
     return {
       templateId: 'M0E-02-SELEZIONE',
       seed: rng.seed,
-      brief: [
-        '## Selezionare senza trascinare il mouse',
-        '',
-        'Niente finanza in questo livello: solo una tabellina di numeri e quattro somme. Il punto',
-        "non e' calcolarle, e' arrivarci in fretta. Quattro scorciatoie, tutte sulla stessa idea:",
-        '',
-        '- **Ctrl+Barra spaziatrice** seleziona la colonna intera della cella attiva.',
-        "- **Maiusc+Barra spaziatrice** fa lo stesso per la riga.",
-        "- **Ctrl+A**, dentro a un blocco di dati, seleziona la \"current region\": il rettangolo",
-        "  di celle piene che ti circonda, non l'intero foglio.",
-        "- **Ctrl+Maiusc+Freccia** estende la selezione dalla cella attiva fino al bordo dei dati",
-        "  in quella direzione: funziona su tutti e quattro i task qui sotto, se la preferisci.",
-        '',
-        "Il risultato conta, non come ci sei arrivato: puoi scrivere `=SUM(...)` selezionando",
-        "il range con una scorciatoia o battendolo a mano, il grader guarda solo la cella finale.",
-        "Ma con quindici numeri da sommare in quattro modi diversi, il mouse ti costera' tempo vero.",
-      ].join('\n'),
+      brief: [tx('M0E-02-SELEZIONE.11')].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Selezione rapida'], { style: STILE_TITOLO }),
-            riga('A3', ['Voce', 'Serie A', 'Serie B', 'Serie C', 'Totale riga'], {
+            riga('A1', [tx('M0E-02-SELEZIONE.12')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M0E-02-SELEZIONE.23'), tx('M0E-02-SELEZIONE.13'), tx('M0E-02-SELEZIONE.14'), tx('M0E-02-SELEZIONE.15'), tx('M0E-02-SELEZIONE.16')], {
               style: STILE_TITOLO,
             }),
-            colonna('A4', [...ETICHETTE_RIGA], { style: STILE_ETICHETTA }),
+            colonna('A4', [...ETICHETTE_RIGA()], { style: STILE_ETICHETTA }),
             blocco('B4', dati, { style: STILE_INPUT }),
-            blocco('A9', [['Totale colonna']], { style: STILE_ETICHETTA }),
-            blocco('A11', [['Totale generale (15 numeri)']], { style: STILE_ETICHETTA }),
+            blocco('A9', [[tx('M0E-02-SELEZIONE.17')]], { style: STILE_ETICHETTA }),
+            blocco('A11', [[tx('M0E-02-SELEZIONE.18')]], { style: STILE_ETICHETTA }),
             areaLibera(['B9', 'D9', `E${rigaNum}`, 'B11']),
           ],
           { colWidths: { A: 220, B: 100, C: 100, D: 100, E: 110 }, frozenRows: 3 },
@@ -153,10 +134,10 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', 'Ctrl+Barra spaziatrice sulla colonna, poi `=SUM(` e Invio dopo aver scritto il range.', 6, 'T1'),
-        hint('H2', 'Identica a T1 ma sulla colonna D.', 5, 'T2'),
-        hint('H3', 'Maiusc+Barra spaziatrice sulla riga della tabella, non su tutta la riga del foglio.', 6, 'T3'),
-        hint('H4', "Ctrl+A dentro alla tabella prende solo il blocco B4:D8, non l'intero foglio.", 8, 'T4'),
+        hint('H1', tx('M0E-02-SELEZIONE.19'), 6, 'T1'),
+        hint('H2', tx('M0E-02-SELEZIONE.20'), 5, 'T2'),
+        hint('H3', tx('M0E-02-SELEZIONE.21'), 6, 'T3'),
+        hint('H4', tx('M0E-02-SELEZIONE.22'), 8, 'T4'),
       ],
       parScore: par(tasks, { letturaSecondi: 20 }),
       startAt: 'Model!B9',

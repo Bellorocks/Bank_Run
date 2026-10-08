@@ -49,6 +49,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
 const B_EBITDA_RIP = 'B4'; // EBITDA riportato (dato, bloccato)
 const B_CANONE_PAGATO = 'B5'; // Canone pagato alla parte correlata (dato, bloccato)
@@ -60,7 +61,9 @@ const B_EBITDA_NORM = 'B10'; // T2
 export default defineTemplate({
   id: 'M2-03-AFFITTIINFRAGRUPPO',
   module: 'M2',
-  title: 'Affitto infragruppo sopra mercato',
+  get title() {
+    return tx('M2-03-AFFITTIINFRAGRUPPO.title');
+  },
   rank: 1,
   mode: 'PRACTICE',
   estimatedSeconds: 200,
@@ -91,11 +94,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_RETTIFICA} calcola la rettifica per l'affitto infragruppo: il canone pagato alla parte ` +
-        `correlata (${B_CANONE_PAGATO}) meno il canone di mercato per un immobile equivalente nella stessa ` +
-        `zona (${B_CANONE_MERCATO}). L'azienda paga piu' del prezzo di mercato a una parte correlata: la ` +
-        "differenza e' un costo fuori mercato che ha gonfiato i costi (quindi sgonfiato l'EBITDA riportato), " +
-        'percio\' si RIAGGIUNGE con segno positivo.',
+        tx('M2-03-AFFITTIINFRAGRUPPO.2', { B_RETTIFICA, B_CANONE_PAGATO, B_CANONE_MERCATO }),
       target: `Model!${B_RETTIFICA}`,
       atteso: rettifica,
       referenzia: [B_CANONE_PAGATO, B_CANONE_MERCATO],
@@ -107,9 +106,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_EBITDA_NORM} calcola l'EBITDA normalizzato: l'EBITDA riportato (${B_EBITDA_RIP}) piu' la ` +
-        `rettifica per l'affitto infragruppo che hai gia' calcolato in ${B_RETTIFICA}. Non ricalcolare la ` +
-        "differenza da capo — usa il risultato che hai gia' scritto.",
+        tx('M2-03-AFFITTIINFRAGRUPPO.3', { B_EBITDA_NORM, B_EBITDA_RIP, B_RETTIFICA }),
       target: `Model!${B_EBITDA_NORM}`,
       atteso: ebitdaNormalizzato,
       referenzia: [B_EBITDA_RIP, B_RETTIFICA],
@@ -123,38 +120,19 @@ export default defineTemplate({
     return {
       templateId: 'M2-03-AFFITTIINFRAGRUPPO',
       seed: rng.seed,
-      brief: [
-        '## Un affitto pagato alla famiglia proprietaria',
-        '',
-        "L'azienda non e' proprietaria dell'immobile in cui opera: lo affitta da una societa' immobiliare " +
-          "della stessa famiglia proprietaria — una parte correlata. Quando chi incassa il canone e chi lo " +
-          "paga fanno capo alle stesse persone, il prezzo pagato non e' garantito essere un prezzo di " +
-          "mercato: puo' essere stato fissato per spostare valore da un'entita' all'altra, non per riflettere " +
-          "cosa costerebbe davvero affittare quell'immobile da un terzo indipendente.",
-        '',
-        `Qui l'EBITDA riportato e' ${eur(ebitdaRiportato)}. L'azienda paga ${eur(canonePagato)} l'anno di ` +
-          `canone alla parte correlata; un canone di mercato per un immobile equivalente nella stessa zona ` +
-          `— stimato da un benchmark indipendente — sarebbe di ${eur(canoneMercato)}. La differenza e' un ` +
-          "sovrapprezzo che l'azienda paga solo perche' il proprietario dell'immobile e' anche il proprietario " +
-          "dell'azienda: un compratore esterno, che rinegozierebbe il contratto a condizioni di mercato, non " +
-          "sosterrebbe quel costo in piu'.",
-        '',
-        "Come in ogni rettifica QoE, il segno segue la regola generale: un costo fuori mercato, gia' dentro " +
-          "l'EBITDA riportato, ha gonfiato i costi (quindi sgonfiato l'EBITDA riportato) — si RIAGGIUNGE, " +
-          'rettifica **positiva**.',
-      ].join('\n'),
+      brief: [tx('M2-03-AFFITTIINFRAGRUPPO.4', { p0: eur(ebitdaRiportato), p1: eur(canonePagato), p2: eur(canoneMercato) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Affitto infragruppo sopra mercato'], { style: STILE_TITOLO }),
-            riga('A3', ['Dati di partenza'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M2-03-AFFITTIINFRAGRUPPO.5')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M2-03-AFFITTIINFRAGRUPPO.6')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'EBITDA riportato (da bilancio), €',
-                "Canone di affitto pagato alla parte correlata, €/anno",
-                'Canone di mercato per un immobile equivalente, stessa zona, €/anno',
+                tx('M2-03-AFFITTIINFRAGRUPPO.7'),
+                tx('M2-03-AFFITTIINFRAGRUPPO.8'),
+                tx('M2-03-AFFITTIINFRAGRUPPO.9'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -164,12 +142,12 @@ export default defineTemplate({
               { ref: B_CANONE_MERCATO, content: canoneMercato, style: STILE_INPUT, locked: true },
             ],
 
-            riga('A8', ['Normalizzazione'], { style: STILE_TITOLO }),
+            riga('A8', [tx('M2-03-AFFITTIINFRAGRUPPO.14')], { style: STILE_TITOLO }),
             colonna(
               'A9',
               [
-                "Rettifica: sovrapprezzo pagato sull'affitto infragruppo, €",
-                'EBITDA normalizzato, €',
+                tx('M2-03-AFFITTIINFRAGRUPPO.10'),
+                tx('M2-03-AFFITTIINFRAGRUPPO.11'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -183,14 +161,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_CANONE_PAGATO}-${B_CANONE_MERCATO}: canone pagato meno canone di mercato. Qui vale sempre ` +
-            "un numero positivo, perche' il canone pagato e' sopra mercato.",
+          tx('M2-03-AFFITTIINFRAGRUPPO.12', { B_CANONE_PAGATO, B_CANONE_MERCATO }),
           8,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_EBITDA_RIP}+${B_RETTIFICA}: EBITDA riportato piu' la rettifica gia' calcolata sopra.`,
+          tx('M2-03-AFFITTIINFRAGRUPPO.13', { B_EBITDA_RIP, B_RETTIFICA }),
           8,
           'T2',
         ),

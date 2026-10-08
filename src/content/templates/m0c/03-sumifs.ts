@@ -43,25 +43,26 @@ import {
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
-const CATEGORIE = [
-  'Guarnizioni idrauliche',
-  'Motori elettrici',
-  'Sensori di pressione',
-  'Cablaggi speciali',
-  'Valvole pneumatiche',
-] as const;
+import { tx } from '../../../i18n/content';
+const CATEGORIE = () => ([
+  tx('M0C-03-SUMIFS.1'),
+  tx('M0C-03-SUMIFS.2'),
+  tx('M0C-03-SUMIFS.3'),
+  tx('M0C-03-SUMIFS.4'),
+  tx('M0C-03-SUMIFS.5'),
+] as const);
 
-const MESI = ['Gennaio', 'Febbraio', 'Marzo'] as const;
+const MESI = () => ([tx('common.gennaio'), tx('common.febbraio'), tx('common.marzo')] as const);
 
-const CLIENTI = [
-  'Nord Meccanica Srl',
-  'Officine Bianchi Spa',
-  'Ferro & Co.',
-  'Idro Sud Spa',
-  'Meccanica Po Srl',
-  'Techno Valve Srl',
-  'Rossi Componenti Srl',
-] as const;
+const CLIENTI = () => ([
+  tx('M0C-03-SUMIFS.6'),
+  tx('M0C-03-SUMIFS.7'),
+  tx('M0C-03-SUMIFS.8'),
+  tx('M0C-03-SUMIFS.9'),
+  tx('M0C-03-SUMIFS.10'),
+  tx('M0C-03-SUMIFS.11'),
+  tx('M0C-03-SUMIFS.12'),
+] as const);
 
 interface Vendita {
   readonly cliente: string;
@@ -78,7 +79,9 @@ interface Coppia {
 export default defineTemplate({
   id: 'M0C-03-SUMIFS',
   module: 'M0-C',
-  title: 'Due criteri, non uno: SUMIFS e famiglia',
+  get title() {
+    return tx('M0C-03-SUMIFS.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 280,
@@ -90,9 +93,9 @@ export default defineTemplate({
 
     const n = r.int(8, 12);
     const transazioni: Vendita[] = Array.from({ length: n }, () => ({
-      cliente: r.pick(CLIENTI),
-      categoria: r.pick(CATEGORIE),
-      mese: r.pick(MESI),
+      cliente: r.pick(CLIENTI()),
+      categoria: r.pick(CATEGORIE()),
+      mese: r.pick(MESI()),
       importo: roundTo(triangular(r, 4_000, 15_000, 45_000), 100),
     }));
 
@@ -136,17 +139,14 @@ export default defineTemplate({
     const t1: Task = {
       id: 'T1',
       prompt:
-        `In D${Q1_ROW} calcola il totale venduto per la categoria in B${Q1_ROW}, ma solo nel mese ` +
-        `in C${Q1_ROW}. Un criterio solo non basta: la categoria da sola somma anche altri mesi, il ` +
-        "mese da solo somma anche altre categorie. Serve una funzione che sommi rispettando entrambe " +
-        'le condizioni insieme.',
+        tx('M0C-03-SUMIFS.14', { Q1_ROW }),
       targetCell: `Model!D${Q1_ROW}`,
       check: [
         { kind: 'mustBeFormula' },
         {
           kind: 'value',
           expected: totale1,
-          message: "Il totale non torna: controlla che entrambi i criteri — categoria E mese — siano collegati alle colonne giuste.",
+          message: tx('M0C-03-SUMIFS.15'),
         },
         { kind: 'mustReference', cells: [`B${Q1_ROW}`, `C${Q1_ROW}`, rifCategorie, rifMesi, rifImporti] },
         { kind: 'mustUseFunction', functions: ['SUMIFS'] },
@@ -158,16 +158,14 @@ export default defineTemplate({
     const t2: Task = {
       id: 'T2',
       prompt:
-        `In D${Q2_ROW} conta quante vendite risultano per la categoria in B${Q2_ROW}, nel mese in ` +
-        `C${Q2_ROW}. Stesso principio del task precedente, ma qui non stai sommando un importo: stai ` +
-        'contando righe che rispettano entrambi i criteri.',
+        tx('M0C-03-SUMIFS.16', { Q2_ROW }),
       targetCell: `Model!D${Q2_ROW}`,
       check: [
         { kind: 'mustBeFormula' },
         {
           kind: 'value',
           expected: conteggio2,
-          message: "Il conteggio non torna: la funzione giusta non ha un intervallo da sommare davanti, solo coppie intervallo-criterio.",
+          message: tx('M0C-03-SUMIFS.17'),
         },
         { kind: 'mustReference', cells: [`B${Q2_ROW}`, `C${Q2_ROW}`, rifCategorie, rifMesi] },
         { kind: 'mustUseFunction', functions: ['COUNTIFS'] },
@@ -179,15 +177,14 @@ export default defineTemplate({
     const t3: Task = {
       id: 'T3',
       prompt:
-        `In D${Q3_ROW} trova l'importo piu' alto tra le vendite per la categoria in B${Q3_ROW}, nel mese ` +
-        `in C${Q3_ROW}. Di nuovo due criteri insieme: categoria e mese.`,
+        tx('M0C-03-SUMIFS.18', { Q3_ROW }),
       targetCell: `Model!D${Q3_ROW}`,
       check: [
         { kind: 'mustBeFormula' },
         {
           kind: 'value',
           expected: massimo3,
-          message: "Il massimo non torna: controlla di aver incrociato categoria e mese, non uno solo dei due.",
+          message: tx('M0C-03-SUMIFS.19'),
         },
         { kind: 'mustReference', cells: [`B${Q3_ROW}`, `C${Q3_ROW}`, rifCategorie, rifMesi, rifImporti] },
         { kind: 'mustUseFunction', functions: ['MAXIFS'] },
@@ -201,43 +198,23 @@ export default defineTemplate({
     return {
       templateId: 'M0C-03-SUMIFS',
       seed: rng.seed,
-      brief: [
-        '## Un criterio solo non basta quasi mai',
-        '',
-        `Sotto c'e' il registro delle vendite del primo trimestre: ${num(n)} transazioni, ognuna con`,
-        'un cliente, una categoria di prodotto, un mese e un importo.',
-        '',
-        '`SUMIF` (senza la S) sa sommare su **un** criterio. Nella pratica quasi ogni domanda che ti',
-        'faranno ne ha due o tre insieme: "quanto abbiamo venduto di questa categoria, a marzo" non e\'',
-        'una domanda, sono due domande incrociate. Con un criterio solo ottieni un numero che sembra',
-        'giusto e non lo e\': la categoria da sola include gli altri mesi, il mese da solo include le',
-        'altre categorie.',
-        '',
-        '`SUMIFS`, `COUNTIFS` e `MAXIFS` accettano quanti criteri servono, e la forma e\' sempre',
-        'la stessa: prima (se serve) l\'intervallo da aggregare, poi le coppie **intervallo-criterio**',
-        'una dopo l\'altra — quante ne vuoi. `COUNTIFS` fa eccezione su un punto solo: non c\'e\' niente',
-        'da sommare, quindi non c\'e\' il primo intervallo, si parte gia\' dalle coppie.',
-        '',
-        `Le tre interrogazioni qui sotto ti chiedono le tre funzioni sullo stesso tipo di incrocio.`,
-        `Il totale della prima query, per dirti che ordine di grandezza aspettarti, e' vicino a`,
-        `${eur(totale1)}.`,
-      ].join('\n'),
+      brief: [tx('M0C-03-SUMIFS.20', { p0: num(n), p1: eur(totale1) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Registro vendite — primo trimestre'], { style: STILE_TITOLO }),
-            riga(`A${HEADER_ROW}`, ['Cliente', 'Categoria', 'Mese', 'Importo (€)'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M0C-03-SUMIFS.21')], { style: STILE_TITOLO }),
+            riga(`A${HEADER_ROW}`, [tx('M0C-03-SUMIFS.29'), tx('M0C-03-SUMIFS.30'), tx('M0C-03-SUMIFS.31'), tx('M0C-03-SUMIFS.22')], { style: STILE_TITOLO }),
             colonna(`A${DATA_START}`, transazioni.map((t) => t.cliente), { style: STILE_ETICHETTA }),
             colonna(`B${DATA_START}`, transazioni.map((t) => t.categoria), { style: STILE_ETICHETTA }),
             colonna(`C${DATA_START}`, transazioni.map((t) => t.mese), { style: STILE_ETICHETTA }),
             colonna(`D${DATA_START}`, transazioni.map((t) => t.importo), { style: STILE_INPUT }),
 
-            riga(`A${QUERY_TITLE_ROW}`, ['Interrogazioni'], { style: STILE_TITOLO }),
-            riga(`A${QUERY_HEADER_ROW}`, ['Domanda', 'Categoria', 'Mese', 'Risultato'], { style: STILE_TITOLO }),
-            blocco(`A${Q1_ROW}`, [['Totale venduto', p1.categoria, p1.mese]], { style: STILE_ETICHETTA }),
-            blocco(`A${Q2_ROW}`, [['Numero di vendite', p2.categoria, p2.mese]], { style: STILE_ETICHETTA }),
-            blocco(`A${Q3_ROW}`, [["Importo piu' alto", p3.categoria, p3.mese]], { style: STILE_ETICHETTA }),
+            riga(`A${QUERY_TITLE_ROW}`, [tx('M0C-03-SUMIFS.32')], { style: STILE_TITOLO }),
+            riga(`A${QUERY_HEADER_ROW}`, [tx('M0C-03-SUMIFS.33'), tx('M0C-03-SUMIFS.34'), tx('M0C-03-SUMIFS.35'), tx('M0C-03-SUMIFS.36')], { style: STILE_TITOLO }),
+            blocco(`A${Q1_ROW}`, [[tx('M0C-03-SUMIFS.23'), p1.categoria, p1.mese]], { style: STILE_ETICHETTA }),
+            blocco(`A${Q2_ROW}`, [[tx('M0C-03-SUMIFS.24'), p2.categoria, p2.mese]], { style: STILE_ETICHETTA }),
+            blocco(`A${Q3_ROW}`, [[tx('M0C-03-SUMIFS.25'), p3.categoria, p3.mese]], { style: STILE_ETICHETTA }),
             areaLibera([`D${Q1_ROW}`, `D${Q2_ROW}`, `D${Q3_ROW}`]),
           ],
           {
@@ -250,19 +227,19 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `SUMIFS(intervallo_da_sommare, intervallo_criterio1, criterio1, intervallo_criterio2, criterio2). Il primo argomento e' cosa sommare (${rifImporti} in giu'), poi le coppie si susseguono.`,
+          tx('M0C-03-SUMIFS.26', { rifImporti }),
           12,
           'T1',
         ),
         hint(
           'H2',
-          "COUNTIFS ha SOLO coppie intervallo-criterio: niente intervallo da sommare davanti, si parte direttamente dalla prima coppia.",
+          tx('M0C-03-SUMIFS.27'),
           10,
           'T2',
         ),
         hint(
           'H3',
-          "MAXIFS ha la stessa forma di SUMIFS: intervallo su cui cercare il massimo, poi le coppie intervallo-criterio.",
+          tx('M0C-03-SUMIFS.28'),
           10,
           'T3',
         ),

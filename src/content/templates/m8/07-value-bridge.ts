@@ -39,6 +39,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // Geometria fissa
 const B_EBITDA_ENTRY = 'B4'; // EBITDA all'ingresso (dato)
 const B_EBITDA_EXIT = 'B5'; // EBITDA all'uscita (dato)
@@ -56,7 +57,9 @@ const B_DELTA_EQ = 'B16'; // T4: ΔEquity calcolato direttamente, per riconcilia
 export default defineTemplate({
   id: 'M8-07-VALUEBRIDGE',
   module: 'M8',
-  title: 'Value creation bridge: scomposizione di EBITDA, multipli e deleveraging',
+  get title() {
+    return tx('M8-07-VALUEBRIDGE.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -81,47 +84,30 @@ export default defineTemplate({
     const effDelev = ndEntry - ndExit;
     const deltaEquity = ebitdaExit * multExit - ndExit - (ebitdaEntry * multEntry - ndEntry);
 
-    const brief = [
-      `Costruisci il **Value Creation Bridge** per spiegare agli investitori le origini del rendimento LBO.`,
-      ``,
-      `Parametri di bilancio Entry vs Exit:`,
-      `- **EBITDA**: da ${eur(ebitdaEntry)} (Entry) a ${eur(ebitdaExit)} (Exit)`,
-      `- **Multiplo EV/EBITDA**: da ${multiplo(multEntry)} (Entry) a ${multiplo(multExit)} (Exit)`,
-      `- **Debito Netto**: ridotto da ${eur(ndEntry)} (Entry) a ${eur(ndExit)} (Exit)`,
-      ``,
-      "L'aumento di valore dell'equity si scompone in tre effetti che, sommati, devono dare esattamente " +
-        "la variazione dell'equity:",
-      '',
-      "- **crescita dell'EBITDA**, valutata al multiplo d'ingresso (cosi' non si conta due volte la variazione del multiplo);",
-      "- **variazione del multiplo**, applicata all'EBITDA d'uscita;",
-      '- **deleveraging**: il debito netto ripagato con la cassa generata diventa valore per gli azionisti.',
-      '',
-      "Calcola i tre effetti, poi la variazione dell'equity direttamente dai valori d'ingresso e d'uscita: " +
-        'se il bridge non riconcilia, uno dei tre effetti e\' sbagliato.',
-    ].join('\n');
+    const brief = [tx('M8-07-VALUEBRIDGE.2', { p0: eur(ebitdaEntry), p1: eur(ebitdaExit), p2: multiplo(multEntry), p3: multiplo(multExit), p4: eur(ndEntry), p5: eur(ndExit) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['VALUE CREATION BRIDGE LBO'], { style: STILE_TITOLO }),
-      riga('A3', ['Parametri Transazione', 'Valore'], { style: STILE_TITOLO }),
+      riga('A1', [tx('M8-07-VALUEBRIDGE.3')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M8-07-VALUEBRIDGE.4'), tx('M8-07-VALUEBRIDGE.23')], { style: STILE_TITOLO }),
       colonna('A4', [
-        'EBITDA all\'Ingresso (€)',
-        'EBITDA all\'Uscita (€)',
-        'Multiplo EV/EBITDA Entry (x)',
-        'Multiplo EV/EBITDA Exit (x)',
-        'Debito Netto all\'Ingresso (€)',
-        'Debito Netto all\'Uscita (€)',
+        tx('M8-07-VALUEBRIDGE.5'),
+        tx('M8-07-VALUEBRIDGE.6'),
+        tx('M8-07-VALUEBRIDGE.7'),
+        tx('M8-07-VALUEBRIDGE.8'),
+        tx('M8-07-VALUEBRIDGE.9'),
+        tx('M8-07-VALUEBRIDGE.10'),
       ], { style: STILE_ETICHETTA }),
       colonna('B4', [ebitdaEntry, ebitdaExit], { style: STILE_INPUT }),
       colonna(B_MULT_ENTRY, [multEntry, multExit], { style: STILE_INPUT_MULTIPLO }),
       colonna(B_ND_ENTRY, [ndEntry, ndExit], { style: STILE_INPUT }),
 
-      riga('A11', ['Componenti Value Creation', 'Impatto (€)'], { style: STILE_TITOLO }),
+      riga('A11', [tx('M8-07-VALUEBRIDGE.11'), tx('M8-07-VALUEBRIDGE.12')], { style: STILE_TITOLO }),
       colonna('A12', [
-        '1. EBITDA Growth Effect',
-        '2. Multiple Expansion Effect',
-        '3. Deleveraging Effect',
-        'TOTALE BRIDGE',
-        'Variazione equity calcolata direttamente',
+        tx('M8-07-VALUEBRIDGE.13'),
+        tx('M8-07-VALUEBRIDGE.14'),
+        tx('M8-07-VALUEBRIDGE.15'),
+        tx('M8-07-VALUEBRIDGE.16'),
+        tx('M8-07-VALUEBRIDGE.17'),
       ], { style: STILE_ETICHETTA }),
       colonna(B_EFF_GROWTH, [null], { style: STILE_FORMULA, locked: false }),
       colonna(B_EFF_MULT, [null], { style: STILE_FORMULA, locked: false }),
@@ -133,7 +119,7 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `In ${B_EFF_GROWTH} l'effetto della crescita dell'EBITDA, valutata al multiplo d'ingresso.`,
+        prompt: tx('M8-07-VALUEBRIDGE.18', { B_EFF_GROWTH }),
         target: `Model!${B_EFF_GROWTH}`,
         atteso: effGrowth,
         referenzia: [B_EBITDA_EXIT, B_EBITDA_ENTRY, B_MULT_ENTRY],
@@ -143,7 +129,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T2',
-        prompt: `In ${B_EFF_MULT} l'effetto della variazione del multiplo, sull'EBITDA d'uscita.`,
+        prompt: tx('M8-07-VALUEBRIDGE.19', { B_EFF_MULT }),
         target: `Model!${B_EFF_MULT}`,
         atteso: effMult,
         referenzia: [B_EBITDA_EXIT, B_MULT_EXIT, B_MULT_ENTRY],
@@ -153,7 +139,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T3',
-        prompt: `In ${B_EFF_DELEV} l'effetto del deleveraging.`,
+        prompt: tx('M8-07-VALUEBRIDGE.20', { B_EFF_DELEV }),
         target: `Model!${B_EFF_DELEV}`,
         atteso: effDelev,
         referenzia: [B_ND_ENTRY, B_ND_EXIT],
@@ -164,8 +150,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T4',
         prompt:
-          `In ${B_DELTA_EQ} la variazione dell'equity calcolata direttamente: equity all'uscita meno equity ` +
-          "all'ingresso, ciascuna come EV meno debito netto. Deve coincidere col totale del bridge.",
+          tx('M8-07-VALUEBRIDGE.21', { B_DELTA_EQ }),
         target: `Model!${B_DELTA_EQ}`,
         atteso: deltaEquity,
         referenzia: [B_EBITDA_ENTRY, B_EBITDA_EXIT, B_MULT_ENTRY, B_MULT_EXIT, B_ND_ENTRY, B_ND_EXIT],
@@ -186,7 +171,7 @@ export default defineTemplate({
       hints: [
         hint('H1', '=(B5-B4)*B6', 10, 'T1'),
         hint('H2', '=B5*(B7-B6)', 10, 'T2'),
-        hint('H3', '=B8-B9: il debito che non c\'e\' piu\'.', 10, 'T3'),
+        hint('H3', tx('M8-07-VALUEBRIDGE.22'), 10, 'T3'),
         hint('H4', '=(B5*B7-B9)-(B4*B6-B8)', 15, 'T4'),
       ],
     };

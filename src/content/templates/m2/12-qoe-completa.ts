@@ -70,35 +70,36 @@ import {
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 // Rettifiche POSITIVE (costi one-off/fuori mercato gia' dentro l'EBITDA
 // riportato: lo hanno sgonfiato, si RIAGGIUNGONO) — mix di poste infragruppo
 // e one-off, per sintetizzare entrambe le famiglie del modulo.
-const CATEGORIE_POSITIVE = [
-  "Compenso amministratore fuori mercato: sovra-compenso pagato al socio rispetto al benchmark di un manager esterno equivalente",
-  "Canone di affitto infragruppo pagato alla societa' immobiliare della proprieta', sopra il canone di mercato per un immobile equivalente",
-  "Spese personali del socio (auto a uso privato, viaggi non di lavoro) contabilizzate impropriamente come costi aziendali",
-  "Spese legali straordinarie per una causa con un ex-fornitore, transazione una tantum gia' liquidata",
-  "Costi di ristrutturazione organizzativa, piano una tantum gia' completato nell'anno",
-  "Minusvalenza da cessione di un cespite, perdita one-off gia' inclusa nell'EBITDA riportato",
-] as const;
+const CATEGORIE_POSITIVE = () => ([
+  tx('M2-12-QOECOMPLETA.1'),
+  tx('M2-12-QOECOMPLETA.2'),
+  tx('M2-12-QOECOMPLETA.3'),
+  tx('M2-12-QOECOMPLETA.4'),
+  tx('M2-12-QOECOMPLETA.5'),
+  tx('M2-12-QOECOMPLETA.6'),
+] as const);
 
 // Rettifiche NEGATIVE (proventi one-off, o costi nascosti da una
 // capitalizzazione impropria, gia' dentro l'EBITDA riportato: lo hanno
 // gonfiato, si TOLGONO).
-const CATEGORIE_NEGATIVE = [
-  "Plusvalenza da cessione di un cespite, guadagno one-off gia' incluso nell'EBITDA riportato",
-  "Utile su cambi non ricorrente, incluso nel costo delle materie prime invece che nella gestione finanziaria",
-  "Contributo pubblico una tantum, incassato nell'anno e contabilizzato come provento operativo",
-  "Quota di costi di sviluppo impropriamente capitalizzata, avrebbe dovuto interamente pesare a Conto Economico",
-] as const;
+const CATEGORIE_NEGATIVE = () => ([
+  tx('M2-12-QOECOMPLETA.7'),
+  tx('M2-12-QOECOMPLETA.8'),
+  tx('M2-12-QOECOMPLETA.9'),
+  tx('M2-12-QOECOMPLETA.10'),
+] as const);
 
 // Proposte AGGRESSIVE: suonano plausibili ma nessun documento le sostiene —
 // Valida = "NO", esattamente lo spirito di M2-11.
-const CATEGORIE_AGGRESSIVE = [
-  "Sinergie di procurement stimate dal management, non ancora realizzate",
-  "Risparmio atteso da un piano di efficientamento approvato dal CdA il mese scorso, non ancora avviato",
-  "Mancato guadagno stimato per un contratto che il management ritiene \"avrebbe dovuto vincere\"",
-] as const;
+const CATEGORIE_AGGRESSIVE = () => ([
+  tx('M2-12-QOECOMPLETA.11'),
+  tx('M2-12-QOECOMPLETA.12'),
+  tx('M2-12-QOECOMPLETA.13'),
+] as const);
 
 interface Rettifica {
   readonly descrizione: string;
@@ -117,7 +118,9 @@ const DATA_START = 8;
 export default defineTemplate({
   id: 'M2-12-QOECOMPLETA',
   module: 'M2',
-  title: 'QoE completa: dal bilancio sporco a un EBITDA adjusted difendibile',
+  get title() {
+    return tx('M2-12-QOECOMPLETA.title');
+  },
   rank: 4,
   mode: 'PRACTICE',
   estimatedSeconds: 420,
@@ -156,9 +159,9 @@ export default defineTemplate({
     const kPositive = nLegit === 6 ? 3 : rConteggio.int(2, 3);
     const kNegative = nLegit - kPositive;
 
-    const descrizioniPositive = rVoci.shuffle([...CATEGORIE_POSITIVE]).slice(0, kPositive);
-    const descrizioniNegative = rVoci.shuffle([...CATEGORIE_NEGATIVE]).slice(0, kNegative);
-    const descrizioneAggressiva = rVoci.pick([...CATEGORIE_AGGRESSIVE]);
+    const descrizioniPositive = rVoci.shuffle([...CATEGORIE_POSITIVE()]).slice(0, kPositive);
+    const descrizioniNegative = rVoci.shuffle([...CATEGORIE_NEGATIVE()]).slice(0, kNegative);
+    const descrizioneAggressiva = rVoci.pick([...CATEGORIE_AGGRESSIVE()]);
 
     const vociPositive: Rettifica[] = descrizioniPositive.map((descrizione) => ({
       descrizione,
@@ -206,8 +209,7 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T1',
         prompt:
-          `In ${C_T1} il totale delle sole rettifiche che hai giudicato valide, ciascuna col segno che ` +
-          'porta gia\' in colonna C, con una funzione che sommi solo le righe "SI".',
+          tx('M2-12-QOECOMPLETA.15', { C_T1 }),
         target: `Model!${C_T1}`,
         atteso: rettificheTotali,
         referenzia: [rifValida, rifRettifiche],
@@ -224,9 +226,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${C_T2} calcola l'EBITDA normalizzato: l'EBITDA riportato (${B_EBITDA_RIP}) piu' il totale ` +
-        `delle rettifiche legittime appena isolato (${C_T1}). ${C_T1} porta gia' il segno netto corretto — ` +
-        'qui e\' comunque una somma, positive e negative sono gia\' incorporate nel totale.',
+        tx('M2-12-QOECOMPLETA.16', { C_T2, B_EBITDA_RIP, C_T1 }),
       target: `Model!${C_T2}`,
       atteso: ebitdaNormalizzato,
       referenzia: [B_EBITDA_RIP, C_T1],
@@ -238,10 +238,7 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        `In ${C_T3} calcola l'impatto percentuale delle rettifiche sull'EBITDA riportato: il totale delle ` +
-        `rettifiche legittime (${C_T1}) diviso per l'EBITDA riportato (${B_EBITDA_RIP}). E' lo stesso ` +
-        "rapporto che hai calcolato in apertura di modulo (M2-01): non basta guardare le rettifiche in " +
-        "valore assoluto, un compratore le giudica sempre in proporzione all'EBITDA di partenza.",
+        tx('M2-12-QOECOMPLETA.17', { C_T3, C_T1, B_EBITDA_RIP }),
       target: `Model!${C_T3}`,
       atteso: impattoPct,
       referenzia: [C_T1, B_EBITDA_RIP],
@@ -252,16 +249,16 @@ export default defineTemplate({
 
     const giudizi: Task[] = voci.map((v, i) => ({
       id: `V${i + 1}`,
-      prompt: `B${DATA_START + i}: la rettifica in A${DATA_START + i} e' documentabile e quindi accettabile? Scrivi SI o NO.`,
+      prompt: tx('M2-12-QOECOMPLETA.18', { p0: DATA_START + i, p1: DATA_START + i }),
       targetCell: `Model!B${DATA_START + i}`,
       check: [
         {
           kind: 'text' as const,
-          expected: v.valida,
+          expected: v.valida === 'SI' ? tx('common.tok.si') : tx('common.tok.no'),
           message:
             v.valida === 'SI'
-              ? "Questa rettifica corrisponde a un fatto documentato: va accettata, col suo segno."
-              : 'Questa proposta del management non ha fattura, verbale o contratto a supporto.',
+              ? tx('M2-12-QOECOMPLETA.19')
+              : tx('M2-12-QOECOMPLETA.20'),
         },
       ],
       skills: ['qoe.aggressive'],
@@ -273,55 +270,31 @@ export default defineTemplate({
     return {
       templateId: 'M2-12-QOECOMPLETA',
       seed: rng.seed,
-      brief: [
-        '## Lo schedule delle rettifiche: sintesi del modulo',
-        '',
-        "Hai visto, un caso alla volta, come poste infragruppo (compenso amministratore, affitti, costi " +
-          "personali del socio), one-off (spese legali, ristrutturazioni, plus/minusvalenze, effetti " +
-          "cambio, capitalizzazione impropria) e proposte aggressive del management rettificano l'EBITDA " +
-          "riportato. In un vero QoE queste categorie non arrivano una alla volta: arrivano tutte insieme, " +
-          "in un unico SCHEDULE misto che devi imparare a leggere riga per riga, senza perdere la disciplina " +
-          'del segno vista finora:',
-        '',
-        '> **EBITDA normalizzato = EBITDA riportato + Σ rettifiche**',
-        '',
-        "- un **costo** one-off o fuori mercato che ha gonfiato i costi (sgonfiato l'EBITDA riportato) si " +
-          'RIAGGIUNGE: rettifica **positiva**.',
-        "- un **ricavo/provento** one-off, o un costo nascosto da una capitalizzazione impropria, che ha " +
-          'gonfiato l\'EBITDA riportato si TOGLIE: rettifica **negativa**.',
-        '',
-        `L'EBITDA riportato di quest'anno e' ${eur(ebitdaRiportato)}. Qui sotto trovi ${num(n)} proposte di ` +
-          'rettifica, ciascuna con un importo GIA\' scritto col segno corretto per la sua categoria. Una di ' +
-          "queste e' una proposta del management senza documenti a supporto: per ogni riga decidi tu, nella " +
-          'colonna Valida, se e\' accettabile ("SI") o no ("NO").',
-        '',
-        "Poi guarda il risultato in proporzione: oltre il 15-20% dell'EBITDA riportato un buyer comincia a " +
-          'insospettirsi, anche se ogni voce e\' documentata, e mettera\' sotto torchio il multiplo.',
-      ].join('\n'),
+      brief: [tx('M2-12-QOECOMPLETA.21', { p0: eur(ebitdaRiportato), p1: num(n) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga(`A${ROW_TITOLO}`, ['QoE completa: dal bilancio sporco a un EBITDA adjusted difendibile'], {
+            riga(`A${ROW_TITOLO}`, [tx('M2-12-QOECOMPLETA.22')], {
               style: STILE_TITOLO,
             }),
-            riga(`A${ROW_SEZ1}`, ['Dati di partenza'], { style: STILE_TITOLO }),
-            colonna(`A${ROW_EBITDA}`, ['EBITDA riportato (da bilancio), €'], { style: STILE_ETICHETTA }),
+            riga(`A${ROW_SEZ1}`, [tx('M2-12-QOECOMPLETA.23')], { style: STILE_TITOLO }),
+            colonna(`A${ROW_EBITDA}`, [tx('M2-12-QOECOMPLETA.24')], { style: STILE_ETICHETTA }),
             [{ ref: B_EBITDA_RIP, content: ebitdaRiportato, style: STILE_INPUT, locked: true }],
 
-            riga(`A${ROW_SEZ2}`, ['Schedule delle rettifiche proposte — elenco completo'], { style: STILE_TITOLO }),
-            riga(`A${ROW_HEADER}`, ['Voce', 'Valida', 'Rettifica (€, con segno)'], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ2}`, [tx('M2-12-QOECOMPLETA.25')], { style: STILE_TITOLO }),
+            riga(`A${ROW_HEADER}`, [tx('M2-12-QOECOMPLETA.34'), tx('M2-12-QOECOMPLETA.35'), tx('M2-12-QOECOMPLETA.26')], { style: STILE_TITOLO }),
             colonna(`A${DATA_START}`, voci.map((v) => v.descrizione), { style: STILE_ETICHETTA }),
             voci.map((_, i) => ({ ref: `B${DATA_START + i}`, content: null, locked: false })),
             colonna(`C${DATA_START}`, voci.map((v) => v.importo), { style: STILE_INPUT }),
 
-            riga(`A${ROW_SEZ3}`, ['Normalizzazione'], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ3}`, [tx('M2-12-QOECOMPLETA.36')], { style: STILE_TITOLO }),
             colonna(
               `A${ROW_T1}`,
               [
-                'Totale rettifiche legittime, con segno (Valida = "SI"), €',
-                'EBITDA normalizzato, €',
-                "Impatto delle rettifiche sull'EBITDA riportato, %",
+                tx('M2-12-QOECOMPLETA.27'),
+                tx('M2-12-QOECOMPLETA.28'),
+                tx('M2-12-QOECOMPLETA.29'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -336,29 +309,25 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=SUMIF(${rifValida}:B${DATA_END},"SI",${rifRettifiche}:C${DATA_END}): somma solo gli importi ` +
-            'delle righe con Valida uguale a "SI", con il segno che ciascuna gia\' porta.',
+          tx('M2-12-QOECOMPLETA.30', { rifValida, DATA_END, rifRettifiche }),
           14,
           'T1',
         ),
         hint(
           'H2',
-          "Non serve ridecidere se una voce e' positiva o negativa: quella scelta e' gia' nella colonna " +
-            "Rettifica. Il tuo lavoro qui e' isolare le righe documentate, non riclassificarle.",
+          tx('M2-12-QOECOMPLETA.31'),
           10,
           'T1',
         ),
         hint(
           'H3',
-          `=${B_EBITDA_RIP}+${C_T1}: EBITDA riportato piu' il totale delle rettifiche legittime, che porta ` +
-            "gia' il segno netto corretto.",
+          tx('M2-12-QOECOMPLETA.32', { B_EBITDA_RIP, C_T1 }),
           8,
           'T2',
         ),
         hint(
           'H4',
-          `=${C_T1}/${B_EBITDA_RIP}: il totale delle rettifiche legittime in proporzione all'EBITDA ` +
-            `riportato (qui vale ${pct(impattoPct)}), non in valore assoluto.`,
+          tx('M2-12-QOECOMPLETA.33', { C_T1, B_EBITDA_RIP, p2: pct(impattoPct) }),
           8,
           'T3',
         ),

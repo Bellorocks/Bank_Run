@@ -41,10 +41,13 @@ import {
 import { revenue, ebitdaMargin, leverage, SECTORS } from '../../../rng/finance';
 import type { Task } from '../../types';
 
+import { sectorName, tx } from '../../../i18n/content';
 export default defineTemplate({
   id: 'M0B-03-LOGICI',
   module: 'M0-B',
-  title: 'AND, OR, NOT: piu\' criteri insieme',
+  get title() {
+    return tx('M0B-03-LOGICI.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -80,10 +83,7 @@ export default defineTemplate({
       {
         id: 'T1',
         prompt:
-          'In B13 scrivi una formula con AND che dia VERO solo se ENTRAMBI i criteri sono ' +
-          'soddisfatti: il punteggio (B2) e\' maggiore o uguale alla soglia (B7), E il fatturato ' +
-          '(B3) e\' maggiore o uguale alla soglia (B8). Se anche uno solo dei due manca, il target ' +
-          'non e\' idoneo.',
+          tx('M0B-03-LOGICI.2'),
         targetCell: 'Model!B13',
         check: [
           { kind: 'mustBeFormula' as const },
@@ -97,9 +97,7 @@ export default defineTemplate({
       {
         id: 'T2',
         prompt:
-          'In B14 scrivi una formula con OR che dia VERO se ALMENO UNO dei due allarmi scatta: ' +
-          'il margine EBITDA (B4) e\' sotto la soglia minima (B9), OPPURE la leva (B5) e\' sopra la ' +
-          'soglia massima (B10). Basta un solo criterio a rischio per finire in rosso.',
+          tx('M0B-03-LOGICI.3'),
         targetCell: 'Model!B14',
         check: [
           { kind: 'mustBeFormula' as const },
@@ -113,9 +111,7 @@ export default defineTemplate({
       {
         id: 'T3',
         prompt:
-          'In B15 scrivi una formula con NOT che sia VERO esattamente quando il target NON e\' ' +
-          'idoneo. Non ricalcolare i quattro criteri da capo: B13 il verdetto di idoneita\' lo ha ' +
-          'gia\', a te serve solo il suo contrario.',
+          tx('M0B-03-LOGICI.4'),
         targetCell: 'Model!B15',
         check: [
           { kind: 'mustBeFormula' as const },
@@ -131,40 +127,20 @@ export default defineTemplate({
     return {
       templateId: 'M0B-03-LOGICI',
       seed: rng.seed,
-      brief: [
-        '## Quando un confronto solo non basta',
-        '',
-        'Un comitato investimenti non decide mai su un numero isolato. I criteri si combinano:',
-        '"idoneo se il punteggio regge **e** il fatturato regge", "in allerta se il margine cede',
-        '**oppure** la leva sfonda". `AND`, `OR` e `NOT` vivono dentro la condizione, esattamente',
-        'come un confronto singolo: restituiscono VERO o FALSO, non cambiano niente altro.',
-        '',
-        '- `AND(criterio1,criterio2,...)` e\' VERO solo se **ogni** criterio e\' vero.',
-        '- `OR(criterio1,criterio2,...)` e\' VERO se **almeno uno** dei criteri e\' vero.',
-        '- `NOT(condizione)` inverte cio\' che trova: VERO diventa FALSO, e viceversa.',
-        '',
-        `Il target di oggi opera nel settore ${settore}. Il comitato gli ha assegnato un punteggio`,
-        `qualitativo di **${num(punteggio)}/100** (soglia minima: ${num(sogliaPunteggio)}/100) e ha`,
-        `verificato un fatturato di **${eur(fatturato)}** (soglia minima: ${eur(sogliaFatturato)}).`,
-        `Il margine EBITDA e\' **${pct(margine)}** (soglia minima: ${pct(sogliaMargine)}), la leva`,
-        `Debito/EBITDA e\' **${multiplo(leva)}** (soglia massima: ${multiplo(sogliaLeva)}).`,
-        '',
-        'Da questi otto numeri costruisci tre verdetti: idoneita\' (serve tutto), allerta (basta',
-        'poco) ed esclusione (il contrario dell\'idoneita\', senza rifare i conti).',
-      ].join('\n'),
+      brief: [tx('M0B-03-LOGICI.5', { settore: sectorName(settore), p1: num(punteggio), p2: num(sogliaPunteggio), p3: eur(fatturato), p4: eur(sogliaFatturato), p5: pct(margine), p6: pct(sogliaMargine), p7: multiplo(leva), p8: multiplo(sogliaLeva) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Test di idoneita\' — criteri combinati'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M0B-03-LOGICI.6')], { style: STILE_TITOLO }),
 
             blocco(
               'A2',
               [
-                ['Punteggio qualitativo (0-100)'],
-                ['Fatturato'],
-                ['Margine EBITDA'],
-                ['Leva (Debito/EBITDA)'],
+                [tx('M0B-03-LOGICI.7')],
+                [tx('M0B-03-LOGICI.21')],
+                [tx('M0B-03-LOGICI.8')],
+                [tx('M0B-03-LOGICI.9')],
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -173,14 +149,14 @@ export default defineTemplate({
             blocco('B4', [[margine]], { style: STILE_INPUT_PCT }),
             blocco('B5', [[leva]], { style: STILE_INPUT_MULTIPLO }),
 
-            riga('A6', ['Soglie del comitato'], { style: STILE_TITOLO }),
+            riga('A6', [tx('M0B-03-LOGICI.10')], { style: STILE_TITOLO }),
             blocco(
               'A7',
               [
-                ['Soglia minima punteggio'],
-                ['Soglia minima fatturato'],
-                ['Soglia minima margine EBITDA'],
-                ['Soglia massima leva'],
+                [tx('M0B-03-LOGICI.11')],
+                [tx('M0B-03-LOGICI.12')],
+                [tx('M0B-03-LOGICI.13')],
+                [tx('M0B-03-LOGICI.14')],
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -189,13 +165,13 @@ export default defineTemplate({
             blocco('B9', [[sogliaMargine]], { style: STILE_INPUT_PCT }),
             blocco('B10', [[sogliaLeva]], { style: STILE_INPUT_MULTIPLO }),
 
-            riga('A12', ['Verdetti'], { style: STILE_TITOLO }),
+            riga('A12', [tx('M0B-03-LOGICI.22')], { style: STILE_TITOLO }),
             blocco(
               'A13',
               [
-                ['Idoneo (punteggio E fatturato sopra soglia)'],
-                ['In rosso (margine O leva fuori soglia)'],
-                ['Escluso (il contrario di idoneo)'],
+                [tx('M0B-03-LOGICI.15')],
+                [tx('M0B-03-LOGICI.16')],
+                [tx('M0B-03-LOGICI.17')],
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -208,17 +184,17 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          'AND(B2>=B7,B3>=B8): due confronti, separati da una virgola, dentro le parentesi di AND.',
+          tx('M0B-03-LOGICI.18'),
           10,
           'T1',
         ),
         hint(
           'H2',
-          'OR(B4<B9,B5>B10): stessa forma di AND, cambia solo il nome della funzione e il fatto che ne basta uno vero.',
+          tx('M0B-03-LOGICI.19'),
           10,
           'T2',
         ),
-        hint('H3', 'NOT(B13): B13 e\' gia\' un VERO/FALSO, NOT si limita a girarlo.', 8, 'T3'),
+        hint('H3', tx('M0B-03-LOGICI.20'), 8, 'T3'),
       ],
       parScore: par(tasks, { letturaSecondi: 70 }),
       startAt: 'Model!B13',

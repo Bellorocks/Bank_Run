@@ -35,6 +35,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // Geometria fissa
 const B_EBITDA = 'B4'; // Target EBITDA LTM (dato)
 
@@ -60,7 +61,9 @@ const STILE_INPUT_PCT2 = { ...STILE_INPUT_PCT, numFmt: '0.00%' };
 export default defineTemplate({
   id: 'M8-02-DEBTSTRUCTURE',
   module: 'M8',
-  title: 'Struttura del debito: Senior, Mezzanine e interessi PIK',
+  get title() {
+    return tx('M8-02-DEBTSTRUCTURE.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -89,30 +92,16 @@ export default defineTemplate({
     const expectedCashInt = amtTla * rateTla + amtTlb * rateTlb + amtMezz * rateMezzCash;
     const expectedPikInt = amtMezz * rateMezzPik;
 
-    const brief = [
-      `Stai strutturando il debito per l'acquisizione di una societa' con **EBITDA LTM** di **${eur(ebitda)}**.`,
-      '',
-      'La struttura concordata con i finanziatori:',
-      `- **Term Loan A**: ${multiplo(multTla)} l'EBITDA, interesse cash ${pct(rateTla, 2)}`,
-      `- **Term Loan B**: ${multiplo(multTlb)} l'EBITDA, interesse cash ${pct(rateTlb, 2)}`,
-      `- **Mezzanine**: ${multiplo(multMezz)} l'EBITDA, interesse cash ${pct(rateMezzCash, 2)} piu' ` +
-        `interesse **PIK** ${pct(rateMezzPik, 2)}`,
-      '',
-      "L'interesse PIK (payment in kind) non esce dalla cassa: si capitalizza e fa crescere il capitale " +
-        'che il mezzanine dovra\' ricevere a scadenza. Per questo va tenuto separato dagli interessi pagati ' +
-        'in cassa, che invece pesano sul servizio del debito di ogni anno.',
-      '',
-      'Calcola il debito totale, gli interessi cash del primo anno e gli interessi PIK del primo anno.',
-    ].join('\n');
+    const brief = [tx('M8-02-DEBTSTRUCTURE.2', { p0: eur(ebitda), p1: multiplo(multTla), p2: pct(rateTla, 2), p3: multiplo(multTlb), p4: pct(rateTlb, 2), p5: multiplo(multMezz), p6: pct(rateMezzCash, 2), p7: pct(rateMezzPik, 2) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['STRUTTURA DEL DEBITO LBO'], { style: STILE_TITOLO }),
-      riga('A3', ['Parametri generali', 'Valore'], { style: STILE_TITOLO }),
-      riga('A4', ['EBITDA LTM (€)'], { style: STILE_ETICHETTA }),
+      riga('A1', [tx('M8-02-DEBTSTRUCTURE.3')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M8-02-DEBTSTRUCTURE.4'), tx('M8-02-DEBTSTRUCTURE.22')], { style: STILE_TITOLO }),
+      riga('A4', [tx('M8-02-DEBTSTRUCTURE.5')], { style: STILE_ETICHETTA }),
       [{ ref: B_EBITDA, content: ebitda, style: STILE_INPUT, locked: true }],
 
-      riga('A6', ['Tranche', 'Multiplo EBITDA', 'Importo (€)', 'Tasso cash', 'Tasso PIK'], { style: STILE_TITOLO }),
-      colonna('A7', ['Term Loan A', 'Term Loan B', 'Mezzanine', 'TOTALE DEBITO'], { style: STILE_ETICHETTA }),
+      riga('A6', [tx('M8-02-DEBTSTRUCTURE.23'), tx('M8-02-DEBTSTRUCTURE.6'), tx('M8-02-DEBTSTRUCTURE.7'), tx('M8-02-DEBTSTRUCTURE.8'), tx('M8-02-DEBTSTRUCTURE.9')], { style: STILE_TITOLO }),
+      colonna('A7', [tx('M8-02-DEBTSTRUCTURE.10'), tx('M8-02-DEBTSTRUCTURE.11'), tx('M8-02-DEBTSTRUCTURE.24'), tx('M8-02-DEBTSTRUCTURE.12')], { style: STILE_ETICHETTA }),
       colonna(B_MULT_TLA, [multTla, multTlb, multMezz], { style: STILE_INPUT_MULTIPLO }),
       colonna(C_AMT_TLA, [`=${B_EBITDA}*${B_MULT_TLA}`, `=${B_EBITDA}*${B_MULT_TLB}`, `=${B_EBITDA}*${B_MULT_MEZZ}`], {
         style: STILE_FORMULA,
@@ -122,15 +111,15 @@ export default defineTemplate({
       [{ ref: 'B10', content: '=SUM(B7:B9)', style: { ...STILE_FORMULA, numFmt: '0.00x' }, locked: true }],
       [{ ref: C_TOT_DEBT, content: null, style: STILE_TOTALE, locked: false }],
 
-      riga('A12', ['Servizio del debito, anno 1', 'Importo (€)'], { style: STILE_TITOLO }),
-      colonna('A13', ['Interessi cash totali (€)', 'Interessi PIK capitalizzati (€)'], { style: STILE_ETICHETTA }),
+      riga('A12', [tx('M8-02-DEBTSTRUCTURE.13'), tx('M8-02-DEBTSTRUCTURE.14')], { style: STILE_TITOLO }),
+      colonna('A13', [tx('M8-02-DEBTSTRUCTURE.15'), tx('M8-02-DEBTSTRUCTURE.16')], { style: STILE_ETICHETTA }),
       colonna('B13', [null, null], { style: STILE_FORMULA, locked: false }),
     ]);
 
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `In ${C_TOT_DEBT} il debito totale raccolto con le tre tranche.`,
+        prompt: tx('M8-02-DEBTSTRUCTURE.17', { C_TOT_DEBT }),
         target: `Model!${C_TOT_DEBT}`,
         atteso: totDebt,
         referenzia: [C_AMT_TLA, C_AMT_TLB, C_AMT_MEZZ],
@@ -141,8 +130,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T2',
         prompt:
-          `In ${C_CASH_INT} gli interessi che escono dalla cassa nel primo anno, sommando le tre tranche ` +
-          'ciascuna al proprio tasso cash. Il PIK non c\'entra.',
+          tx('M8-02-DEBTSTRUCTURE.18', { C_CASH_INT }),
         target: `Model!${C_CASH_INT}`,
         atteso: expectedCashInt,
         referenzia: [C_AMT_TLA, C_AMT_TLB, C_AMT_MEZZ, D_RATE_TLA, D_RATE_TLB, D_RATE_MEZZ_CASH],
@@ -152,7 +140,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T3',
-        prompt: `In ${C_PIK_INT} gli interessi PIK maturati nel primo anno, che si aggiungono al capitale del mezzanine.`,
+        prompt: tx('M8-02-DEBTSTRUCTURE.19', { C_PIK_INT }),
         target: `Model!${C_PIK_INT}`,
         atteso: expectedPikInt,
         referenzia: [C_AMT_MEZZ, E_RATE_MEZZ_PIK],
@@ -174,11 +162,11 @@ export default defineTemplate({
         hint('H1', `=SUM(${C_AMT_TLA}:${C_AMT_MEZZ})`, 10, 'T1'),
         hint(
           'H2',
-          `=SUMPRODUCT(${C_AMT_TLA}:${C_AMT_MEZZ},${D_RATE_TLA}:${D_RATE_MEZZ_CASH}), oppure ogni importo per il suo tasso cash, sommati.`,
+          tx('M8-02-DEBTSTRUCTURE.20', { C_AMT_TLA, C_AMT_MEZZ, D_RATE_TLA, D_RATE_MEZZ_CASH }),
           10,
           'T2',
         ),
-        hint('H3', `=${C_AMT_MEZZ}*${E_RATE_MEZZ_PIK}: il PIK si calcola solo sul mezzanine.`, 10, 'T3'),
+        hint('H3', tx('M8-02-DEBTSTRUCTURE.21', { C_AMT_MEZZ, E_RATE_MEZZ_PIK }), 10, 'T3'),
       ],
     };
   },

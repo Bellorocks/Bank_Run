@@ -34,6 +34,7 @@ import {
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 const B_TAX = 'B4';
 const B_PN_INIT = 'B5';
 const B_PN_REPORTED = 'B6';
@@ -48,7 +49,9 @@ const B_SOVRASTIMA = 'B16';
 export default defineTemplate({
   id: 'M11-06-RESTATEMENT',
   module: 'M11',
-  title: 'Restatement: correzione retroattiva di serie storiche',
+  get title() {
+    return tx('M11-06-RESTATEMENT.title');
+  },
   rank: 4,
   mode: 'PRACTICE',
   estimatedSeconds: 360,
@@ -79,8 +82,7 @@ export default defineTemplate({
     const t1: Task = {
       id: 'T1',
       prompt:
-        `Riga ${ROW_REST}: l'utile netto restated dei due anni, togliendo l'effetto netto delle rettifiche. ` +
-        `Una formula in B${ROW_REST}, copiata in C${ROW_REST}.`,
+        tx('M11-06-RESTATEMENT.2', { ROW_REST }),
       targetCell: `Model!${rg}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -99,7 +101,7 @@ export default defineTemplate({
       t1,
       taskFormula({
         id: 'T2',
-        prompt: `In ${B_PN_REST} il patrimonio netto restated a fine anno 2.`,
+        prompt: tx('M11-06-RESTATEMENT.3', { B_PN_REST }),
         target: `Model!${B_PN_REST}`,
         atteso: pnRest,
         referenzia: [B_PN_INIT, `B${ROW_REST}`, `C${ROW_REST}`, `B${ROW_DIV}`, `C${ROW_DIV}`],
@@ -109,7 +111,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T3',
-        prompt: `In ${B_SOVRASTIMA} di quanto il patrimonio netto riportato era sovrastimato.`,
+        prompt: tx('M11-06-RESTATEMENT.4', { B_SOVRASTIMA }),
         target: `Model!${B_SOVRASTIMA}`,
         atteso: sovrastima,
         referenzia: [B_PN_REPORTED, B_PN_REST],
@@ -119,38 +121,27 @@ export default defineTemplate({
       }),
     ];
 
-    const brief = [
-      'La due diligence contabile ha trovato due problemi negli ultimi due esercizi: ricavi riconosciuti in ' +
-        "anticipo e costi di sviluppo capitalizzati che andavano spesati. Vanno corretti all'indietro.",
-      '',
-      `- Patrimonio netto a inizio anno 1: ${eur(pnInit)}; aliquota fiscale ${pct(taxRate, 0)}`,
-      '- Le rettifiche sono **ante imposte**: ridurre l\'utile ante imposte riduce anche le imposte, quindi ' +
-        "l'utile netto scende solo della parte netta.",
-      '- I dividendi gia\' distribuiti non cambiano: sono usciti davvero.',
-      '',
-      "Calcola gli utili restated, il patrimonio netto restated a fine anno 2 e quanto quello riportato " +
-        "era sovrastimato. Controllo: la sovrastima e' la somma delle rettifiche nette.",
-    ].join('\n');
+    const brief = [tx('M11-06-RESTATEMENT.5', { p0: eur(pnInit), p1: pct(taxRate, 0) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['RESTATEMENT RETROATTIVO BIENNIO STORICO'], { style: STILE_TITOLO }),
-      riga('A3', ['Parametri generali', 'Valore'], { style: STILE_TITOLO }),
-      colonna('A4', ['Aliquota fiscale', 'Patrimonio netto a inizio anno 1 (€)', 'Patrimonio netto riportato a fine anno 2 (€)'], {
+      riga('A1', [tx('M11-06-RESTATEMENT.6')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M11-06-RESTATEMENT.7'), tx('M11-06-RESTATEMENT.24')], { style: STILE_TITOLO }),
+      colonna('A4', [tx('M11-06-RESTATEMENT.8'), tx('M11-06-RESTATEMENT.9'), tx('M11-06-RESTATEMENT.10')], {
         style: STILE_ETICHETTA,
       }),
       [{ ref: B_TAX, content: taxRate, style: STILE_INPUT_PCT, locked: true }],
       colonna(B_PN_INIT, [pnInit, pnReported], { style: STILE_INPUT }),
 
-      riga('A8', ['Dati storici e rettifiche (€)', 'Anno 1', 'Anno 2'], { style: STILE_TITOLO }),
-      colonna(`A${ROW_NI}`, ['Utile netto riportato', 'Rettifiche ante imposte da spesare', 'Dividendi distribuiti'], {
+      riga('A8', [tx('M11-06-RESTATEMENT.11'), tx('M11-06-RESTATEMENT.12'), tx('M11-06-RESTATEMENT.13')], { style: STILE_TITOLO }),
+      colonna(`A${ROW_NI}`, [tx('M11-06-RESTATEMENT.14'), tx('M11-06-RESTATEMENT.15'), tx('M11-06-RESTATEMENT.16')], {
         style: STILE_ETICHETTA,
       }),
       riga(`B${ROW_NI}`, ni, { style: STILE_INPUT }),
       riga(`B${ROW_ADJ}`, adj, { style: STILE_INPUT }),
       riga(`B${ROW_DIV}`, div, { style: STILE_INPUT }),
 
-      riga('A13', ['Valori restated (€)', 'Anno 1', 'Anno 2'], { style: STILE_TITOLO }),
-      colonna(`A${ROW_REST}`, ['Utile netto restated', 'Patrimonio netto restated a fine anno 2', 'Sovrastima del PN riportato'], {
+      riga('A13', [tx('M11-06-RESTATEMENT.17'), tx('M11-06-RESTATEMENT.18'), tx('M11-06-RESTATEMENT.19')], { style: STILE_TITOLO }),
+      colonna(`A${ROW_REST}`, [tx('M11-06-RESTATEMENT.20'), tx('M11-06-RESTATEMENT.21'), tx('M11-06-RESTATEMENT.22')], {
         style: STILE_ETICHETTA,
       }),
       riga(`B${ROW_REST}`, [null, null], { style: STILE_FORMULA, locked: false }),
@@ -166,7 +157,7 @@ export default defineTemplate({
       parScore: par(tasks, { letturaSecondi: 60 }),
       startAt: `Model!B${ROW_REST}`,
       hints: [
-        hint('H1', `In B${ROW_REST}: =B${ROW_NI}-B${ROW_ADJ}*(1-$B$4), poi copia a destra.`, 10, 'T1'),
+        hint('H1', tx('M11-06-RESTATEMENT.23', { ROW_REST, ROW_NI, ROW_ADJ }), 10, 'T1'),
         hint('H2', `=B5+SUM(B${ROW_REST}:C${ROW_REST})-SUM(B${ROW_DIV}:C${ROW_DIV})`, 10, 'T2'),
         hint('H3', `=B6-B15`, 10, 'T3'),
       ],

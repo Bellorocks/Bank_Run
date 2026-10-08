@@ -50,6 +50,7 @@ import {
 } from '../../authoring';
 import { roundTo } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
 const B_EV = 'B5'; // valore d'impresa concordato (dato, bloccato)
 const B_DEBITO = 'B6'; // debito netto alla locked box date (dato, bloccato)
@@ -63,7 +64,9 @@ const B_PAGATO = 'B13'; // T3
 export default defineTemplate({
   id: 'M3-07-LOCKEDBOX',
   module: 'M3',
-  title: 'Locked box vs completion accounts',
+  get title() {
+    return tx('M3-07-LOCKEDBOX.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 280,
@@ -89,9 +92,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_EQUITY} calcola il prezzo dell'equity fissato alla locked box date: il valore d'impresa ` +
-        `(${B_EV}) meno il debito netto risultante dal bilancio a quella data (${B_DEBITO}). ` +
-        "Il compratore compra le azioni, non l'azienda \"cash free, debt free\": il debito va tolto.",
+        tx('M3-07-LOCKEDBOX.2', { B_EQUITY, B_EV, B_DEBITO }),
       target: `Model!${B_EQUITY}`,
       atteso: prezzoEquity,
       referenzia: [B_EV, B_DEBITO],
@@ -103,10 +104,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_TICKING} calcola la ticking fee: il prezzo dell'equity (${B_EQUITY}) per il tasso annuo ` +
-        `concordato (${B_TASSO}) per la quota di anno fra locked box date e closing (giorni in ${B_GIORNI}, ` +
-        "anno di 365 giorni). Compensa il venditore per la cassa che l'azienda genera in quei giorni e che " +
-        'restera\' al compratore.',
+        tx('M3-07-LOCKEDBOX.3', { B_TICKING, B_EQUITY, B_TASSO, B_GIORNI }),
       target: `Model!${B_TICKING}`,
       atteso: tickingFee,
       referenzia: [B_EQUITY, B_TASSO, B_GIORNI],
@@ -118,9 +116,7 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        `In ${B_PAGATO} calcola l'importo che il compratore paga al closing: prezzo dell'equity ` +
-        `(${B_EQUITY}) piu' ticking fee (${B_TICKING}). E' gia' noto oggi, al signing: nessun ` +
-        'aggiustamento successivo sui conti al closing.',
+        tx('M3-07-LOCKEDBOX.4', { B_PAGATO, B_EQUITY, B_TICKING }),
       target: `Model!${B_PAGATO}`,
       atteso: pagatoAlClosing,
       referenzia: [B_EQUITY, B_TICKING],
@@ -134,44 +130,21 @@ export default defineTemplate({
     return {
       templateId: 'M3-07-LOCKEDBOX',
       seed: rng.seed,
-      brief: [
-        '## Locked box vs completion accounts: due modi di fissare il prezzo',
-        '',
-        "Nel livello del peg hai lavorato con le **completion accounts**: prezzo concordato al signing, " +
-          'poi aggiustato DOPO il closing sui conti veri a quella data. Fino al closing il rischio ' +
-          "economico resta al venditore; il prezzo finale si conosce solo settimane dopo.",
-        '',
-        "Il **locked box** rovescia lo schema. Il prezzo dell'equity si fissa sui conti di una data " +
-          "PASSATA, la locked box date (di solito l'ultimo bilancio certificato): valore d'impresa meno " +
-          "debito netto a quella data. Da li' il prezzo non si muove piu'.",
-        '',
-        "Dalla locked box date **rischio e beneficio economico passano al compratore**: se l'azienda va " +
-          "bene, la cassa generata resta nell'azienda che compra; se va male, il problema e' suo. Il " +
-          'venditore pero\' gestisce ancora l\'azienda fino al closing, quindi:',
-        '',
-        "- non deve farne uscire valore a proprio favore (il **leakage**, prossimo livello);",
-        "- viene compensato con una **ticking fee**: un interesse concordato sul prezzo dell'equity per " +
-          'i giorni fra locked box date e closing.',
-        '',
-        `Valore d'impresa concordato: ${eurM(enterpriseValue)}. Debito netto alla locked box date: ` +
-          `${eur(debitoNetto)}. Ticking fee al ${pct(tassoAnnuo)} annuo per ${giorni} giorni.`,
-        '',
-        "Calcola il prezzo dell'equity, la ticking fee e l'importo pagato al closing.",
-      ].join('\n'),
+      brief: [tx('M3-07-LOCKEDBOX.5', { p0: eurM(enterpriseValue), p1: eur(debitoNetto), p2: pct(tassoAnnuo), giorni })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Locked box vs completion accounts'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M3-07-LOCKEDBOX.6')], { style: STILE_TITOLO }),
 
-            riga('A3', ['Dati concordati al signing'], { style: STILE_TITOLO }),
+            riga('A3', [tx('M3-07-LOCKEDBOX.7')], { style: STILE_TITOLO }),
             colonna(
               'A5',
               [
-                "Valore d'impresa concordato, €",
-                'Debito netto alla locked box date, €',
-                'Tasso annuo della ticking fee',
-                'Giorni fra locked box date e closing',
+                tx('M3-07-LOCKEDBOX.8'),
+                tx('M3-07-LOCKEDBOX.9'),
+                tx('M3-07-LOCKEDBOX.10'),
+                tx('M3-07-LOCKEDBOX.11'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -180,10 +153,10 @@ export default defineTemplate({
             [{ ref: B_TASSO, content: tassoAnnuo, style: STILE_INPUT_PCT, locked: true }],
             [{ ref: B_GIORNI, content: giorni, style: STILE_INPUT, locked: true }],
 
-            riga('A10', ['Schema locked box'], { style: STILE_TITOLO }),
+            riga('A10', [tx('M3-07-LOCKEDBOX.12')], { style: STILE_TITOLO }),
             colonna(
               'A11',
-              ["Prezzo dell'equity alla locked box date, €", 'Ticking fee, €', 'Pagato al closing, €'],
+              [tx('M3-07-LOCKEDBOX.13'), tx('M3-07-LOCKEDBOX.14'), tx('M3-07-LOCKEDBOX.15')],
               { style: STILE_ETICHETTA },
             ),
             [{ ref: B_EQUITY, content: null, locked: false, style: STILE_FORMULA }],
@@ -195,14 +168,14 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', `=${B_EV}-${B_DEBITO}: il compratore paga le azioni, quindi toglie il debito netto.`, 8, 'T1'),
+        hint('H1', tx('M3-07-LOCKEDBOX.16', { B_EV, B_DEBITO }), 8, 'T1'),
         hint(
           'H2',
-          `=${B_EQUITY}*${B_TASSO}*${B_GIORNI}/365: prezzo dell'equity per tasso annuo per quota di anno.`,
+          tx('M3-07-LOCKEDBOX.17', { B_EQUITY, B_TASSO, B_GIORNI }),
           10,
           'T2',
         ),
-        hint('H3', `=${B_EQUITY}+${B_TICKING}: prezzo fisso piu' compenso per l'attesa.`, 8, 'T3'),
+        hint('H3', tx('M3-07-LOCKEDBOX.18', { B_EQUITY, B_TICKING }), 8, 'T3'),
       ],
       parScore: par(tasks, { letturaSecondi: 120 }),
       startAt: `Model!${B_EQUITY}`,

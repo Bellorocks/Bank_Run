@@ -47,6 +47,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // --- Geometria fissa: non dipende dal seed. --------------------------------
 const ROW_TITOLO = 1;
 const ROW_SEZ1 = 3; // "Cassa di bilancio: cosa e' davvero disponibile"
@@ -71,7 +72,9 @@ const B_T2 = `B${ROW_T2}`;
 export default defineTemplate({
   id: 'M4-04-CASHLIKE',
   module: 'M4',
-  title: 'Cash-like: la cassa che non riduce davvero il debito',
+  get title() {
+    return tx('M4-04-CASHLIKE.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 220,
@@ -116,14 +119,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_T1} calcola la cassa realmente disponibile: la cassa "cash-like" che l'azienda ` +
-        `puo' davvero usare per abbattere il debito. Parti dalla cassa totale di bilancio (${B_CASSA_TOT}) ` +
-        `e sottrai sia la restricted cash (${B_RESTRICTED}) — vincolata a garanzia di un covenant o di una ` +
-        `linea di credito, l'azienda non puo' spenderla liberamente — sia la cassa operativa minima ` +
-        `(${B_MINIMA}) — il minimo indispensabile per far girare il business senza restare a corto di ` +
-        "liquidita', quindi anch'essa non davvero distribuibile. Entrambe le voci sono in bilancio come " +
-        "cassa, ma nessuna delle due riduce il debito netto: la formula deve escluderle esplicitamente, " +
-        'referenziando tutte e tre le celle.',
+        tx('M4-04-CASHLIKE.2', { B_T1, B_CASSA_TOT, B_RESTRICTED, B_MINIMA }),
       target: `Model!${B_T1}`,
       atteso: cassaDisponibile,
       referenzia: [B_CASSA_TOT, B_RESTRICTED, B_MINIMA],
@@ -135,12 +131,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_T2} rivedi il Net Debt tenendo conto che meno cassa e' davvero disponibile. Il Net Debt di ` +
-        `base (${B_NETDEBT_BASE}) era stato calcolato usando la cassa TOTALE di bilancio (${B_CASSA_TOT}); ` +
-        `ora sai che la cassa davvero disponibile e' solo quella appena isolata (${B_T1}). La differenza fra ` +
-        "cassa totale e cassa disponibile e' esattamente la cassa che NON riduce il debito: il Net Debt di " +
-        "base l'aveva sottratta per intero, quindi va riaggiunta. Il Net Debt aumenta — non perche' il " +
-        "debito sia cambiato, ma perche' una parte della cassa che sembrava disponibile non lo e'.",
+        tx('M4-04-CASHLIKE.3', { B_T2, B_NETDEBT_BASE, B_CASSA_TOT, B_T1 }),
       target: `Model!${B_T2}`,
       atteso: netDebtRivisto,
       referenzia: [B_NETDEBT_BASE, B_CASSA_TOT, B_T1],
@@ -154,45 +145,22 @@ export default defineTemplate({
     return {
       templateId: 'M4-04-CASHLIKE',
       seed: rng.seed,
-      brief: [
-        "## Cash-like: non tutta la cassa e' davvero disponibile",
-        '',
-        "Nel bridge da Enterprise Value a Equity Value la cassa riduce il Net Debt — ma solo la cassa " +
-          '**davvero disponibile**. Una parte della cassa che compare in bilancio non lo e\':',
-        '',
-        "- **restricted cash**: vincolata contrattualmente, tipicamente a garanzia di un covenant o di " +
-          "una linea di credito. E' li', in bilancio, ma l'azienda non puo' usarla liberamente per " +
-          'ripagare debito.',
-        "- **cassa operativa minima**: il minimo indispensabile per far girare il business — pagare " +
-          "fornitori e stipendi tra un incasso e l'altro — senza restare a corto di liquidita'. Non e' " +
-          "vincolata da un contratto, ma non e' comunque distribuibile: e' capitale di esercizio " +
-          'travestito da cassa.',
-        '',
-        `La cassa totale di bilancio e' ${eur(cassaTotale)}. Di questa, ${eur(restrictedCash)} sono ` +
-          `restricted cash e ${eur(cassaMinima)} sono cassa operativa minima stimata: nessuna delle due ` +
-          "va trattata come disponibile per abbattere il debito. Trattare tutta la cassa allo stesso modo " +
-          "non e' solo ottimistico: sovrastima quanto debito l'azienda puo' davvero ripagare, e quindi " +
-          "sovrastima l'Equity Value.",
-        '',
-        `Il Net Debt di base, gia' calcolato usando la cassa TOTALE, e' ${eur(netDebtBase)}. Il tuo compito ` +
-          "e' isolare la cassa realmente disponibile, poi rivedere il Net Debt di conseguenza: se meno " +
-          "cassa e' davvero disponibile, il Net Debt che conta per il bridge e' PIU' ALTO di quello di base.",
-      ].join('\n'),
+      brief: [tx('M4-04-CASHLIKE.4', { p0: eur(cassaTotale), p1: eur(restrictedCash), p2: eur(cassaMinima), p3: eur(netDebtBase) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga(`A${ROW_TITOLO}`, ["Cash-like: la cassa che non riduce davvero il debito"], {
+            riga(`A${ROW_TITOLO}`, [tx('M4-04-CASHLIKE.5')], {
               style: STILE_TITOLO,
             }),
 
-            riga(`A${ROW_SEZ1}`, ["Cassa di bilancio: cosa e' davvero disponibile"], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ1}`, [tx('M4-04-CASHLIKE.6')], { style: STILE_TITOLO }),
             colonna(
               `A${ROW_CASSA_TOT}`,
               [
-                'Cassa e mezzi equivalenti di bilancio, €',
-                'Restricted cash (vincolata da covenant/garanzia), €',
-                'Cassa operativa minima stimata, €',
+                tx('M4-04-CASHLIKE.7'),
+                tx('M4-04-CASHLIKE.8'),
+                tx('M4-04-CASHLIKE.9'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -200,14 +168,14 @@ export default defineTemplate({
             [{ ref: B_RESTRICTED, content: restrictedCash, style: STILE_INPUT, locked: true }],
             [{ ref: B_MINIMA, content: cassaMinima, style: STILE_INPUT, locked: true }],
 
-            riga(`A${ROW_SEZ2}`, ['Cassa realmente disponibile (cash-like)'], { style: STILE_TITOLO }),
-            colonna(`A${ROW_T1}`, ['Cassa disponibile per ridurre il debito, €'], { style: STILE_ETICHETTA }),
+            riga(`A${ROW_SEZ2}`, [tx('M4-04-CASHLIKE.10')], { style: STILE_TITOLO }),
+            colonna(`A${ROW_T1}`, [tx('M4-04-CASHLIKE.11')], { style: STILE_ETICHETTA }),
             [{ ref: B_T1, content: null, locked: false, style: STILE_FORMULA }],
 
-            riga(`A${ROW_SEZ3}`, ['Net Debt rivisto'], { style: STILE_TITOLO }),
+            riga(`A${ROW_SEZ3}`, [tx('M4-04-CASHLIKE.12')], { style: STILE_TITOLO }),
             colonna(
               `A${ROW_NETDEBT_BASE}`,
-              ['Net Debt di base (con cassa totale), €', 'Net Debt rivisto (con cassa disponibile), €'],
+              [tx('M4-04-CASHLIKE.13'), tx('M4-04-CASHLIKE.14')],
               { style: STILE_ETICHETTA },
             ),
             [{ ref: B_NETDEBT_BASE, content: netDebtBase, style: STILE_INPUT, locked: true }],
@@ -220,15 +188,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_CASSA_TOT}-${B_RESTRICTED}-${B_MINIMA}: cassa totale meno restricted cash meno cassa ` +
-            'operativa minima.',
+          tx('M4-04-CASHLIKE.15', { B_CASSA_TOT, B_RESTRICTED, B_MINIMA }),
           10,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_NETDEBT_BASE}+(${B_CASSA_TOT}-${B_T1}): Net Debt di base PIU' la cassa che NON e' ` +
-            "davvero disponibile (la differenza fra cassa totale e cassa disponibile).",
+          tx('M4-04-CASHLIKE.16', { B_NETDEBT_BASE, B_CASSA_TOT, B_T1 }),
           12,
           'T2',
         ),

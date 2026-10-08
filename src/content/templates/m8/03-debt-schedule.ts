@@ -35,6 +35,7 @@ import {
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 const ANNI = 3;
 const COLONNE = ['C', 'D', 'E'] as const;
 
@@ -54,7 +55,9 @@ const range = (row: number) => `${COLONNE[0]}${row}:${COLONNE[ANNI - 1]}${row}`;
 export default defineTemplate({
   id: 'M8-03-DEBTSCHEDULE',
   module: 'M8',
-  title: 'Debt schedule: ammortamento obbligatorio e cash sweep',
+  get title() {
+    return tx('M8-03-DEBTSCHEDULE.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 420,
@@ -95,61 +98,49 @@ export default defineTemplate({
       rigaTask(
         'T1',
         ROW_INTERESSI,
-        `Riga ${ROW_INTERESSI}: gli interessi di ogni anno, sul debito di inizio anno.`,
+        tx('M8-03-DEBTSCHEDULE.2', { ROW_INTERESSI }),
         interessi,
         [`${c1}${ROW_INIZIALE}`, B_TASSO],
       ),
       rigaTask(
         'T2',
         ROW_EXCESS,
-        `Riga ${ROW_EXCESS}: l'excess cash, cioe' il CFADS che resta dopo aver pagato interessi e ammortamento obbligatorio.`,
+        tx('M8-03-DEBTSCHEDULE.3', { ROW_EXCESS }),
         excess,
         [`${c1}${ROW_CFADS}`, `${c1}${ROW_INTERESSI}`, B_AMORT],
       ),
       rigaTask(
         'T3',
         ROW_SWEEP,
-        `Riga ${ROW_SWEEP}: il cash sweep, la parte dell'excess cash che il contratto destina al rimborso anticipato.`,
+        tx('M8-03-DEBTSCHEDULE.4', { ROW_SWEEP }),
         sweep,
         [`${c1}${ROW_EXCESS}`, B_SWEEP],
       ),
       rigaTask(
         'T4',
         ROW_FINALE,
-        `Riga ${ROW_FINALE}: il debito di fine anno, dopo ammortamento obbligatorio e cash sweep.`,
+        tx('M8-03-DEBTSCHEDULE.5', { ROW_FINALE }),
         finale,
         [`${c1}${ROW_INIZIALE}`, B_AMORT, `${c1}${ROW_SWEEP}`],
       ),
     ];
 
-    const brief = [
-      '## Debt schedule',
-      '',
-      `Debito senior al closing: ${eur(debito0)}, al ${pct(tasso, 2)}. Il contratto prevede un ammortamento ` +
-        `obbligatorio di ${eur(amort)} l'anno e un **cash sweep** del ${pct(sweepPct, 0)}: quella quota ` +
-        "dell'excess cash va obbligatoriamente a rimborso anticipato.",
-      '',
-      "L'ordine conta: col CFADS si pagano prima gli interessi (sul debito di inizio anno), poi " +
-        "l'ammortamento obbligatorio; quel che resta e' l'excess cash, e solo una parte di quello va in sweep.",
-      '',
-      'Costruisci le quattro righe del piano, una formula per riga copiata sui tre anni. Il debito di ' +
-        "inizio anno e' gia' collegato a quello di fine anno precedente.",
-    ].join('\n');
+    const brief = [tx('M8-03-DEBTSCHEDULE.6', { p0: eur(debito0), p1: pct(tasso, 2), p2: eur(amort), p3: pct(sweepPct, 0) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['DEBT SCHEDULE & CASH SWEEP'], { style: STILE_TITOLO }),
-      riga('A3', ['Ipotesi'], { style: STILE_TITOLO }),
-      colonna('A4', ["Tasso d'interesse", 'Ammortamento obbligatorio annuo, €', 'Quota di cash sweep'], {
+      riga('A1', [tx('M8-03-DEBTSCHEDULE.7')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M8-03-DEBTSCHEDULE.18')], { style: STILE_TITOLO }),
+      colonna('A4', [tx('M8-03-DEBTSCHEDULE.8'), tx('M8-03-DEBTSCHEDULE.9'), tx('M8-03-DEBTSCHEDULE.10')], {
         style: STILE_ETICHETTA,
       }),
       [{ ref: B_TASSO, content: tasso, style: { ...STILE_INPUT_PCT, numFmt: '0.00%' }, locked: true }],
       [{ ref: B_AMORT, content: amort, style: STILE_INPUT, locked: true }],
       [{ ref: B_SWEEP, content: sweepPct, style: { ...STILE_INPUT_PCT, numFmt: '0%' }, locked: true }],
 
-      riga('A8', ['Piano (€)', 'Closing', ...COLONNE.map((_, i) => `Anno ${i + 1}`)], { style: STILE_TITOLO }),
+      riga('A8', [tx('M8-03-DEBTSCHEDULE.11'), tx('M8-03-DEBTSCHEDULE.19'), ...COLONNE.map((_, i) => `Anno ${i + 1}`)], { style: STILE_TITOLO }),
       colonna(
         `A${ROW_CFADS}`,
-        ['CFADS', 'Debito di inizio anno', 'Interessi', 'Excess cash', 'Cash sweep', 'Debito di fine anno'],
+        [tx('M8-03-DEBTSCHEDULE.20'), tx('M8-03-DEBTSCHEDULE.12'), tx('M8-03-DEBTSCHEDULE.21'), tx('M8-03-DEBTSCHEDULE.13'), tx('M8-03-DEBTSCHEDULE.14'), tx('M8-03-DEBTSCHEDULE.15')],
         { style: STILE_ETICHETTA },
       ),
       riga(`${c1}${ROW_CFADS}`, cfads, { style: STILE_INPUT }),
@@ -178,7 +169,7 @@ export default defineTemplate({
       parScore: par(tasks, { letturaSecondi: 60 }),
       startAt: `Model!${c1}${ROW_INTERESSI}`,
       hints: [
-        hint('H1', `In ${c1}${ROW_INTERESSI}: =${c1}${ROW_INIZIALE}*$B$4, poi copia a destra.`, 10, 'T1'),
+        hint('H1', tx('M8-03-DEBTSCHEDULE.16', { c1, ROW_INTERESSI, ROW_INIZIALE }), 10, 'T1'),
         hint('H2', `In ${c1}${ROW_EXCESS}: =${c1}${ROW_CFADS}-${c1}${ROW_INTERESSI}-$B$5.`, 10, 'T2'),
         hint('H3', `In ${c1}${ROW_SWEEP}: =${c1}${ROW_EXCESS}*$B$6.`, 10, 'T3'),
         hint('H4', `In ${c1}${ROW_FINALE}: =${c1}${ROW_INIZIALE}-$B$5-${c1}${ROW_SWEEP}.`, 10, 'T4'),
@@ -191,7 +182,7 @@ function rigaTask(id: string, row: number, prompt: string, attesi: readonly numb
   const rg = range(row);
   return {
     id,
-    prompt: `${prompt} Una formula in ${COLONNE[0]}${row}, copiata fino a ${COLONNE[ANNI - 1]}${row}.`,
+    prompt: tx('M8-03-DEBTSCHEDULE.17', { prompt, p1: COLONNE[0], row, p3: COLONNE[ANNI - 1] }),
     targetCell: `Model!${rg}`,
     check: [
       { kind: 'mustBeFormula' },

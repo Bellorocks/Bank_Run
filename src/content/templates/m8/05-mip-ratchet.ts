@@ -34,6 +34,7 @@ import {
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 // Geometria fissa
 const B_ENTRY_EQ = 'B4'; // Equity investita all'ingresso (dato)
 const B_EXIT_EQ = 'B5'; // Equity lorda realizzata all'uscita (dato)
@@ -49,7 +50,9 @@ const B_SPONSOR_NET = 'B14'; // T3
 export default defineTemplate({
   id: 'M8-05-MIPRATCHET',
   module: 'M8',
-  title: 'Management incentive plan: sweet equity e ratchet',
+  get title() {
+    return tx('M8-05-MIPRATCHET.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -74,34 +77,21 @@ export default defineTemplate({
     const mgtPct = actualMoic >= hurdleMoic ? ratchetPct : basePct;
     const sponsorNet = exitEq * (1 - mgtPct);
 
-    const brief = [
-      "Ripartisci l'equity di uscita fra sponsor e management secondo il **Management Incentive Plan**.",
-      '',
-      `- **Equity investita dallo sponsor**: ${eur(entryEq)}`,
-      `- **Equity lorda all'uscita**: ${eur(exitEq)}`,
-      '',
-      `Il management riceve il **${pct(basePct, 0)}** dell'equity di uscita. Se lo sponsor realizza ` +
-        `almeno **${multiplo(hurdleMoic)}** il capitale investito, scatta il **ratchet** e la quota sale al ` +
-        `**${pct(ratchetPct, 0)}**. Il resto spetta allo sponsor.`,
-      '',
-      "Il ratchet allinea il management all'obiettivo dello sponsor: guadagna di piu' solo se l'investimento " +
-        'rende davvero. Per questo la quota non si decide guardando i numeri: la decide il foglio, e se ' +
-        "l'uscita cambia deve cambiare da sola.",
-    ].join('\n');
+    const brief = [tx('M8-05-MIPRATCHET.2', { p0: eur(entryEq), p1: eur(exitEq), p2: pct(basePct, 0), p3: multiplo(hurdleMoic), p4: pct(ratchetPct, 0) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['MANAGEMENT INCENTIVE PLAN (MIP)'], { style: STILE_TITOLO }),
-      riga('A3', ['Investimento equity (€)', 'Valore'], { style: STILE_TITOLO }),
-      colonna('A4', ['Equity iniziale (entry)', 'Equity lorda finale (exit)'], { style: STILE_ETICHETTA }),
+      riga('A1', [tx('M8-05-MIPRATCHET.3')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M8-05-MIPRATCHET.4'), tx('M8-05-MIPRATCHET.20')], { style: STILE_TITOLO }),
+      colonna('A4', [tx('M8-05-MIPRATCHET.5'), tx('M8-05-MIPRATCHET.6')], { style: STILE_ETICHETTA }),
       colonna(B_ENTRY_EQ, [entryEq, exitEq], { style: STILE_INPUT }),
 
-      riga('A7', ['Regole del ratchet', 'Hurdle MoIC', 'Quota management'], { style: STILE_TITOLO }),
-      colonna('A8', ['Base (sotto hurdle)', 'Ratchet (pari o sopra hurdle)'], { style: STILE_ETICHETTA }),
+      riga('A7', [tx('M8-05-MIPRATCHET.7'), tx('M8-05-MIPRATCHET.8'), tx('M8-05-MIPRATCHET.9')], { style: STILE_TITOLO }),
+      colonna('A8', [tx('M8-05-MIPRATCHET.10'), tx('M8-05-MIPRATCHET.11')], { style: STILE_ETICHETTA }),
       [{ ref: B_HURDLE, content: hurdleMoic, style: STILE_INPUT_MULTIPLO, locked: true }],
       colonna(C_BASE_PCT, [basePct, ratchetPct], { style: STILE_INPUT_PCT }),
 
-      riga('A11', ['Ripartizione finale', 'Risultato'], { style: STILE_TITOLO }),
-      colonna('A12', ['MoIC lordo (x)', 'Quota spettante al management', 'Equity netta sponsor (€)'], {
+      riga('A11', [tx('M8-05-MIPRATCHET.12'), tx('M8-05-MIPRATCHET.21')], { style: STILE_TITOLO }),
+      colonna('A12', [tx('M8-05-MIPRATCHET.13'), tx('M8-05-MIPRATCHET.14'), tx('M8-05-MIPRATCHET.15')], {
         style: STILE_ETICHETTA,
       }),
       colonna(B_ACT_MOIC, [null], { style: { ...STILE_FORMULA, numFmt: '0.00x' }, locked: false }),
@@ -112,8 +102,7 @@ export default defineTemplate({
     const t2: Task = {
       id: 'T2',
       prompt:
-        `In ${B_MGT_PCT} la quota che spetta al management: quella base o quella del ratchet, a seconda ` +
-        "che il MoIC realizzato raggiunga l'hurdle. La cella deve decidere da sola.",
+        tx('M8-05-MIPRATCHET.16', { B_MGT_PCT }),
       targetCell: `Model!${B_MGT_PCT}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -129,7 +118,7 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `In ${B_ACT_MOIC} il MoIC lordo realizzato dallo sponsor.`,
+        prompt: tx('M8-05-MIPRATCHET.17', { B_ACT_MOIC }),
         target: `Model!${B_ACT_MOIC}`,
         atteso: actualMoic,
         referenzia: [B_EXIT_EQ, B_ENTRY_EQ],
@@ -140,7 +129,7 @@ export default defineTemplate({
       t2,
       taskFormula({
         id: 'T3',
-        prompt: `In ${B_SPONSOR_NET} l'equity che resta allo sponsor dopo la quota del management.`,
+        prompt: tx('M8-05-MIPRATCHET.18', { B_SPONSOR_NET }),
         target: `Model!${B_SPONSOR_NET}`,
         atteso: sponsorNet,
         referenzia: [B_EXIT_EQ, B_MGT_PCT],
@@ -161,7 +150,7 @@ export default defineTemplate({
       hints: [
         hint('H1', '=B5/B4', 10, 'T1'),
         hint('H2', '=IF(B12>=B8,C9,C8)', 15, 'T2'),
-        hint('H3', "=B5*(1-B13): l'equity lorda meno la fetta del management.", 10, 'T3'),
+        hint('H3', tx('M8-05-MIPRATCHET.19'), 10, 'T3'),
       ],
     };
   },

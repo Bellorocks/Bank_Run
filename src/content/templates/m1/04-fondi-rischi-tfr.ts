@@ -35,10 +35,13 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 export default defineTemplate({
   id: 'M1-04-FONDIRISCHI',
   module: 'M1',
-  title: 'Fondi rischi e TFR: la schedule a cascata',
+  get title() {
+    return tx('M1-04-FONDIRISCHI.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 220,
@@ -76,10 +79,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In B${TFR_FIN_ROW} calcola il "TFR finale": parti dal TFR iniziale (B${TFR_INIZ_ROW}), ` +
-        `aggiungi l'accantonamento dell'anno (B${TFR_ACC_ROW}, aumenta il fondo) e sottrai gli ` +
-        `utilizzi/anticipazioni erogate nell'anno (B${TFR_UTIL_ROW}, riducono il fondo perche' sono ` +
-        "uscite gia' pagate ai dipendenti).",
+        tx('M1-04-FONDIRISCHI.2', { TFR_FIN_ROW, TFR_INIZ_ROW, TFR_ACC_ROW, TFR_UTIL_ROW }),
       target: `Model!B${TFR_FIN_ROW}`,
       atteso: tfrFinale,
       referenzia: [`B${TFR_INIZ_ROW}`, `B${TFR_ACC_ROW}`, `B${TFR_UTIL_ROW}`],
@@ -90,9 +90,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In B${FONDO_FIN_ROW} calcola il "Fondo rischi ed oneri finale" con la stessa logica: saldo ` +
-        `iniziale (B${FONDO_INIZ_ROW}) piu' accantonamento (B${FONDO_ACC_ROW}) meno utilizzi ` +
-        `(B${FONDO_UTIL_ROW}). Anche qui l'utilizzo e' un'uscita: si sottrae, non si somma.`,
+        tx('M1-04-FONDIRISCHI.3', { FONDO_FIN_ROW, FONDO_INIZ_ROW, FONDO_ACC_ROW, FONDO_UTIL_ROW }),
       target: `Model!B${FONDO_FIN_ROW}`,
       atteso: fondoFinale,
       referenzia: [`B${FONDO_INIZ_ROW}`, `B${FONDO_ACC_ROW}`, `B${FONDO_UTIL_ROW}`],
@@ -105,42 +103,20 @@ export default defineTemplate({
     return {
       templateId: 'M1-04-FONDIRISCHI',
       seed: rng.seed,
-      brief: [
-        '## Il fondo non e\' un numero, e\' un movimento',
-        '',
-        "TFR e fondi rischi ed oneri si leggono in bilancio come un saldo unico, ma dietro c'e'",
-        "sempre lo stesso schema \"a cascata\" (rollforward), lo stesso su cui costruirai ogni",
-        "schedule di questo modulo:",
-        '',
-        '**saldo iniziale + accantonamento dell\'anno - utilizzi/erogazioni dell\'anno = saldo finale**',
-        '',
-        "L'accantonamento e' un costo dell'anno che **aumenta** il fondo — si somma. Gli utilizzi",
-        "sono le somme gia' pagate (un'anticipazione di TFR erogata, un rischio che si e' manifestato",
-        `ed e' stato liquidato) — sono un'uscita, e **riducono** il fondo: si sottraggono. Invertire`,
-        "questo segno e' l'errore piu' facile da fare su questa posta, quindi rileggilo prima di",
-        "scrivere la formula.",
-        '',
-        `Sotto trovi due schedule indipendenti, stessa struttura: il **TFR** (${eur(tfrIniziale)} di`,
-        `saldo iniziale) e il **Fondo rischi ed oneri** (${eur(fondoIniziale)} di saldo iniziale).`,
-        "Completa entrambi i saldi finali.",
-        '',
-        "Non e' un dettaglio da manuale: nel bridge tra valore d'impresa (EV) ed equity, TFR e fondi",
-        "rischi sono fra le poste italiane che si trattano come debito (\"debt-like items\") — ma",
-        "questo e' materia di un modulo piu' avanti. Qui basta la meccanica del rollforward.",
-      ].join('\n'),
+      brief: [tx('M1-04-FONDIRISCHI.4', { p0: eur(tfrIniziale), p1: eur(fondoIniziale) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Fondi rischi e TFR — movimentazione dell\'anno'], { style: STILE_TITOLO }),
-            riga(`A${TFR_TITLE_ROW}`, ['TFR'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M1-04-FONDIRISCHI.5')], { style: STILE_TITOLO }),
+            riga(`A${TFR_TITLE_ROW}`, [tx('M1-04-FONDIRISCHI.16')], { style: STILE_TITOLO }),
             colonna(
               `A${TFR_INIZ_ROW}`,
               [
-                'TFR iniziale',
-                "Accantonamento dell'anno",
-                'Utilizzi/anticipazioni erogate',
-                'TFR finale',
+                tx('M1-04-FONDIRISCHI.6'),
+                tx('M1-04-FONDIRISCHI.7'),
+                tx('M1-04-FONDIRISCHI.8'),
+                tx('M1-04-FONDIRISCHI.9'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -151,14 +127,14 @@ export default defineTemplate({
             ],
             [{ ref: `B${TFR_FIN_ROW}`, content: null, locked: false, style: STILE_TOTALE }],
 
-            riga(`A${FONDO_TITLE_ROW}`, ['Fondo rischi ed oneri'], { style: STILE_TITOLO }),
+            riga(`A${FONDO_TITLE_ROW}`, [tx('M1-04-FONDIRISCHI.10')], { style: STILE_TITOLO }),
             colonna(
               `A${FONDO_INIZ_ROW}`,
               [
-                'Fondo iniziale',
-                "Accantonamento dell'anno",
-                'Utilizzi',
-                'Fondo finale',
+                tx('M1-04-FONDIRISCHI.11'),
+                tx('M1-04-FONDIRISCHI.12'),
+                tx('M1-04-FONDIRISCHI.17'),
+                tx('M1-04-FONDIRISCHI.13'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -176,13 +152,13 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=B${TFR_INIZ_ROW}+B${TFR_ACC_ROW}-B${TFR_UTIL_ROW}: iniziale piu' accantonamento (aumenta), meno utilizzi (riduce).`,
+          tx('M1-04-FONDIRISCHI.14', { TFR_INIZ_ROW, TFR_ACC_ROW, TFR_UTIL_ROW }),
           8,
           'T1',
         ),
         hint(
           'H2',
-          `=B${FONDO_INIZ_ROW}+B${FONDO_ACC_ROW}-B${FONDO_UTIL_ROW}: stessa cascata del TFR, dati diversi.`,
+          tx('M1-04-FONDIRISCHI.15', { FONDO_INIZ_ROW, FONDO_ACC_ROW, FONDO_UTIL_ROW }),
           8,
           'T2',
         ),

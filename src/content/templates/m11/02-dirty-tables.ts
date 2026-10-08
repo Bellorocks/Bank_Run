@@ -27,13 +27,16 @@ import {
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
-const REGIONI = ['NORD', 'CENTRO', 'SUD'] as const;
+import { tx } from '../../../i18n/content';
+const REGIONI = () => ([tx('M11-02-DIRTYTABLES.nord'), tx('M11-02-DIRTYTABLES.centro'), tx('M11-02-DIRTYTABLES.sud')] as const);
 const ROW_START = 5;
 
 export default defineTemplate({
   id: 'M11-02-DIRTYTABLES',
   module: 'M11',
-  title: 'Tabelle mal formattate: pulizia ed esclusione di subtotali spuri',
+  get title() {
+    return tx('M11-02-DIRTYTABLES.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -56,15 +59,15 @@ export default defineTemplate({
       for (let k = 0; k < n; k++) {
         const ricavi = roundTo(triangular(r, 3_000_000, 8_000_000, 15_000_000), 10_000);
         const costi = roundTo(ricavi * triangular(r, 0.5, 0.6, 0.72), 10_000);
-        righe.push({ codice: `PROD-${String(prodotto++).padStart(2, '0')} (${REGIONI[g]})`, ricavi, costi });
+        righe.push({ codice: `PROD-${String(prodotto++).padStart(2, '0')} (${REGIONI()[g]})`, ricavi, costi });
         subRev += ricavi;
         subCost += costi;
       }
-      righe.push({ codice: `SUBTOTALE-${REGIONI[g]}`, ricavi: subRev, costi: subCost });
+      righe.push({ codice: tx('M11-02-DIRTYTABLES.subtotale', { regione: REGIONI()[g] }), ricavi: subRev, costi: subCost });
       totRev += subRev;
       totCost += subCost;
     }
-    righe.push({ codice: 'TOTALE GENERALE', ricavi: totRev, costi: totCost });
+    righe.push({ codice: tx('M11-02-DIRTYTABLES.2'), ricavi: totRev, costi: totCost });
 
     const fine = ROW_START + righe.length - 1;
     const rowOut = fine + 3;
@@ -77,7 +80,7 @@ export default defineTemplate({
 
     const condTask = (id: string, target: string, cosa: string, atteso: number): Task => ({
       id,
-      prompt: `In ${target} ${cosa}, sommando solo le righe dei prodotti con una somma condizionale.`,
+      prompt: tx('M11-02-DIRTYTABLES.3', { target, cosa }),
       targetCell: `Model!${target}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -90,11 +93,11 @@ export default defineTemplate({
     });
 
     const tasks: Task[] = [
-      condTask('T1', B_REV, 'i ricavi totali veri', totRev),
-      condTask('T2', B_COST, 'i costi diretti totali veri', totCost),
+      condTask('T1', B_REV, tx('M11-02-DIRTYTABLES.4'), totRev),
+      condTask('T2', B_COST, tx('M11-02-DIRTYTABLES.5'), totCost),
       {
         id: 'T3',
-        prompt: `In ${B_MARGIN} il margine lordo effettivo.`,
+        prompt: tx('M11-02-DIRTYTABLES.6', { B_MARGIN }),
         targetCell: `Model!${B_MARGIN}`,
         check: [
           { kind: 'mustBeFormula' },
@@ -106,27 +109,19 @@ export default defineTemplate({
       },
     ];
 
-    const brief = [
-      "Il CFO della target ti manda l'estrazione del gestionale per prodotto. Sembra pulita, ma dentro " +
-        'ci sono i **subtotali per regione** e il **totale generale**: una SUM sulla colonna conta ogni ' +
-        'euro tre volte.',
-      '',
-      'Somma solo le righe di dettaglio: hanno tutte un codice che comincia con "PROD". Scrivi le formule ' +
-        "in modo che restino giuste anche se domani l'estrazione arriva con piu' righe: niente somme " +
-        'cella per cella.',
-    ].join('\n');
+    const brief = [tx('M11-02-DIRTYTABLES.7')].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['PULIZIA REPORT GREZZO ERP'], { style: STILE_TITOLO }),
-      riga('A4', ['Codice linea', 'Ricavi (€)', 'Costi diretti (€)'], { style: STILE_TITOLO }),
+      riga('A1', [tx('M11-02-DIRTYTABLES.8')], { style: STILE_TITOLO }),
+      riga('A4', [tx('M11-02-DIRTYTABLES.9'), tx('M11-02-DIRTYTABLES.10'), tx('M11-02-DIRTYTABLES.11')], { style: STILE_TITOLO }),
       ...righe.map((x, i) => [
         { ref: `A${ROW_START + i}`, content: x.codice, locked: true },
         { ref: `B${ROW_START + i}`, content: x.ricavi, style: STILE_INPUT, locked: true },
         { ref: `C${ROW_START + i}`, content: x.costi, style: STILE_INPUT, locked: true },
       ]),
 
-      riga(`A${rowOut - 1}`, ['Aggregati depurati', 'Risultato (€)'], { style: STILE_TITOLO }),
-      colonna(`A${rowOut}`, ['Ricavi totali puliti', 'Costi diretti totali puliti', 'Margine lordo effettivo'], {
+      riga(`A${rowOut - 1}`, [tx('M11-02-DIRTYTABLES.12'), tx('M11-02-DIRTYTABLES.13')], { style: STILE_TITOLO }),
+      colonna(`A${rowOut}`, [tx('M11-02-DIRTYTABLES.14'), tx('M11-02-DIRTYTABLES.15'), tx('M11-02-DIRTYTABLES.16')], {
         style: STILE_ETICHETTA,
       }),
       [{ ref: B_REV, content: null, locked: false, style: STILE_FORMULA }],
@@ -143,7 +138,7 @@ export default defineTemplate({
       parScore: par(tasks, { letturaSecondi: 40 }),
       startAt: `Model!${B_REV}`,
       hints: [
-        hint('H1', `=SUMIF(${colA},"PROD*",${colB}): l'asterisco accetta qualunque seguito dopo "PROD".`, 10, 'T1'),
+        hint('H1', tx('M11-02-DIRTYTABLES.17', { colA, colB }), 10, 'T1'),
         hint('H2', `=SUMIF(${colA},"PROD*",${colC})`, 10, 'T2'),
         hint('H3', `=${B_REV}-${B_COST}`, 5, 'T3'),
       ],

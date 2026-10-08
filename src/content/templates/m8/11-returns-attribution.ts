@@ -32,6 +32,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
+import { tx } from '../../../i18n/content';
 // Geometria fissa
 const B_EXIT_MULT = 'B5'; // Multiplo di uscita (dato)
 const B_EXIT_EV = 'B6'; // Exit EV = B4*B5 (formula)
@@ -51,7 +52,9 @@ const B_SPONSOR_MOIC = 'B17'; // T3: Sponsor Net MoIC = B16 / B15
 export default defineTemplate({
   id: 'M8-11-RETURNSATTRIBUTION',
   module: 'M8',
-  title: 'Returns attribution: la waterfall completa dei rendimenti LBO',
+  get title() {
+    return tx('M8-11-RETURNSATTRIBUTION.title');
+  },
   rank: 4,
   mode: 'PRACTICE',
   estimatedSeconds: 360,
@@ -76,32 +79,17 @@ export default defineTemplate({
     const sponsorNet = grossEq - mezzVal - mgtVal;
     const sponsorMoic = sponsorNet / sponsorEntry;
 
-    const brief = [
-      `Costruisci la **Returns Waterfall** completa di chiusura dell'operazione LBO.`,
-      ``,
-      `Dati di uscita (Exit):`,
-      `- **EBITDA Exit**: ${eur(exitEbitda)} a multiplo ${multiplo(exitMult)} (Enterprise Value ${eur(exitEv)})`,
-      `- **Debito Netto Residuo**: ${eur(endNd)}`,
-      `- **Mezzanine Equity Kicker**: ${pct(mezzKickerPct)} dell'Equity lorda`,
-      `- **Management Incentive Plan (MIP)**: ${pct(mgtMipPct)} dell'Equity lorda`,
-      `- **Sponsor Entry Equity Iniziale**: ${eur(sponsorEntry)}`,
-      ``,
-      "All'uscita l'equity lorda non va tutta allo sponsor: prima il mezzanine incassa il suo **equity " +
-        'kicker** (una quota del valore, compenso per il rischio subordinato), poi il management la sua quota ' +
-        'del **MIP**. Quel che resta e\' il ritorno netto dello sponsor: il numero che conta per il fondo.',
-      '',
-      "Percorri la cascata: equity lorda, le due quote, l'equity netta dello sponsor e il suo MoIC netto.",
-    ].join('\n');
+    const brief = [tx('M8-11-RETURNSATTRIBUTION.2', { p0: eur(exitEbitda), p1: multiplo(exitMult), p2: eur(exitEv), p3: eur(endNd), p4: pct(mezzKickerPct), p5: pct(mgtMipPct), p6: eur(sponsorEntry) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['LBO RETURNS WATERFALL'], { style: STILE_TITOLO }),
-      riga('A3', ['Valutazione di Uscita', 'Valore (€)'], { style: STILE_TITOLO }),
+      riga('A1', [tx('M8-11-RETURNSATTRIBUTION.3')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M8-11-RETURNSATTRIBUTION.4'), tx('M8-11-RETURNSATTRIBUTION.5')], { style: STILE_TITOLO }),
       colonna('A4', [
-        'EBITDA di Uscita',
-        'Multiplo EV/EBITDA di Uscita (x)',
-        'Enterprise Value di Uscita',
-        'Debito Netto Finale Residuo',
-        'GROSS EXIT EQUITY VALUE',
+        tx('M8-11-RETURNSATTRIBUTION.6'),
+        tx('M8-11-RETURNSATTRIBUTION.7'),
+        tx('M8-11-RETURNSATTRIBUTION.8'),
+        tx('M8-11-RETURNSATTRIBUTION.9'),
+        tx('M8-11-RETURNSATTRIBUTION.10'),
       ], { style: STILE_ETICHETTA }),
       colonna('B4', [exitEbitda], { style: STILE_INPUT }),
       colonna(B_EXIT_MULT, [exitMult], { style: STILE_INPUT_MULTIPLO }),
@@ -109,16 +97,16 @@ export default defineTemplate({
       colonna(B_END_ND, [endNd], { style: STILE_INPUT }),
       colonna(B_GROSS_EQ, [null], { style: STILE_TOTALE, locked: false }),
 
-      riga('A10', ['Ripartizione Waterfall', 'Quota %', 'Valore (€)'], { style: STILE_TITOLO }),
-      colonna('A11', ['Mezzanine equity kicker', 'Management MIP pool'], { style: STILE_ETICHETTA }),
+      riga('A10', [tx('M8-11-RETURNSATTRIBUTION.11'), tx('M8-11-RETURNSATTRIBUTION.12'), tx('M8-11-RETURNSATTRIBUTION.13')], { style: STILE_TITOLO }),
+      colonna('A11', [tx('M8-11-RETURNSATTRIBUTION.14'), tx('M8-11-RETURNSATTRIBUTION.15')], { style: STILE_ETICHETTA }),
       colonna(B_MEZZ_KICKER_PCT, [mezzKickerPct, mgtMipPct], { style: { ...STILE_INPUT_PCT, numFmt: '0.0%' } }),
       colonna(C_MEZZ_VAL, [null, null], { style: STILE_FORMULA, locked: false }),
 
-      riga('A14', ['Ritorno Netto Sponsor', 'Risultato'], { style: STILE_TITOLO }),
+      riga('A14', [tx('M8-11-RETURNSATTRIBUTION.16'), tx('M8-11-RETURNSATTRIBUTION.26')], { style: STILE_TITOLO }),
       colonna('A15', [
-        'Sponsor Equity Iniziale (Entry)',
-        'Sponsor Net Equity Finale (Exit)',
-        'Sponsor Net MoIC (x)',
+        tx('M8-11-RETURNSATTRIBUTION.17'),
+        tx('M8-11-RETURNSATTRIBUTION.18'),
+        tx('M8-11-RETURNSATTRIBUTION.19'),
       ], { style: STILE_ETICHETTA }),
       colonna(B_SPONSOR_ENTRY, [sponsorEntry], { style: STILE_INPUT }),
       colonna(B_SPONSOR_NET, [null], { style: STILE_FORMULA, locked: false }),
@@ -128,7 +116,7 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `In ${B_GROSS_EQ} l'equity lorda all'uscita.`,
+        prompt: tx('M8-11-RETURNSATTRIBUTION.20', { B_GROSS_EQ }),
         target: `Model!${B_GROSS_EQ}`,
         atteso: grossEq,
         referenzia: [B_EXIT_EV, B_END_ND],
@@ -138,7 +126,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T2',
-        prompt: `In ${C_MEZZ_VAL} quanto incassa il mezzanine col suo equity kicker.`,
+        prompt: tx('M8-11-RETURNSATTRIBUTION.21', { C_MEZZ_VAL }),
         target: `Model!${C_MEZZ_VAL}`,
         atteso: mezzVal,
         referenzia: [B_GROSS_EQ, B_MEZZ_KICKER_PCT],
@@ -148,7 +136,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T3',
-        prompt: `In ${C_MGT_VAL} quanto incassa il management col MIP.`,
+        prompt: tx('M8-11-RETURNSATTRIBUTION.22', { C_MGT_VAL }),
         target: `Model!${C_MGT_VAL}`,
         atteso: mgtVal,
         referenzia: [B_GROSS_EQ, B_MGT_MIP_PCT],
@@ -158,7 +146,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T4',
-        prompt: `In ${B_SPONSOR_NET} l'equity che resta allo sponsor in fondo alla cascata.`,
+        prompt: tx('M8-11-RETURNSATTRIBUTION.23', { B_SPONSOR_NET }),
         target: `Model!${B_SPONSOR_NET}`,
         atteso: sponsorNet,
         referenzia: [B_GROSS_EQ, C_MEZZ_VAL, C_MGT_VAL],
@@ -168,7 +156,7 @@ export default defineTemplate({
       }),
       taskFormula({
         id: 'T5',
-        prompt: `In ${B_SPONSOR_MOIC} il MoIC netto dello sponsor.`,
+        prompt: tx('M8-11-RETURNSATTRIBUTION.24', { B_SPONSOR_MOIC }),
         target: `Model!${B_SPONSOR_MOIC}`,
         atteso: sponsorMoic,
         referenzia: [B_SPONSOR_NET, B_SPONSOR_ENTRY],
@@ -187,7 +175,7 @@ export default defineTemplate({
       parScore: par(tasks, { letturaSecondi: 50 }),
       startAt: `Model!${B_GROSS_EQ}`,
       hints: [
-        hint('H1', '=B6-B7: EV meno debito netto.', 10, 'T1'),
+        hint('H1', tx('M8-11-RETURNSATTRIBUTION.25'), 10, 'T1'),
         hint('H2', '=B9*B11', 10, 'T2'),
         hint('H3', '=B9*B12', 10, 'T3'),
         hint('H4', '=B9-C11-C12', 10, 'T4'),

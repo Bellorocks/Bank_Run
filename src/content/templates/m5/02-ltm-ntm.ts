@@ -44,6 +44,7 @@ import { SECTORS, ebitdaMargin, evEbitdaMultiple, growthRate, revenue } from '..
 import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 
+import { sectorName, tx } from '../../../i18n/content';
 /** Output di una formula che restituisce un multiplo (es. EV/EBITDA): nero, "x". */
 const STILE_FORMULA_MULTIPLO: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: '0.0x' };
 
@@ -58,7 +59,9 @@ const B_MULT_NTM = 'B10'; // T2
 export default defineTemplate({
   id: 'M5-02-LTMNTM',
   module: 'M5',
-  title: 'LTM vs NTM: quale base per il multiplo',
+  get title() {
+    return tx('M5-02-LTMNTM.title');
+  },
   rank: 1,
   mode: 'PRACTICE',
   estimatedSeconds: 260,
@@ -97,9 +100,7 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_MULT_LTM} calcola il multiplo EV/EBITDA su base LTM: dividi l'Enterprise Value ` +
-        `(${B_EV}) per l'EBITDA LTM (${B_EBITDA_LTM}), i dodici mesi REALMENTE gia' osservati. ` +
-        'Formula: EV / EBITDA LTM.',
+        tx('M5-02-LTMNTM.2', { B_MULT_LTM, B_EV, B_EBITDA_LTM }),
       target: `Model!${B_MULT_LTM}`,
       atteso: multiploLtm,
       referenzia: [B_EV, B_EBITDA_LTM],
@@ -111,12 +112,7 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_MULT_NTM} calcola lo STESSO multiplo, ma su base NTM (Next Twelve Months): dividi ` +
-        `lo stesso Enterprise Value (${B_EV}) per l'EBITDA NTM stimato da consensus (${B_EBITDA_NTM}), ` +
-        "non per l'EBITDA LTM. Formula: EV / EBITDA NTM. Il risultato deve uscire PIU' BASSO del " +
-        `multiplo LTM che hai appena calcolato in ${B_MULT_LTM}: stesso EV al numeratore, ma un ` +
-        "denominatore piu' alto (l'EBITDA che il mercato SI ASPETTA fra un anno, per un business in " +
-        "crescita, e' maggiore di quello gia' osservato) abbassa aritmeticamente il rapporto.",
+        tx('M5-02-LTMNTM.3', { B_MULT_NTM, B_EV, B_EBITDA_NTM, B_MULT_LTM }),
       target: `Model!${B_MULT_NTM}`,
       atteso: multiploNtm,
       referenzia: [B_EV, B_EBITDA_NTM],
@@ -130,43 +126,19 @@ export default defineTemplate({
     return {
       templateId: 'M5-02-LTMNTM',
       seed: rng.seed,
-      brief: [
-        '## LTM vs NTM: quale base per il multiplo',
-        '',
-        "Lo stesso Enterprise Value, diviso per due basi di EBITDA diverse, produce due multipli " +
-          "diversi. **LTM** (*Last Twelve Months*, gia' visto in M2) e' la base REALMENTE osservata: " +
-          "dodici mesi di storia gia' accaduta. **NTM** (*Next Twelve Months*) e' invece una STIMA " +
-          "forward-looking, tipicamente presa dal consensus degli analisti che seguono il titolo.",
-        '',
-        "Per un business in crescita l'EBITDA NTM e' sistematicamente **PIU' ALTO** dell'EBITDA LTM: " +
-          "la stessa azienda, un anno dopo, ha semplicemente prodotto di piu'. Con lo STESSO EV al " +
-          "numeratore, un denominatore piu' alto produce un multiplo NTM sistematicamente **PIU' " +
-          "BASSO** del multiplo LTM.",
-        '',
-        "Non e' un'anomalia da correggere. Il multiplo LTM di un'azienda in crescita sembra \"caro\" solo " +
-          "perche' il denominatore e' vecchio; per questo sui business in forte crescita si ragiona di " +
-          "solito su NTM. La regola che conta e' la **coerenza**: un multiplo NTM si applica a un EBITDA " +
-          "NTM, un LTM a un LTM. Mescolarli gonfia o sgonfia la valutazione di un anno intero di crescita.",
-        '',
-        `**I dati.** Una comparable quotata del settore ${sector} (crescita media di settore attesa ` +
-          `${pct(growth)}, margine EBITDA ${pct(margin)}) ha un Enterprise Value di mercato di ` +
-          `${eurM(ev)}. Il suo EBITDA LTM e' ${eurM(ebitdaLtm)}; il consensus di mercato stima per ` +
-          `QUESTA comparable un EBITDA NTM di ${eurM(ebitdaNtm)}, piu' alto dell'LTM: gli analisti ` +
-          "che la seguono si aspettano che superi la media di settore appena citata nei prossimi " +
-          'dodici mesi.',
-      ].join('\n'),
+      brief: [tx('M5-02-LTMNTM.4', { sector: sectorName(sector), p1: pct(growth), p2: pct(margin), p3: eurM(ev), p4: eurM(ebitdaLtm), p5: eurM(ebitdaNtm) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['LTM vs NTM: quale base per il multiplo'], { style: STILE_TITOLO }),
-            riga('A3', ['Dati di mercato della comparable'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M5-02-LTMNTM.5')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M5-02-LTMNTM.6')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'Enterprise Value di mercato, €',
-                'EBITDA LTM (ultimi 12 mesi realmente osservati), €',
-                'EBITDA NTM (stima consensus, prossimi 12 mesi), €',
+                tx('M5-02-LTMNTM.7'),
+                tx('M5-02-LTMNTM.8'),
+                tx('M5-02-LTMNTM.9'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -176,12 +148,12 @@ export default defineTemplate({
               { ref: B_EBITDA_NTM, content: ebitdaNtm, style: STILE_INPUT, locked: true },
             ],
 
-            riga('A8', ['Multipli EV/EBITDA'], { style: STILE_TITOLO }),
+            riga('A8', [tx('M5-02-LTMNTM.10')], { style: STILE_TITOLO }),
             colonna(
               'A9',
               [
-                'EV/EBITDA su base LTM, x',
-                'EV/EBITDA su base NTM, x',
+                tx('M5-02-LTMNTM.11'),
+                tx('M5-02-LTMNTM.12'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -201,9 +173,7 @@ export default defineTemplate({
         ),
         hint(
           'H2',
-          `=${B_EV}/${B_EBITDA_NTM}: stesso EV, ma diviso per l'EBITDA NTM (qui vale ` +
-            `${multiplo(multiploNtm)}) — piu' basso del multiplo LTM perche' il denominatore e' ` +
-            "maggiore.",
+          tx('M5-02-LTMNTM.13', { B_EV, B_EBITDA_NTM, p2: multiplo(multiploNtm) }),
           10,
           'T2',
         ),

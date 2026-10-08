@@ -35,6 +35,7 @@ import {
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { CellStyle } from '../../../engine/types';
 
+import { tx } from '../../../i18n/content';
 const B_ACQ_NI = 'B4';
 const B_ACQ_SH = 'B5';
 const B_TGT_NI = 'B6';
@@ -57,7 +58,9 @@ const STILE_EPS: CellStyle = { ...STILE_FORMULA, numFmt: '0.000' };
 export default defineTemplate({
   id: 'M9-06-EPSBRIDGE',
   module: 'M9',
-  title: "EPS bridge: quantificazione dell'impatto per azione",
+  get title() {
+    return tx('M9-06-EPSBRIDGE.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 420,
@@ -100,26 +103,24 @@ export default defineTemplate({
       per(
         'T1',
         B_DILUIZ,
-        `In ${B_DILUIZ} l'effetto delle nuove azioni: quanto scende l'EPS se lo stesso utile dell'acquirente ` +
-          'si divide sulle azioni pro-forma (negativo).',
+        tx('M9-06-EPSBRIDGE.2', { B_DILUIZ }),
         diluiz,
         [B_ACQ_NI, B_PF_SH, B_EPS_SA],
       ),
-      per('T2', B_TARGET, `In ${B_TARGET} il contributo per azione dell'utile della target.`, target, [B_TGT_NI, B_PF_SH]),
-      per('T3', B_SINERG, `In ${B_SINERG} il contributo per azione delle sinergie.`, sinerg, [B_SYN, B_PF_SH]),
+      per('T2', B_TARGET, tx('M9-06-EPSBRIDGE.3', { B_TARGET }), target, [B_TGT_NI, B_PF_SH]),
+      per('T3', B_SINERG, tx('M9-06-EPSBRIDGE.4', { B_SINERG }), sinerg, [B_SYN, B_PF_SH]),
       per(
         'T4',
         B_FINANZ,
-        `In ${B_FINANZ} l'effetto per azione del costo del finanziamento (negativo).`,
+        tx('M9-06-EPSBRIDGE.5', { B_FINANZ }),
         finanz,
         [B_FIN, B_PF_SH],
       ),
-      per('T5', B_PPA_PS, `In ${B_PPA_PS} l'effetto per azione dell'ammortamento PPA (negativo).`, ppaPs, [B_PPA, B_PF_SH]),
+      per('T5', B_PPA_PS, tx('M9-06-EPSBRIDGE.6', { B_PPA_PS }), ppaPs, [B_PPA, B_PF_SH]),
       taskFormula({
         id: 'T6',
         prompt:
-          `In ${B_EPS_PF} l'EPS pro-forma come somma del bridge, partendo dall'EPS standalone. Controllo: deve ` +
-          'coincidere con utile combinato diviso azioni pro-forma.',
+          tx('M9-06-EPSBRIDGE.7', { B_EPS_PF }),
         target: `Model!${B_EPS_PF}`,
         atteso: epsPf,
         referenzia: [B_EPS_SA, B_DILUIZ, B_PPA_PS],
@@ -129,52 +130,39 @@ export default defineTemplate({
       }),
     ];
 
-    const brief = [
-      "Il board ha visto che l'operazione cambia l'EPS e vuole sapere **perche'**. Costruisci il bridge " +
-        "dall'EPS standalone dell'acquirente a quello pro-forma, una voce per riga, tutte espresse in euro per " +
-        'azione pro-forma.',
-      '',
-      `- Utile netto acquirer ${eur(acqNi)}, ${num(acqSh)} azioni`,
-      `- Utile netto target ${eur(tgtNi)}; sinergie dopo le imposte ${eur(syn)}`,
-      `- Costo del finanziamento dopo le imposte ${eur(fin)}; ammortamento PPA dopo le imposte ${eur(ppa)}`,
-      `- Nuove azioni emesse ${num(newSh)}`,
-      '',
-      'La prima voce e\' la piu\' trascurata: anche prima di contare qualunque utile della target, emettere ' +
-        "azioni divide l'utile esistente su piu' teste. Le voci che riducono l'EPS vanno scritte negative, " +
-        'cosi\' il bridge si somma dall\'alto in basso.',
-    ].join('\n');
+    const brief = [tx('M9-06-EPSBRIDGE.8', { p0: eur(acqNi), p1: num(acqSh), p2: eur(tgtNi), p3: eur(syn), p4: eur(fin), p5: eur(ppa), p6: num(newSh) })].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['EPS BRIDGE M&A'], { style: STILE_TITOLO }),
-      riga('A3', ['Dati', 'Valore'], { style: STILE_TITOLO }),
+      riga('A1', [tx('M9-06-EPSBRIDGE.9')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M9-06-EPSBRIDGE.26'), tx('M9-06-EPSBRIDGE.27')], { style: STILE_TITOLO }),
       colonna(
         'A4',
         [
-          'Utile netto acquirer (€)',
-          'Azioni acquirer',
-          'Utile netto target (€)',
-          'Sinergie dopo le imposte (€)',
-          'Costo del finanziamento dopo le imposte (€)',
-          'Ammortamento PPA dopo le imposte (€)',
-          'Nuove azioni emesse',
-          'Azioni pro-forma',
+          tx('M9-06-EPSBRIDGE.10'),
+          tx('M9-06-EPSBRIDGE.11'),
+          tx('M9-06-EPSBRIDGE.12'),
+          tx('M9-06-EPSBRIDGE.13'),
+          tx('M9-06-EPSBRIDGE.14'),
+          tx('M9-06-EPSBRIDGE.15'),
+          tx('M9-06-EPSBRIDGE.16'),
+          tx('M9-06-EPSBRIDGE.17'),
         ],
         { style: STILE_ETICHETTA },
       ),
       colonna(B_ACQ_NI, [acqNi, acqSh, tgtNi, syn, fin, ppa, newSh], { style: STILE_INPUT }),
       [{ ref: B_PF_SH, content: `=${B_ACQ_SH}+${B_NEW_SH}`, style: STILE_FORMULA, locked: true }],
 
-      riga('A13', ['EPS bridge (€ per azione)', 'Valore'], { style: STILE_TITOLO }),
+      riga('A13', [tx('M9-06-EPSBRIDGE.18'), tx('M9-06-EPSBRIDGE.28')], { style: STILE_TITOLO }),
       colonna(
         'A14',
         [
-          'EPS standalone acquirer',
-          '(−) Diluizione da nuove azioni',
-          '(+) Contributo utile target',
-          '(+) Sinergie',
-          '(−) Costo del finanziamento',
-          '(−) Ammortamento PPA',
-          'EPS pro-forma',
+          tx('M9-06-EPSBRIDGE.19'),
+          tx('M9-06-EPSBRIDGE.20'),
+          tx('M9-06-EPSBRIDGE.21'),
+          tx('M9-06-EPSBRIDGE.29'),
+          tx('M9-06-EPSBRIDGE.22'),
+          tx('M9-06-EPSBRIDGE.23'),
+          tx('M9-06-EPSBRIDGE.24'),
         ],
         { style: STILE_ETICHETTA },
       ),
@@ -195,7 +183,7 @@ export default defineTemplate({
       startAt: `Model!${B_DILUIZ}`,
       hints: [
         hint('H1', `=${B_ACQ_NI}/${B_PF_SH}-${B_EPS_SA}`, 15, 'T1'),
-        hint('H2', `=${B_TGT_NI}/${B_PF_SH}; stessa struttura per sinergie, finanziamento (col meno) e PPA (col meno).`, 10, 'T2'),
+        hint('H2', tx('M9-06-EPSBRIDGE.25', { B_TGT_NI, B_PF_SH }), 10, 'T2'),
         hint('H3', `=SUM(${B_EPS_SA}:${B_PPA_PS})`, 10, 'T6'),
       ],
     };

@@ -14,6 +14,7 @@
 import { colToLetters, a1ToCoord } from '../engine/address';
 import { MODEL_COLORS } from '../styles/palette';
 import type { CellStyle } from '../engine/types';
+import { contentNumberLocale } from '../i18n/content';
 import type { CellSpec, Hint, LevelTemplate, ParScore, SheetSpec, Task } from './types';
 
 /**
@@ -187,9 +188,9 @@ export function par(tasks: readonly Task[], opts: { letturaSecondi?: number; rit
 // Formattazione dei brief
 // ---------------------------------------------------------------------------
 
-/** Numeri dentro il testo del brief: separatori italiani, mai notazione scientifica. */
+/** Numeri dentro il testo del brief: separatori della lingua dei testi, mai notazione scientifica. */
 export function num(n: number, decimali = 0): string {
-  return n.toLocaleString('it-IT', { minimumFractionDigits: decimali, maximumFractionDigits: decimali });
+  return n.toLocaleString(contentNumberLocale(), { minimumFractionDigits: decimali, maximumFractionDigits: decimali });
 }
 
 export function eur(n: number, decimali = 0): string {

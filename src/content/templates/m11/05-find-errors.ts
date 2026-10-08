@@ -35,6 +35,7 @@ import {
 import { roundTo, triangular } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 type Cella = 'B8' | 'B11' | 'B15' | 'B17' | 'B21';
 
 const CORRETTE: Record<Cella, string> = {
@@ -48,7 +49,9 @@ const CORRETTE: Record<Cella, string> = {
 export default defineTemplate({
   id: 'M11-05-FINDERRORS',
   module: 'M11',
-  title: 'Trovare gli errori piantati: audit, hardcode e formule incoerenti',
+  get title() {
+    return tx('M11-05-FINDERRORS.title');
+  },
   rank: 3,
   mode: 'AUDIT',
   estimatedSeconds: 420,
@@ -110,7 +113,7 @@ export default defineTemplate({
 
     const kpi = (id: string, target: string, cosa: string, atteso: number, referenzia: string[]): Task => ({
       id,
-      prompt: `${cosa} (${target}) deve tornare, restando collegato alle righe da cui dipende.`,
+      prompt: tx('M11-05-FINDERRORS.2', { cosa, target }),
       targetCell: `Model!${target}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -124,47 +127,36 @@ export default defineTemplate({
 
     const tasks: Task[] = [
       kpi('T1', 'B9', "L'EBITDA", ebitda, ['B4', 'B8']),
-      kpi('T2', 'B18', "L'utile netto", utile, ['B13', 'B17']),
-      kpi('T3', 'B21', 'Il free cash flow', fcf, ['B9', 'B17', 'B19', 'B20']),
+      kpi('T2', 'B18', tx('M11-05-FINDERRORS.3'), utile, ['B13', 'B17']),
+      kpi('T3', 'B21', tx('M11-05-FINDERRORS.4'), fcf, ['B9', 'B17', 'B19', 'B20']),
     ];
 
-    const brief = [
-      "La controparte ti ha mandato il suo modello. Il comitato legge tre numeri: **EBITDA**, **utile netto** " +
-        "e **free cash flow**. Nel modello ci sono **tre errori**, e almeno uno dei tre numeri non torna.",
-      '',
-      "Ricalcola a mente l'ordine di grandezza, poi risali i precedenti di ogni risultato (F2 su una cella " +
-        'mostra la formula) finche\' non trovi le celle sbagliate. Correggile li\', dove nascono: riscrivere ' +
-        'il risultato finale da zero non conta come correzione.',
-      '',
-      'Gli errori tipici di un modello ricevuto: numeri battuti a mano dove dovrebbe esserci una formula, ' +
-        'range che saltano una riga, segni invertiti, imposte calcolate sulla base sbagliata, costanti nascoste ' +
-        "dentro le formule invece che nelle celle d'ipotesi.",
-    ].join('\n');
+    const brief = [tx('M11-05-FINDERRORS.5')].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['MODELLO DELLA CONTROPARTE — AUDIT'], { style: STILE_TITOLO }),
-      riga('A3', ['Conto economico', '€'], { style: STILE_TITOLO }),
+      riga('A1', [tx('M11-05-FINDERRORS.6')], { style: STILE_TITOLO }),
+      riga('A3', [tx('M11-05-FINDERRORS.7'), '€'], { style: STILE_TITOLO }),
       colonna(
         'A4',
         [
-          'Ricavi',
-          'Materie prime',
-          'Servizi',
-          'Personale',
-          'Totale costi operativi',
-          'EBITDA',
-          'Ammortamenti',
-          'EBIT',
-          'Oneri finanziari',
-          'Utile ante imposte',
-          'Aliquota IRES',
-          'IRES',
-          'IRAP',
-          'Totale imposte',
-          'Utile netto',
-          'Capex',
-          'Variazione capitale circolante (aumento = assorbimento)',
-          'Free cash flow',
+          tx('M11-05-FINDERRORS.20'),
+          tx('M11-05-FINDERRORS.8'),
+          tx('M11-05-FINDERRORS.21'),
+          tx('M11-05-FINDERRORS.22'),
+          tx('M11-05-FINDERRORS.9'),
+          tx('M11-05-FINDERRORS.23'),
+          tx('M11-05-FINDERRORS.24'),
+          tx('M11-05-FINDERRORS.25'),
+          tx('M11-05-FINDERRORS.10'),
+          tx('M11-05-FINDERRORS.11'),
+          tx('M11-05-FINDERRORS.12'),
+          tx('M11-05-FINDERRORS.26'),
+          tx('M11-05-FINDERRORS.27'),
+          tx('M11-05-FINDERRORS.13'),
+          tx('M11-05-FINDERRORS.14'),
+          tx('M11-05-FINDERRORS.28'),
+          tx('M11-05-FINDERRORS.15'),
+          tx('M11-05-FINDERRORS.16'),
         ],
         { style: STILE_ETICHETTA },
       ),
@@ -204,9 +196,9 @@ export default defineTemplate({
       parScore: par(tasks, { letturaSecondi: 120 }),
       startAt: 'Model!B9',
       hints: [
-        hint('H1', 'Parti dai costi: il totale e\' davvero la somma delle tre righe sopra, ed e\' una formula?', 15),
-        hint('H2', "Controlla i segni: l'EBIT toglie gli ammortamenti, il free cash flow toglie il capex.", 15),
-        hint('H3', "Le imposte: l'IRES si calcola sull'utile ante imposte con l'aliquota in B14, e il totale include l'IRAP.", 15),
+        hint('H1', tx('M11-05-FINDERRORS.17'), 15),
+        hint('H2', tx('M11-05-FINDERRORS.18'), 15),
+        hint('H3', tx('M11-05-FINDERRORS.19'), 15),
       ],
     };
   },

@@ -31,13 +31,16 @@ import {
 } from '../../authoring';
 import { revenue } from '../../../rng/finance';
 
-const FOGLIO_DATI = 'Conto Economico';
-const RIF_ONERI = `'${FOGLIO_DATI}'!B2`;
+import { tx } from '../../../i18n/content';
+const FOGLIO_DATI = () => (tx('M0B-05-CROSSSHEET.1'));
+const RIF_ONERI = `'${FOGLIO_DATI()}'!B2`;
 
 export default defineTemplate({
   id: 'M0B-05-CROSSSHEET',
   module: 'M0-B',
-  title: 'Il nome del foglio davanti alla cella',
+  get title() {
+    return tx('M0B-05-CROSSSHEET.title');
+  },
   rank: 2,
   mode: 'PRACTICE',
   estimatedSeconds: 240,
@@ -63,7 +66,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T1',
         prompt:
-          'In B5 calcola il margine operativo: ricavi meno costi operativi. Sei gia\' dentro il foglio Model: le celle che ti servono sono qui, non serve nominare nessun foglio.',
+          tx('M0B-05-CROSSSHEET.3'),
         target: 'Model!B5',
         atteso: margineOperativo,
         referenzia: ['B2', 'B3'],
@@ -73,7 +76,7 @@ export default defineTemplate({
       {
         id: 'T2',
         prompt:
-          `In B7 scrivi, come TESTO (senza il segno =), il riferimento completo alla cella che contiene gli oneri finanziari: sta nel foglio "${FOGLIO_DATI}", cella B2. Il nome del foglio ha uno spazio: Excel lo pretende fra apici singoli, poi il punto esclamativo, poi la cella.`,
+          tx('M0B-05-CROSSSHEET.4', { FOGLIO_DATI: FOGLIO_DATI() }),
         targetCell: 'Model!B7',
         check: [{ kind: 'text' as const, expected: RIF_ONERI }],
         skills: ['xl.cross-sheet'],
@@ -82,7 +85,7 @@ export default defineTemplate({
       taskFormula({
         id: 'T3',
         prompt:
-          'In B9 calcola l\'utile netto: margine operativo meno oneri finanziari. Il margine e\' qui in Model (B5); gli oneri sono nell\'altro foglio, e ti serve la stessa sintassi con gli apici che hai appena scritto — stavolta dentro una formula vera.',
+          tx('M0B-05-CROSSSHEET.5'),
         target: 'Model!B9',
         atteso: utileNetto,
         referenzia: ['B5', RIF_ONERI],
@@ -94,47 +97,28 @@ export default defineTemplate({
     return {
       templateId: 'M0B-05-CROSSSHEET',
       seed: rng.seed,
-      brief: [
-        '## Un modello vive su piu\' fogli',
-        '',
-        `Qui il conto economico e' spezzato in due fogli: **Model**, dove lavori, e **"${FOGLIO_DATI}"**,`,
-        'dove sta un\'altra voce di bilancio. Non e\' un caso strano: e\' cosi\' che sono fatti quasi',
-        'tutti i modelli veri, con le voci sparse su fogli diversi che si parlano fra loro.',
-        '',
-        'Finora una cella si chiamava solo `B2`, perche\' il foglio in cui scrivevi era ovvio.',
-        'Quando la cella che ti serve sta su **un altro foglio**, quell\'ovvieta\' sparisce: devi dirlo,',
-        'con la sintassi `Foglio!Cella` — per esempio `Model!B2`.',
-        '',
-        `Il foglio "${FOGLIO_DATI}" ha pero' uno spazio nel nome. Se scrivi \`Conto Economico!B2\` senza`,
-        'apici, Excel legge due parole distinte e non capisce piu\' niente. La regola: **se il nome del',
-        'foglio contiene uno spazio (o quasi qualunque cosa che non sia lettera, cifra o underscore),',
-        'va chiuso fra apici singoli**: `\'Conto Economico\'!B2`. Sul foglio in cui ti trovi gia\', invece,',
-        'quell\'apparato non serve mai: `B2` basta, esattamente come prima.',
-        '',
-        `Numeri di partenza: ricavi ${eur(ricavi)}, costi operativi ${eur(costiOperativi)} — entrambi in Model.`,
-        `Gli oneri finanziari stanno nell'altro foglio e li vedrai solo aprendolo.`,
-      ].join('\n'),
+      brief: [tx('M0B-05-CROSSSHEET.6', { FOGLIO_DATI: FOGLIO_DATI(), p1: eur(ricavi), p2: eur(costiOperativi) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Conto economico semplificato'], { style: STILE_TITOLO }),
-            blocco('A2', [['Ricavi'], ['Costi operativi']], { style: STILE_ETICHETTA }),
+            riga('A1', [tx('M0B-05-CROSSSHEET.7')], { style: STILE_TITOLO }),
+            blocco('A2', [[tx('M0B-05-CROSSSHEET.17')], [tx('M0B-05-CROSSSHEET.8')]], { style: STILE_ETICHETTA }),
             blocco('B2', [[ricavi], [costiOperativi]], { style: STILE_INPUT }),
-            blocco('A5', [['Margine operativo']], { style: STILE_ETICHETTA }),
-            blocco('A7', [[`Riferimento (testo) agli oneri finanziari, dal foglio "${FOGLIO_DATI}"`]], {
+            blocco('A5', [[tx('M0B-05-CROSSSHEET.9')]], { style: STILE_ETICHETTA }),
+            blocco('A7', [[tx('M0B-05-CROSSSHEET.10', { FOGLIO_DATI: FOGLIO_DATI() })]], {
               style: STILE_ETICHETTA,
             }),
-            blocco('A9', [['Utile netto']], { style: STILE_ETICHETTA }),
+            blocco('A9', [[tx('M0B-05-CROSSSHEET.11')]], { style: STILE_ETICHETTA }),
             areaLibera(['B5', 'B7', 'B9']),
           ],
           { colWidths: { A: 320, B: 140 }, frozenRows: 1 },
         ),
         foglio(
-          FOGLIO_DATI,
+          FOGLIO_DATI(),
           [
-            riga('A1', ['Altre voci del conto economico'], { style: STILE_TITOLO }),
-            blocco('A2', [['Oneri finanziari']], { style: STILE_ETICHETTA }),
+            riga('A1', [tx('M0B-05-CROSSSHEET.12')], { style: STILE_TITOLO }),
+            blocco('A2', [[tx('M0B-05-CROSSSHEET.13')]], { style: STILE_ETICHETTA }),
             blocco('B2', [[oneriFinanziari]], { style: STILE_INPUT }),
           ],
           { colWidths: { A: 220, B: 140 }, frozenRows: 1 },
@@ -142,14 +126,14 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', 'Sei nel foglio Model: B2 e B3 bastano cosi\' come sono, nessun nome di foglio davanti.', 8, 'T1'),
+        hint('H1', tx('M0B-05-CROSSSHEET.14'), 8, 'T1'),
         hint(
           'H2',
-          `Il foglio si chiama "${FOGLIO_DATI}": due parole con uno spazio in mezzo. Apici singoli attorno al nome, poi !, poi la cella: cosi' -> ${RIF_ONERI}`,
+          tx('M0B-05-CROSSSHEET.15', { FOGLIO_DATI: FOGLIO_DATI(), RIF_ONERI }),
           12,
           'T2',
         ),
-        hint('H3', 'Hai gia\' scritto il riferimento giusto nel task precedente: rimettilo dentro una formula vera, preceduto dal segno meno.', 10, 'T3'),
+        hint('H3', tx('M0B-05-CROSSSHEET.16'), 10, 'T3'),
       ],
       parScore: par(tasks, { letturaSecondi: 50 }),
       startAt: 'Model!B5',

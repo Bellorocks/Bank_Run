@@ -34,10 +34,13 @@ import {
 import { DEFAULT_FORMATS } from '../../../engine/numberFormat';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 export default defineTemplate({
   id: 'M0E-04-FORMATALT',
   module: 'M0-E',
-  title: 'Alt, H, poi la lettera giusta',
+  get title() {
+    return tx('M0E-04-FORMATALT.title');
+  },
   rank: 2,
   mode: 'SPEEDRUN',
   estimatedSeconds: 75,
@@ -58,12 +61,7 @@ export default defineTemplate({
     const t1: Task = {
       id: 'T1',
       prompt:
-        `In B3 scrivi ${num(valore1)}. Poi, senza toccare il mouse, apri la barra dei menu con ` +
-        `Alt e percorri il cammino H, O, I (Home > Formato > Adatta larghezza colonna) sulla ` +
-        "colonna A: l'etichetta qui a fianco non ci sta dentro. Occhio: fra un tasto e l'altro " +
-        "non si tiene premuto nulla, e' uno stato dell'interfaccia, non un accordo. Il gioco " +
-        "verifica il numero scritto e il tempo che ci hai messo — l'autofit non ha ancora un " +
-        'check dedicato, ma il gesto e\' lo stesso che userai su un modello vero.',
+        tx('M0E-04-FORMATALT.2', { p0: num(valore1) }),
       targetCell: 'Model!B3',
       check: [{ kind: 'value' as const, expected: valore1 }],
       skills: ['spd.alt-format'],
@@ -73,12 +71,7 @@ export default defineTemplate({
     const t2: Task = {
       id: 'T2',
       prompt:
-        `In B5 scrivi ${num(valore2)}. Poi esegui Alt, H, H: e' una foglia, non un ramo — la ` +
-        "barra si chiude subito e apre il selettore del colore di riempimento. Scegline uno " +
-        'qualsiasi per B5. Stessa onesta\' del task precedente: in questo livello non esiste un ' +
-        "check che guarda il colore della cella, quindi non e' quello a farti passare il task — " +
-        "e' il valore scritto, cronometrato. Il colore lo alleni comunque, perche' in ufficio " +
-        'nessuno cronometra ma tutti si accorgono se ci metti trenta secondi di menu.',
+        tx('M0E-04-FORMATALT.3', { p0: num(valore2) }),
       targetCell: 'Model!B5',
       check: [{ kind: 'value' as const, expected: valore2 }],
       skills: ['spd.alt-format'],
@@ -88,11 +81,7 @@ export default defineTemplate({
     const t3Base = taskFormula({
       id: 'T3',
       prompt:
-        `In B9 somma Valore A (${num(valoreA)}) e Valore B (${num(valoreB)}). Poi formattala in ` +
-        'valuta con Ctrl+Maiusc+4 — non e\' un cammino Alt, e\' un accordo diretto, ma appartiene ' +
-        "alla stessa famiglia di scorciatoie legacy e va premuto senza guardare la tastiera. " +
-        'Qui il grader vede DAVVERO il formato: e\' l\'unico dei tre gesti di questo livello che ' +
-        'lascia una traccia ispezionabile oltre al valore.',
+        tx('M0E-04-FORMATALT.4', { p0: num(valoreA), p1: num(valoreB) }),
       target: 'Model!B9',
       atteso: totale,
       referenzia: ['B7', 'B8'],
@@ -108,7 +97,7 @@ export default defineTemplate({
           kind: 'numberFormat' as const,
           expected: DEFAULT_FORMATS.valuta,
           message:
-            "Il numero e' giusto ma manca il vestito: Ctrl+Maiusc+4 applica valuta con due decimali e simbolo €.",
+            tx('M0E-04-FORMATALT.5'),
         },
       ],
     };
@@ -118,42 +107,19 @@ export default defineTemplate({
     return {
       templateId: 'M0E-04-FORMATALT',
       seed: rng.seed,
-      brief: [
-        '## Alt non e\' una scorciatoia: e\' un cammino',
-        '',
-        'Nessuna azienda, nessun bilancio: questo livello e\' un drill puro di velocita\' sulle',
-        '**sequenze Alt legacy**, quelle che chi lavora su Excel da anni usa senza pensarci.',
-        '',
-        'La differenza da tenere a mente: `Ctrl+C` e\' un accordo, si preme tutto insieme. `Alt`',
-        'invece apre la barra dei menu e resta li\' ad aspettare — premi `H`, poi `O`, poi `I`, uno',
-        'via l\'altro, senza tenere giu\' nessun tasto fra mezzo. Sbagli lettera e Excel non aspetta:',
-        'suona un beep e chiude tutto. La barra di stato mostra il cammino percorso finora',
-        '("Alt, H, O") esattamente per questo.',
-        '',
-        'Tre caselle, tre gesti:',
-        '',
-        '- **Alt, H, O, I** — Home > Formato > Adatta larghezza colonna',
-        '- **Alt, H, H** — colore di riempimento (foglia diretta sotto Home, da non confondere',
-        '  con Alt, H, O, H che e\' un\'altra cosa)',
-        '- **Ctrl+Maiusc+4** — formato valuta, l\'accordo diretto della stessa famiglia',
-        '',
-        'Onesta\' sul punteggio: solo il terzo gesto lascia un formato che il gioco puo\' controllare',
-        'davvero. Sui primi due il grader guarda il numero che hai scritto e il cronometro, non il',
-        'colore o la larghezza della colonna — ma il gesto e\' lo stesso che ti serve su un modello',
-        'vero, quindi eseguilo comunque.',
-      ].join('\n'),
+      brief: [tx('M0E-04-FORMATALT.6')].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Drill: sequenze Alt legacy'], { style: STILE_TITOLO }),
-            blocco('A3', [["Etichetta lunga che non entra nella colonna cosi' com'e'"]], {
+            riga('A1', [tx('M0E-04-FORMATALT.7')], { style: STILE_TITOLO }),
+            blocco('A3', [[tx('M0E-04-FORMATALT.8')]], {
               style: STILE_ETICHETTA,
             }),
-            blocco('A5', [['Seconda casella: qui pratichi il colore di riempimento']], {
+            blocco('A5', [[tx('M0E-04-FORMATALT.9')]], {
               style: STILE_ETICHETTA,
             }),
-            blocco('A7', [['Valore A'], ['Valore B'], ['Totale (Ctrl+Maiusc+4)']], {
+            blocco('A7', [[tx('M0E-04-FORMATALT.10')], [tx('M0E-04-FORMATALT.11')], [tx('M0E-04-FORMATALT.12')]], {
               style: STILE_ETICHETTA,
             }),
             blocco('B7', [[valoreA], [valoreB]], { style: STILE_INPUT }),
@@ -164,9 +130,9 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', "Scrivi il numero, Invio. Poi Alt (si apre la barra), H, O, I: quattro tasti, uno alla volta.", 6, 'T1'),
-        hint('H2', "Alt, poi H, poi H di nuovo: la seconda H e' gia' una foglia, si chiude subito col selettore colore aperto.", 6, 'T2'),
-        hint('H3', "B7+B8, poi Ctrl+Maiusc+4 sulla stessa cella: e' un accordo, si preme tutto insieme.", 6, 'T3'),
+        hint('H1', tx('M0E-04-FORMATALT.13'), 6, 'T1'),
+        hint('H2', tx('M0E-04-FORMATALT.14'), 6, 'T2'),
+        hint('H3', tx('M0E-04-FORMATALT.15'), 6, 'T3'),
       ],
       parScore: par(tasks, { letturaSecondi: 20, ritmo: 4 }),
       startAt: 'Model!B3',

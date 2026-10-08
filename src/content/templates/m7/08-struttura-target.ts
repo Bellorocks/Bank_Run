@@ -54,6 +54,7 @@ import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
 import type { Task } from '../../types';
 
+import { tx } from '../../../i18n/content';
 const STILE_FORMULA_PCT: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: '0.00%' };
 /** Differenza in punti base: un numero, non una percentuale, un decimale. */
 const STILE_FORMULA_BPS: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: '#,##0.0" bps"' };
@@ -71,7 +72,9 @@ const B_DIFF_BPS = 'B13'; // T3: differenza in punti base fra i due WACC
 export default defineTemplate({
   id: 'M7-08-STRUTTURATARGET',
   module: 'M7',
-  title: 'Struttura di capitale: attuale vs target nel WACC',
+  get title() {
+    return tx('M7-08-STRUTTURATARGET.title');
+  },
   rank: 3,
   mode: 'PRACTICE',
   estimatedSeconds: 300,
@@ -133,14 +136,7 @@ export default defineTemplate({
     const t1: Task = {
       id: 'T1',
       prompt:
-        `In ${B_WACC_ATTUALE} calcola il WACC usando la struttura di capitale ATTUALE (post-LBO): ` +
-        `Ke (${B_KE}) pesato per (1 - peso debito attuale) piu' Kd after-tax (${B_KD_AT}) pesato ` +
-        `per il peso debito attuale (${B_WD_ATTUALE}). ` +
-        'Formula: WACC(attuale) = Ke × (1 - peso debito attuale) + Kd after-tax × peso debito ' +
-        "attuale. Questo e' il WACC che si otterrebbe usando la leva di OGGI dell'azienda — molto " +
-        'piu\' alta della sua struttura di lungo periodo perche\' appena uscita da un LBO — e che va ' +
-        'calcolato qui per essere confrontato con quello corretto in T2, ma NON e\' quello giusto da ' +
-        'usare per scontare i flussi di un DCF. Usa le tre celle date, senza copiare i numeri a mano.',
+        tx('M7-08-STRUTTURATARGET.2', { B_WACC_ATTUALE, B_KE, B_KD_AT, B_WD_ATTUALE }),
       targetCell: `Model!${B_WACC_ATTUALE}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -150,9 +146,7 @@ export default defineTemplate({
           tolerance: 0.0001,
           toleranceMode: 'absolute',
           message:
-            'Il valore non torna: controlla che tu stia pesando Ke per (1 - peso debito attuale) e ' +
-            'Kd after-tax per il peso debito attuale (non il contrario), usando il peso debito ' +
-            `ATTUALE (${B_WD_ATTUALE}), non quello target.`,
+            tx('M7-08-STRUTTURATARGET.3', { B_WD_ATTUALE }),
         },
         { kind: 'mustReference', cells: [B_KE, B_KD_AT, B_WD_ATTUALE] },
         { kind: 'mustNotContainLiteral', except: [1] },
@@ -164,16 +158,7 @@ export default defineTemplate({
     const t2: Task = {
       id: 'T2',
       prompt:
-        `In ${B_WACC_TARGET} calcola il WACC usando la struttura di capitale TARGET (di lungo ` +
-        `periodo): Ke (${B_KE}) pesato per (1 - peso debito target) piu' Kd after-tax (${B_KD_AT}) ` +
-        `pesato per il peso debito target (${B_WD_TARGET}). ` +
-        'Formula: WACC(target) = Ke × (1 - peso debito target) + Kd after-tax × peso debito target. ' +
-        `IMPORTANTE: usa ${B_WD_TARGET} (il peso debito TARGET, di lungo periodo), NON ${B_WD_ATTUALE} ` +
-        "(il peso debito attuale, gia' usato in T1) — Ke e Kd after-tax sono gli stessi di T1 (non " +
-        "cambiano in questo esercizio semplificato), cambia SOLO la struttura di capitale che li " +
-        "pesa. Questo E' il WACC giusto da usare per scontare i flussi di un DCF, perche' rappresenta " +
-        "la leva che l'azienda avra' per la maggior parte del suo orizzonte di vita, non uno stato " +
-        'temporaneo. Usa le tre celle date, senza copiare i numeri a mano.',
+        tx('M7-08-STRUTTURATARGET.4', { B_WACC_TARGET, B_KE, B_KD_AT, B_WD_TARGET, B_WD_ATTUALE }),
       targetCell: `Model!${B_WACC_TARGET}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -183,9 +168,7 @@ export default defineTemplate({
           tolerance: 0.0001,
           toleranceMode: 'absolute',
           message:
-            'Il valore non torna: controlla che tu stia usando il peso debito TARGET ' +
-            `(${B_WD_TARGET}), non quello attuale (${B_WD_ATTUALE}), e che tu stia pesando Ke per ` +
-            '(1 - peso debito target) e Kd after-tax per il peso debito target (non il contrario).',
+            tx('M7-08-STRUTTURATARGET.5', { B_WD_TARGET, B_WD_ATTUALE }),
         },
         { kind: 'mustReference', cells: [B_KE, B_KD_AT, B_WD_TARGET] },
         { kind: 'mustNotContainLiteral', except: [1] },
@@ -197,16 +180,7 @@ export default defineTemplate({
     const t3: Task = {
       id: 'T3',
       prompt:
-        `In ${B_DIFF_BPS} calcola la differenza fra i due WACC, in punti base (1 punto base = ` +
-        `0,01%): WACC target (${B_WACC_TARGET}) meno WACC attuale (${B_WACC_ATTUALE}), moltiplicato ` +
-        'per 10.000 per convertire la differenza da frazione a punti base. ' +
-        `Formula: differenza in bps = (WACC(target) - WACC(attuale)) × 10.000. ATTENZIONE all'ordine ` +
-        `della sottrazione: TARGET meno ATTUALE (${B_WACC_TARGET} - ${B_WACC_ATTUALE}), non il ` +
-        "contrario — un segno invertito qui non da' errore, da' solo un numero col segno sbagliato, " +
-        "il tipo di bug piu' facile da non notare. Anche solo qualche decina di punti base di WACC, " +
-        "su un orizzonte di valutazione lungo come quello di un DCF, spostano il valore attuale dei " +
-        "flussi scontati in modo tutt'altro che trascurabile: e' la misura concreta di quanto costa " +
-        'usare la leva sbagliata. Usa le due celle date, senza copiare i numeri a mano.',
+        tx('M7-08-STRUTTURATARGET.6', { B_DIFF_BPS, B_WACC_TARGET, B_WACC_ATTUALE }),
       targetCell: `Model!${B_DIFF_BPS}`,
       check: [
         { kind: 'mustBeFormula' },
@@ -216,10 +190,7 @@ export default defineTemplate({
           tolerance: 0.05,
           toleranceMode: 'absolute',
           message:
-            "Il valore non torna: controlla l'ordine della sottrazione (WACC target meno WACC " +
-            `attuale, cioe' ${B_WACC_TARGET} - ${B_WACC_ATTUALE}, non il contrario) e che tu stia ` +
-            'moltiplicando per 10.000 (non per 100, che darebbe dei punti percentuali, non dei punti ' +
-            'base).',
+            tx('M7-08-STRUTTURATARGET.7', { B_WACC_TARGET, B_WACC_ATTUALE }),
         },
         { kind: 'mustReference', cells: [B_WACC_TARGET, B_WACC_ATTUALE] },
         { kind: 'mustNotContainLiteral', except: [10000] },
@@ -233,48 +204,20 @@ export default defineTemplate({
     return {
       templateId: 'M7-08-STRUTTURATARGET',
       seed: rng.seed,
-      brief: [
-        '## Struttura di capitale: attuale vs target nel WACC',
-        '',
-        "Un'azienda appena fatta oggetto di un LBO (leveraged buyout) e' spesso indebitata MOLTO " +
-          "oltre quello che sara' il suo assetto di lungo periodo: il piano industriale prevede un " +
-          'deleveraging (riduzione progressiva del debito) verso una struttura "target" — spesso ' +
-          'vicina alla media di settore — nell\'arco di qualche anno.',
-        '',
-        '**Il WACC del DCF deve usare la leva di LUNGO periodo, non quella di oggi.** Il WACC che ' +
-          "sconta i flussi di cassa di un DCF deve rappresentare il costo del capitale \"a regime\": " +
-          "la struttura finanziaria che l'azienda avra' per la maggior parte del suo orizzonte di " +
-          "vita, non uno stato temporaneo. Usare i pesi ATTUALI di un'azienda appena indebitata da " +
-          'un LBO significa dare al debito (piu\' economico dell\'equity) un peso ARTIFICIALMENTE ' +
-          'alto — questo abbassa il WACC calcolato, quindi ALZA il valore attuale dei flussi ' +
-          'scontati: un errore che sovrastima sistematicamente la valutazione.',
-        '',
-        '> **WACC = Ke × (1 - peso debito) + Kd after-tax × peso debito**',
-        '',
-        'Questo livello isola l\'effetto dei PESI a parita\' di tutto il resto: stesso Ke, stesso Kd ' +
-          'after-tax, due strutture di capitale diverse (attuale e target), due WACC diversi.',
-        '',
-        '*Semplificazione dichiarata:* in realta\' anche Ke cambierebbe con la leva (andrebbe ' +
-          "rilevered il beta con la formula di Hamada, come in M7-05, alla NUOVA leva) — qui Ke resta " +
-          "costante apposta, per isolare l'effetto dei pesi senza ricalcolare tutta la catena.",
-        '',
-        `**I dati**, gia' pronti come assunzioni: peso debito ATTUALE D/(D+E) (post-LBO) ` +
-          `${pct(wdAttuale, 0)}, peso debito TARGET D/(D+E) (struttura di lungo periodo) ` +
-          `${pct(wdTarget, 0)}, Ke ${pct(ke, 2)}, Kd after-tax ${pct(kdAfterTax, 2)}.`,
-      ].join('\n'),
+      brief: [tx('M7-08-STRUTTURATARGET.8', { p0: pct(wdAttuale, 0), p1: pct(wdTarget, 0), p2: pct(ke, 2), p3: pct(kdAfterTax, 2) })].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
-            riga('A1', ['Struttura di capitale: attuale vs target'], { style: STILE_TITOLO }),
-            riga('A3', ['Assunzioni'], { style: STILE_TITOLO }),
+            riga('A1', [tx('M7-08-STRUTTURATARGET.9')], { style: STILE_TITOLO }),
+            riga('A3', [tx('M7-08-STRUTTURATARGET.21')], { style: STILE_TITOLO }),
             colonna(
               'A4',
               [
-                'Peso debito ATTUALE D/(D+E) (post-LBO)',
-                'Peso debito TARGET D/(D+E) (lungo periodo)',
-                "Ke (costo del capitale proprio, costante)",
-                'Kd after-tax (costo del debito, dopo le imposte)',
+                tx('M7-08-STRUTTURATARGET.10'),
+                tx('M7-08-STRUTTURATARGET.11'),
+                tx('M7-08-STRUTTURATARGET.12'),
+                tx('M7-08-STRUTTURATARGET.13'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -285,13 +228,13 @@ export default defineTemplate({
               { ref: B_KD_AT, content: kdAfterTax, style: STILE_INPUT_PCT, locked: true },
             ],
 
-            riga('A10', ['WACC: struttura attuale vs struttura target'], { style: STILE_TITOLO }),
+            riga('A10', [tx('M7-08-STRUTTURATARGET.14')], { style: STILE_TITOLO }),
             colonna(
               'A11',
               [
-                'WACC con la struttura ATTUALE (NON usare nel DCF)',
-                'WACC con la struttura TARGET (corretto per il DCF)',
-                'Differenza (target - attuale), in punti base',
+                tx('M7-08-STRUTTURATARGET.15'),
+                tx('M7-08-STRUTTURATARGET.16'),
+                tx('M7-08-STRUTTURATARGET.17'),
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -308,22 +251,19 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_KE}*(1-${B_WD_ATTUALE})+${B_KD_AT}*${B_WD_ATTUALE}: Ke per (1 - peso debito ` +
-            `attuale), piu' Kd after-tax per il peso debito attuale (qui vale ${pct(waccAttuale, 2)}).`,
+          tx('M7-08-STRUTTURATARGET.18', { B_KE, B_WD_ATTUALE, B_KD_AT, p3: pct(waccAttuale, 2) }),
           10,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_KE}*(1-${B_WD_TARGET})+${B_KD_AT}*${B_WD_TARGET}: Ke per (1 - peso debito ` +
-            `target), piu' Kd after-tax per il peso debito target (qui vale ${pct(waccTarget, 2)}).`,
+          tx('M7-08-STRUTTURATARGET.19', { B_KE, B_WD_TARGET, B_KD_AT, p3: pct(waccTarget, 2) }),
           10,
           'T2',
         ),
         hint(
           'H3',
-          `=(${B_WACC_TARGET}-${B_WACC_ATTUALE})*10000: WACC target meno WACC attuale, per 10.000 ` +
-            `(qui vale ${roundTo(diffBps, 0.1)} bps).`,
+          tx('M7-08-STRUTTURATARGET.20', { B_WACC_TARGET, B_WACC_ATTUALE, p2: roundTo(diffBps, 0.1) }),
           10,
           'T3',
         ),
