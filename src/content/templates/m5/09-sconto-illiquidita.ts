@@ -151,7 +151,9 @@ export default defineTemplate({
         '',
         "**Premio di controllo (+).** Chi acquisisce il controllo paga di piu' del prezzo di mercato di " +
           "una singola azione: ottiene il diritto di decidere strategia, management, uso della cassa — " +
-          `cose che un azionista di minoranza non controlla. Oggi: +${pct(premioControllo)} sul multiplo.`,
+          `cose che un azionista di minoranza non controlla. Oggi: +${pct(premioControllo)} sul multiplo. ` +
+          "(Semplificazione: il premio di controllo in senso stretto si misura sul prezzo dell'equity; " +
+          'applicarlo al multiplo EV/EBITDA equivale a supporre una societa\' senza debito.)',
         '',
         "**Sconto di illiquidita' (-).** Un'azienda privata non ha un mercato liquido per le sue azioni: " +
           "niente vendita in un click, serve un processo di M&A di mesi per uscire dall'investimento. A " +
@@ -181,7 +183,7 @@ export default defineTemplate({
               'A4',
               [
                 'Multiplo aggiustato per size/crescita (EV/EBITDA), x',
-                'Premio di controllo, pp',
+                'Premio di controllo (applicato al multiplo), %',
                 "Sconto di illiquidita' (magnitudine), pp",
               ],
               { style: STILE_ETICHETTA },

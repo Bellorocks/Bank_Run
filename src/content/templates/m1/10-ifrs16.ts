@@ -1,38 +1,27 @@
 /**
- * M1 · 10 — IFRS 16: il leasing operativo entra in bilancio.
+ * M1 · 10 — IFRS 16: il leasing entra in bilancio.
  *
- * Prima del principio, un leasing operativo (l'affitto di un capannone, di un
- * ufficio) era fuori bilancio: il canone annuo era semplicemente un costo
- * operativo a Conto Economico, sopra la riga EBITDA. Con IFRS 16 quel
- * contratto genera un'attivita' (il "right-of-use", il diritto d'uso
- * dell'immobile) e una passivita' finanziaria di pari importo: il canone
- * sparisce dai costi operativi e viene sostituito da due voci che stanno
- * ENTRAMBE sotto la riga EBITDA — l'ammortamento del right-of-use e gli
- * interessi sulla passivita' leasing. E' la "trappola" classica di IFRS 16:
- * l'EBITDA riportato migliora, non perche' l'azienda genera piu' cassa
- * operativa, ma solo perche' un costo che prima stava sopra la riga ora sta
- * sotto. Il terzo task, come in M1-06, non ricostruisce due EBITDA per poi
- * sottrarli: isola la distorsione in UN numero solo, che risulta essere
- * esattamente il canone annuo — indipendentemente da come quel canone si
- * spacchi fra ammortamento e interessi.
+ * Con IFRS 16 il leasing operativo genera una passivita' finanziaria pari al
+ * VALORE ATTUALE dei canoni futuri, scontati al tasso di finanziamento
+ * marginale (IBR), e un diritto d'uso (right-of-use) di pari importo. Il
+ * canone sparisce dai costi operativi ed e' sostituito da:
  *
- * SEMPLIFICAZIONE DICHIARATA: niente attualizzazione/valore attuale dei
- * canoni futuri (introdurrebbe un tasso di sconto e una meccanica da livello
- * DCF, fuori scopo qui). La passivita' leasing iniziale e' calcolata
- * linearmente come canone annuo × durata residua in anni, e la sua quota
- * capitale si ammortizza in modo lineare sulla stessa durata — per questo la
- * quota capitale annua torna, per costruzione, identica al canone annuo
- * originale: non e' un errore, e' la conseguenza diretta di aver tolto lo
- * sconto finanziario dal modello.
+ *   ammortamento del ROU  = passivita' iniziale / durata   (lineare)
+ *   interessi anno 1      = passivita' iniziale × IBR
  *
- * Layout fisso (nessuno shuffle di righe o colonne): i riferimenti di riga
- * qui sotto sono letterali di proposito, perche' la posizione non dipende
- * MAI dal seed.
+ * entrambi sotto la riga EBITDA. Conseguenze, che sono il punto del livello:
+ *   - l'EBITDA sale esattamente del canone;
+ *   - il primo anno il costo totale (ammortamento + interessi) SUPERA il
+ *     canone: l'utile ante imposte scende (effetto front-loading), perche' gli
+ *     interessi si calcolano su un debito che all'inizio e' al massimo.
+ *
+ * Canoni posticipati (pagati a fine anno), nessun costo diretto iniziale.
  */
 
 import {
   defineTemplate,
   foglio,
+  colonna,
   hint,
   par,
   riga,
@@ -40,22 +29,22 @@ import {
   STILE_ETICHETTA,
   STILE_FORMULA,
   STILE_INPUT,
+  STILE_INPUT_PCT,
   STILE_TITOLO,
+  STILE_TOTALE,
   eur,
+  pct,
 } from '../../authoring';
 
-// --- Geometria fissa del foglio. -------------------------------------------
-const RIGA_CANONE = 4;
-const RIGA_DURATA = 5;
-const RIGA_PASSIVITA = 9; // T1
-const RIGA_QUOTACAP = 10; // T2
-const RIGA_EFFETTO = 11; // T3
+const B_CANONE = 'B4';
+const B_DURATA = 'B5';
+const B_IBR = 'B6';
 
-const B_CANONE = `B${RIGA_CANONE}`;
-const B_DURATA = `B${RIGA_DURATA}`;
-const B_PASSIVITA = `B${RIGA_PASSIVITA}`;
-const B_QUOTACAP = `B${RIGA_QUOTACAP}`;
-const B_EFFETTO = `B${RIGA_EFFETTO}`;
+const B_PASSIVITA = 'B9'; // T1
+const B_AMMORT = 'B10'; // T2
+const B_INTERESSI = 'B11'; // T3
+const B_EFFETTO_EBITDA = 'B12'; // T4
+const B_EFFETTO_UTILE = 'B13'; // T5
 
 export default defineTemplate({
   id: 'M1-10-IFRS16',
@@ -63,74 +52,92 @@ export default defineTemplate({
   title: 'IFRS 16: il leasing entra in bilancio',
   rank: 3,
   mode: 'PRACTICE',
-  estimatedSeconds: 260,
+  estimatedSeconds: 330,
   skills: ['acc.ifrs16'],
   prerequisites: ['M1-07-TREPROSPETTI'],
 
   generate: (rng) => {
     const r = rng.fork('dati');
 
-    const canoneAnnuo = r.int(30, 200) * 1000; // 30.000 - 200.000, a scatti di 1.000
-    const durataResidua = r.int(4, 8); // anni
+    const canone = r.int(30, 200) * 1000;
+    const durata = r.int(4, 10);
+    const ibr = r.int(30, 70) / 1000;
 
-    const valoreInizialePassivita = canoneAnnuo * durataResidua;
-    const quotaCapitaleAnnua = valoreInizialePassivita / durataResidua; // = canoneAnnuo, per costruzione
-    // La distorsione sull'EBITDA riportato coincide, per costruzione, con il
-    // canone annuo: e' esattamente il costo che sparisce dai costi operativi
-    // (ammortamento e interessi vivono entrambi sotto la riga EBITDA).
-    const effettoEbitda = canoneAnnuo;
+    const passivita = (canone * (1 - Math.pow(1 + ibr, -durata))) / ibr;
+    const ammort = passivita / durata;
+    const interessi = passivita * ibr;
+    const effettoEbitda = canone;
+    const effettoUtile = canone - ammort - interessi;
 
-    const t1 = taskFormula({
-      id: 'T1',
-      prompt:
-        `In ${B_PASSIVITA} calcola il valore iniziale della passivita' leasing, cioe' del diritto d'uso ` +
-        `(right-of-use) iscritto in attivo: il canone annuo del contratto (${eur(canoneAnnuo)}, in ${B_CANONE}) ` +
-        `moltiplicato per la durata residua del contratto in anni (${durataResidua}, in ${B_DURATA}). Nessuna ` +
-        "attualizzazione qui: e' una semplificazione lineare, riferisciti alle due celle e non scrivere i numeri a mano.",
-      target: `Model!${B_PASSIVITA}`,
-      atteso: valoreInizialePassivita,
-      referenzia: [B_CANONE, B_DURATA],
-      senzaLiteral: [],
-      skills: ['acc.ifrs16'],
-      minKeystrokes: 6,
-    });
+    const t = (
+      id: string,
+      target: string,
+      prompt: string,
+      atteso: number,
+      referenzia: string[],
+      ammessi: number[],
+      minKeystrokes: number,
+    ) =>
+      taskFormula({
+        id,
+        prompt,
+        target: `Model!${target}`,
+        atteso,
+        referenzia,
+        senzaLiteral: ammessi,
+        skills: ['acc.ifrs16'],
+        minKeystrokes,
+      });
 
-    const t2 = taskFormula({
-      id: 'T2',
-      prompt:
-        `In ${B_QUOTACAP} calcola la quota capitale annua della passivita' leasing: l'ammortamento lineare del ` +
-        `right-of-use, cioe' il valore iniziale appena calcolato in ${B_PASSIVITA} diviso per la durata residua ` +
-        `del contratto (${B_DURATA}). Riferisciti alla passivita' gia' calcolata, non ricalcolarla moltiplicando ` +
-        'di nuovo canone per durata. Nota: con questa semplificazione lineare questa quota torna identica al ' +
-        "canone annuo originale — e' voluto, non un errore: e' quello che succede quando si toglie lo sconto " +
-        'finanziario dal modello.',
-      target: `Model!${B_QUOTACAP}`,
-      atteso: quotaCapitaleAnnua,
-      referenzia: [B_PASSIVITA, B_DURATA],
-      senzaLiteral: [],
-      skills: ['acc.ifrs16'],
-      minKeystrokes: 6,
-    });
-
-    const t3 = taskFormula({
-      id: 'T3',
-      prompt:
-        `In ${B_EFFETTO} calcola di quanto l'EBITDA riportato secondo IFRS 16 risulta piu' alto rispetto ` +
-        "all'EBITDA che l'azienda avrebbe riportato trattando il leasing come un affitto operativo pieno, con il " +
-        "canone come costo operativo sopra la riga EBITDA. Con IFRS 16 il canone sparisce dai costi operativi ed " +
-        "e' sostituito da ammortamento del right-of-use e interessi sulla passivita' leasing, ENTRAMBI sotto la " +
-        "riga EBITDA: l'intero canone, quindi, torna a far parte dell'EBITDA. Non ricostruire due EBITDA in due " +
-        "celle separate per poi sottrarli: la differenza e' un numero solo, ed e' esattamente il canone annuo " +
-        `(${B_CANONE}) — riferisciti solo a quella.`,
-      target: `Model!${B_EFFETTO}`,
-      atteso: effettoEbitda,
-      referenzia: [B_CANONE],
-      senzaLiteral: [],
-      skills: ['acc.ifrs16'],
-      minKeystrokes: 3,
-    });
-
-    const tasks = [t1, t2, t3];
+    const tasks = [
+      t(
+        'T1',
+        B_PASSIVITA,
+        `In ${B_PASSIVITA} la passivita' leasing iniziale: il valore attuale dei canoni futuri (pagati a fine ` +
+          "anno), scontati al tasso di finanziamento marginale. E' anche il valore iniziale del diritto d'uso.",
+        passivita,
+        [B_CANONE, B_DURATA, B_IBR],
+        [0, 1],
+        18,
+      ),
+      t(
+        'T2',
+        B_AMMORT,
+        `In ${B_AMMORT} l'ammortamento annuo del diritto d'uso, lineare sulla durata del contratto.`,
+        ammort,
+        [B_PASSIVITA, B_DURATA],
+        [],
+        8,
+      ),
+      t(
+        'T3',
+        B_INTERESSI,
+        `In ${B_INTERESSI} gli interessi del primo anno sulla passivita' leasing.`,
+        interessi,
+        [B_PASSIVITA, B_IBR],
+        [],
+        8,
+      ),
+      t(
+        'T4',
+        B_EFFETTO_EBITDA,
+        `In ${B_EFFETTO_EBITDA} di quanto sale l'EBITDA rispetto a quando il canone era un costo operativo.`,
+        effettoEbitda,
+        [B_CANONE],
+        [],
+        3,
+      ),
+      t(
+        'T5',
+        B_EFFETTO_UTILE,
+        `In ${B_EFFETTO_UTILE} l'effetto sull'utile ante imposte del primo anno: il canone che non c'e' piu', ` +
+          "meno i due costi che lo sostituiscono (negativo se l'utile scende).",
+        effettoUtile,
+        [B_CANONE, B_AMMORT, B_INTERESSI],
+        [],
+        12,
+      ),
+    ];
 
     return {
       templateId: 'M1-10-IFRS16',
@@ -138,77 +145,61 @@ export default defineTemplate({
       brief: [
         "## Il leasing operativo entra in bilancio, e l'EBITDA ne beneficia",
         '',
-        "Un'azienda ha in essere un contratto di leasing operativo su un immobile (un capannone, un " +
-          "ufficio): prima di IFRS 16 il canone annuo era semplicemente un costo a Conto Economico, sopra " +
-          "la riga EBITDA. Con IFRS 16 quasi tutti i leasing — anche quelli operativi — generano invece " +
-          "un'attivita' (il diritto d'uso dell'immobile, il \"right-of-use\") e una passivita' finanziaria " +
-          "di pari importo: il canone smette di essere un costo operativo e viene sostituito da " +
-          "ammortamento del right-of-use e interessi sulla passivita', entrambi sotto la riga EBITDA.",
+        "Prima di IFRS 16 il canone di un leasing operativo era un costo a conto economico, sopra la riga " +
+          "EBITDA. Con IFRS 16 l'azienda iscrive una **passivita' finanziaria** pari al valore attuale dei " +
+          "canoni futuri e un **diritto d'uso** di pari importo. Il canone sparisce dai costi operativi e " +
+          "al suo posto compaiono ammortamento del diritto d'uso e interessi sulla passivita', **entrambi " +
+          'sotto la riga EBITDA**.',
         '',
-        `Qui sotto trovi il canone annuo del contratto (${eur(canoneAnnuo)}) e la sua durata residua ` +
-          `(${durataResidua} anni). **Semplificazione dichiarata**: nessuna attualizzazione dei canoni ` +
-          "futuri — la passivita' leasing iniziale si calcola linearmente come canone annuo moltiplicato " +
-          'per la durata residua, e si ammortizza in modo lineare sulla stessa durata.',
+        `Contratto: canone annuo ${eur(canone)} pagato a fine anno, durata residua ${durata} anni, tasso ` +
+          `di finanziamento marginale ${pct(ibr)}.`,
         '',
-        "**Il punto delicato** e' l'ultimo task, la trappola classica di IFRS 16: siccome ammortamento e " +
-          "interessi vivono ENTRAMBI sotto la riga EBITDA, spostare il canone dai costi operativi a " +
-          "quelle due voci fa migliorare l'EBITDA riportato — non perche' l'azienda generi piu' cassa " +
-          "operativa, ma solo perche' un costo che prima stava sopra la riga ora sta sotto. Non serve " +
-          "ricostruire due EBITDA da confrontare: un solo numero isola la distorsione, ed e' " +
-          "esattamente il canone annuo.",
+        "Due effetti da vedere coi tuoi numeri: l'EBITDA migliora senza che entri un euro di cassa in piu', e " +
+          "il primo anno l'utile peggiora, perche' gli interessi pesano di piu' quando il debito e' ancora " +
+          "tutto da rimborsare. Per questo un analista confronta l'EBITDA di aziende IFRS 16 e non IFRS 16 " +
+          'solo dopo averlo rettificato.',
       ].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
             riga('A1', ['IFRS 16: il leasing entra in bilancio'], { style: STILE_TITOLO }),
-            riga('A3', ['Voce', 'Valore'], { style: STILE_TITOLO }),
-            [{ ref: 'A4', content: 'Canone di leasing annuo, €', locked: true, style: STILE_ETICHETTA }],
-            [{ ref: B_CANONE, content: canoneAnnuo, locked: true, style: STILE_INPUT }],
-            [{ ref: 'A5', content: 'Durata residua del contratto, anni', locked: true, style: STILE_ETICHETTA }],
-            [{ ref: B_DURATA, content: durataResidua, locked: true, style: STILE_INPUT }],
-            riga('A8', ['Riepilogo'], { style: STILE_TITOLO }),
-            [
-              {
-                ref: 'A9',
-                content: "Valore iniziale della passivita' leasing (right-of-use), €",
-                locked: true,
-                style: STILE_ETICHETTA,
-              },
-              { ref: B_PASSIVITA, content: null, locked: false, style: STILE_FORMULA },
-              {
-                ref: 'A10',
-                content: "Quota capitale annua della passivita' (ammortamento lineare del right-of-use), €",
-                locked: true,
-                style: STILE_ETICHETTA,
-              },
-              { ref: B_QUOTACAP, content: null, locked: false, style: STILE_FORMULA },
-              {
-                ref: 'A11',
-                content: "Effetto sull'EBITDA riportato rispetto a un trattamento come costo operativo pieno, €",
-                locked: true,
-                style: STILE_ETICHETTA,
-              },
-              { ref: B_EFFETTO, content: null, locked: false, style: STILE_FORMULA },
-            ],
+            riga('A3', ['Contratto', 'Valore'], { style: STILE_TITOLO }),
+            colonna('A4', ['Canone annuo (fine anno), €', 'Durata residua, anni', 'Tasso di finanziamento marginale (IBR)'], {
+              style: STILE_ETICHETTA,
+            }),
+            [{ ref: B_CANONE, content: canone, locked: true, style: STILE_INPUT }],
+            [{ ref: B_DURATA, content: durata, locked: true, style: { ...STILE_INPUT, numFmt: '0' } }],
+            [{ ref: B_IBR, content: ibr, locked: true, style: STILE_INPUT_PCT }],
+            riga('A8', ['IFRS 16', '€'], { style: STILE_TITOLO }),
+            colonna(
+              'A9',
+              [
+                "Passivita' leasing iniziale (= diritto d'uso)",
+                "Ammortamento annuo del diritto d'uso",
+                "Interessi del primo anno",
+                "Effetto sull'EBITDA",
+                "Effetto sull'utile ante imposte, anno 1",
+              ],
+              { style: STILE_ETICHETTA },
+            ),
+            ...[B_PASSIVITA, B_AMMORT, B_INTERESSI, B_EFFETTO_EBITDA].map((ref) => [
+              { ref, content: null, locked: false, style: STILE_FORMULA },
+            ]),
+            [{ ref: B_EFFETTO_UTILE, content: null, locked: false, style: STILE_TOTALE }],
           ],
-          { colWidths: { A: 460, B: 140 }, frozenRows: 3 },
+          { colWidths: { A: 420, B: 150 }, frozenRows: 3 },
         ),
       ],
       tasks,
       hints: [
-        hint('H1', `=${B_CANONE}*${B_DURATA}: il canone annuo per la durata residua del contratto, in anni.`, 8, 'T1'),
-        hint('H2', `=${B_PASSIVITA}/${B_DURATA}: la passivita' iniziale divisa per gli anni di durata residua.`, 8, 'T2'),
-        hint(
-          'H3',
-          `=${B_CANONE}: sotto IFRS 16 il canone non e' piu' un costo operativo, e' sostituito da ` +
-            "ammortamento e interessi che stanno entrambi sotto la riga EBITDA. L'EBITDA riportato e' " +
-            "piu' alto esattamente del canone che non compare piu' sopra la riga.",
-          10,
-          'T3',
-        ),
+        hint('H1', `=PV(${B_IBR},${B_DURATA},-${B_CANONE}), oppure =${B_CANONE}*(1-(1+${B_IBR})^-${B_DURATA})/${B_IBR}.`, 12, 'T1'),
+        hint('H2', `=${B_PASSIVITA}/${B_DURATA}`, 8, 'T2'),
+        hint('H3', `=${B_PASSIVITA}*${B_IBR}`, 8, 'T3'),
+        hint('H4', `=${B_CANONE}: il canone esce per intero dai costi sopra l'EBITDA.`, 8, 'T4'),
+        hint('H5', `=${B_CANONE}-${B_AMMORT}-${B_INTERESSI}`, 8, 'T5'),
       ],
-      parScore: par(tasks, { letturaSecondi: 65 }),
+      parScore: par(tasks, { letturaSecondi: 70 }),
       startAt: `Model!${B_PASSIVITA}`,
     };
   },

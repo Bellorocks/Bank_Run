@@ -32,10 +32,8 @@ import {
   eurM,
   foglio,
   hint,
-  multiplo,
   num,
   par,
-  pct,
   riga,
   taskFormula,
   STILE_ETICHETTA,
@@ -57,10 +55,11 @@ const B_AZIONI = 'B4'; // Numero di azioni del target (dato, bloccato)
 const B_EBITDA = 'B5'; // EBITDA del target, invariato fra annuncio e closing (dato, bloccato)
 const B_PREZZO_ANNUNCIO = 'B6'; // Prezzo per azione offerto all'annuncio (dato, bloccato)
 const B_PREZZO_CLOSING = 'B7'; // Prezzo per azione effettivo al closing (dato, bloccato)
+const B_DEBITO = 'B8'; // Debito netto della target, invariato (dato, bloccato)
 
-const B_MULT_ANNUNCIO = 'B10'; // T1
-const B_MULT_COMPLETAMENTO = 'B11'; // T2
-const B_VARIAZIONE = 'B12'; // T3
+const B_MULT_ANNUNCIO = 'B11'; // T1
+const B_MULT_COMPLETAMENTO = 'B12'; // T2
+const B_VARIAZIONE = 'B13'; // T3
 
 export default defineTemplate({
   id: 'M6-04-ANNOUNCEDCOMPLETED',
@@ -80,7 +79,9 @@ export default defineTemplate({
     // timing, non il settore, quindi non serve agganciarsi a SECTORS). ------
     const ebitdaTarget = roundTo(triangular(r, 4_000_000, 12_000_000, 60_000_000), 100_000);
     const multiploAnnuncioTarget = roundTo(triangular(r, 6, 9, 16), 0.1);
-    const valoreTotaleAnnuncio = roundTo(multiploAnnuncioTarget * ebitdaTarget, 1000);
+    const debitoNetto = roundTo(ebitdaTarget * triangular(r, 0.5, 1.5, 2.5), 100_000);
+    // Il multiplo e' EV/EBITDA: l'equity offerta e' l'EV meno il debito netto.
+    const valoreTotaleAnnuncio = roundTo(multiploAnnuncioTarget * ebitdaTarget - debitoNetto, 1000);
 
     // --- Numero di azioni: dedotto dal valore totale offerto e da un prezzo
     // per azione "corridoio" tipico di un titolo quotato mid/large-cap
@@ -102,21 +103,18 @@ export default defineTemplate({
     // Valori "veri" usati come atteso nei task: ricalcolati dai DATI
     // effettivamente scritti in foglio (dopo tutti gli arrotondamenti), non
     // dai parametri intermedi di generazione.
-    const multiploAnnuncio = (prezzoAnnuncio * azioni) / ebitdaTarget;
-    const multiploCompletamento = (prezzoClosing * azioni) / ebitdaTarget;
+    const multiploAnnuncio = (prezzoAnnuncio * azioni + debitoNetto) / ebitdaTarget;
+    const multiploCompletamento = (prezzoClosing * azioni + debitoNetto) / ebitdaTarget;
     const variazione = (multiploCompletamento - multiploAnnuncio) / multiploAnnuncio;
 
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_MULT_ANNUNCIO} calcola il multiplo di transazione implicito nel prezzo OFFERTO ` +
-        `ALL'ANNUNCIO del deal: (Prezzo per azione all'annuncio, ${B_PREZZO_ANNUNCIO}, × Numero di ` +
-        `azioni del target, ${B_AZIONI}) / EBITDA del target (${B_EBITDA}). Il numeratore e' il valore ` +
-        "totale che il compratore ha dichiarato di voler pagare per il 100% del target, calcolato al " +
-        "prezzo per azione annunciato al mercato.",
+        `In ${B_MULT_ANNUNCIO} il multiplo EV/EBITDA implicito nel prezzo per azione offerto all'annuncio. ` +
+        "L'EV e' l'equity offerta per tutte le azioni piu' il debito netto che il compratore si accolla.",
       target: `Model!${B_MULT_ANNUNCIO}`,
       atteso: multiploAnnuncio,
-      referenzia: [B_PREZZO_ANNUNCIO, B_AZIONI, B_EBITDA],
+      referenzia: [B_PREZZO_ANNUNCIO, B_AZIONI, B_DEBITO, B_EBITDA],
       senzaLiteral: [],
       skills: ['prec.timing'],
       minKeystrokes: 12,
@@ -125,14 +123,11 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_MULT_COMPLETAMENTO} calcola lo stesso multiplo ma con il prezzo EFFETTIVO pagato AL ` +
-        `COMPLETAMENTO (closing) del deal: (Prezzo per azione al closing, ${B_PREZZO_CLOSING}, × Numero ` +
-        `di azioni del target, ${B_AZIONI}) / EBITDA del target (${B_EBITDA}). Numero di azioni ed ` +
-        "EBITDA restano gli stessi usati per il multiplo di annuncio: cambia solo il prezzo per azione " +
-        "— e' esattamente la variabile che si vuole isolare.",
+        `In ${B_MULT_COMPLETAMENTO} lo stesso multiplo col prezzo per azione effettivamente pagato al closing: ` +
+        'azioni, debito netto ed EBITDA non cambiano, cambia solo il prezzo.',
       target: `Model!${B_MULT_COMPLETAMENTO}`,
       atteso: multiploCompletamento,
-      referenzia: [B_PREZZO_CLOSING, B_AZIONI, B_EBITDA],
+      referenzia: [B_PREZZO_CLOSING, B_AZIONI, B_DEBITO, B_EBITDA],
       senzaLiteral: [],
       skills: ['prec.timing'],
       minKeystrokes: 12,
@@ -141,9 +136,8 @@ export default defineTemplate({
     const t3 = taskFormula({
       id: 'T3',
       prompt:
-        `In ${B_VARIAZIONE} calcola la variazione percentuale fra il multiplo al completamento ` +
-        `(${B_MULT_COMPLETAMENTO}) e quello all'annuncio (${B_MULT_ANNUNCIO}): (${B_MULT_COMPLETAMENTO} ` +
-        `- ${B_MULT_ANNUNCIO}) / ${B_MULT_ANNUNCIO}. Puo' venire positiva o negativa: un database M&A ` +
+        `In ${B_VARIAZIONE} la variazione percentuale del multiplo dall'annuncio al completamento. ` +
+        "Puo' venire positiva o negativa: un database M&A " +
         "che riporta solo il multiplo \"announced\" di un deal puo' farti leggere un numero che il " +
         "mercato non ha mai davvero pagato. Le ragioni tipiche per cui i due numeri differiscono: una " +
         "rinegoziazione del prezzo dopo l'annuncio (spesso per esiti della due diligence), un pagamento " +
@@ -181,7 +175,8 @@ export default defineTemplate({
           "deve sapere quale dei due sta guardando — e quanto i due si sono scostati.",
         '',
         `**Il deal.** Il target ha ${num(azioni, 0)} azioni in circolazione e un EBITDA di ` +
-          `${eurM(ebitdaTarget)}, invariato fra annuncio e closing. Il compratore ha offerto ` +
+          `${eurM(ebitdaTarget)}, invariato fra annuncio e closing, e un debito netto di ${eurM(debitoNetto)} che ` +
+          'passa al compratore. Il compratore ha offerto ' +
           `${eur(prezzoAnnuncio, 2)} per azione all'annuncio del deal. Al completamento, il prezzo ` +
           `effettivamente pagato per azione e' stato di ${eur(prezzoClosing, 2)}.`,
       ].join('\n'),
@@ -198,6 +193,7 @@ export default defineTemplate({
                 'EBITDA del target, invariato fra annuncio e closing, €',
                 "Prezzo per azione offerto all'annuncio, €",
                 'Prezzo per azione effettivo al closing, €',
+                'Debito netto della target, €',
               ],
               { style: STILE_ETICHETTA },
             ),
@@ -205,10 +201,11 @@ export default defineTemplate({
             [{ ref: B_EBITDA, content: ebitdaTarget, style: STILE_INPUT, locked: true }],
             [{ ref: B_PREZZO_ANNUNCIO, content: prezzoAnnuncio, style: STILE_INPUT_PREZZO, locked: true }],
             [{ ref: B_PREZZO_CLOSING, content: prezzoClosing, style: STILE_INPUT_PREZZO, locked: true }],
+            [{ ref: B_DEBITO, content: debitoNetto, style: STILE_INPUT, locked: true }],
 
-            riga('A9', ['Multiplo di transazione: annuncio vs completamento'], { style: STILE_TITOLO }),
+            riga('A10', ['Multiplo di transazione: annuncio vs completamento'], { style: STILE_TITOLO }),
             colonna(
-              'A10',
+              'A11',
               [
                 "Multiplo di transazione all'annuncio, x",
                 'Multiplo di transazione al completamento (closing), x',
@@ -227,23 +224,21 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_PREZZO_ANNUNCIO}*${B_AZIONI}/${B_EBITDA}: valore totale offerto all'annuncio (prezzo ` +
-            `× azioni) diviso l'EBITDA del target (qui vale ${multiplo(multiploAnnuncio)}).`,
+          `=(${B_PREZZO_ANNUNCIO}*${B_AZIONI}+${B_DEBITO})/${B_EBITDA}: equity offerta piu' debito netto, ` +
+            "diviso l'EBITDA.",
           10,
           'T1',
         ),
         hint(
           'H2',
-          `=${B_PREZZO_CLOSING}*${B_AZIONI}/${B_EBITDA}: stessa formula, ma con il prezzo per azione ` +
-            `effettivo al closing (qui vale ${multiplo(multiploCompletamento)}).`,
+          `=(${B_PREZZO_CLOSING}*${B_AZIONI}+${B_DEBITO})/${B_EBITDA}: stessa formula, prezzo al closing.`,
           10,
           'T2',
         ),
         hint(
           'H3',
           `=(${B_MULT_COMPLETAMENTO}-${B_MULT_ANNUNCIO})/${B_MULT_ANNUNCIO}: quanto il multiplo al ` +
-            `completamento si scosta da quello all'annuncio, in percentuale dell'annuncio (qui vale ` +
-            `${pct(variazione)}).`,
+            "completamento si scosta da quello all'annuncio, in percentuale dell'annuncio.",
           10,
           'T3',
         ),

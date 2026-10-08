@@ -38,7 +38,6 @@ import {
   colonna,
   foglio,
   hint,
-  multiplo,
   num,
   par,
   riga,
@@ -62,6 +61,16 @@ const OUTLIER_REASONS = [
   "ha sospeso la quotazione per mesi in attesa di un'operazione straordinaria: l'ultimo prezzo " +
     "disponibile e' precedente alla sospensione e non riflette le condizioni di mercato correnti",
 ] as const;
+
+/** Note neutre per i peer da tenere: nessun evento che li renda non comparabili. */
+const NOTE_NORMALI = [
+  'Quotata, flottante ampio, nessun evento straordinario nel periodo',
+  'Business e dimensioni comparabili, dati di mercato aggiornati',
+  'Stesso segmento, mix geografico simile, nessuna operazione in corso',
+  'Coperta da 6 analisti, prezzo liquido e aggiornato',
+] as const;
+const NOTA_ALTA_LEGITTIMA =
+  'Multiplo nella parte alta del range: crescita sopra la media del settore, nessun evento straordinario';
 
 /** Mediana aritmetica: valore centrale se n dispari, media dei due centrali se pari. */
 function mediana(valori: readonly number[]): number {
@@ -103,18 +112,25 @@ export default defineTemplate({
     const motivoOutlier = rOutlier.pick(OUTLIER_REASONS);
 
     const multipli: number[] = [];
-    const includi: string[] = [];
+    const note: string[] = [];
     let ni = 0;
     for (let i = 0; i < n; i++) {
       if (i === insertIdx) {
         multipli.push(multiploOutlier);
-        includi.push('NO');
+        note.push(motivoOutlier.charAt(0).toUpperCase() + motivoOutlier.slice(1));
       } else {
         multipli.push(normali[ni]);
-        includi.push('SI');
+        note.push(rOutlier.pick(NOTE_NORMALI));
         ni++;
       }
     }
+    // Il peer normale col multiplo piu' alto ha una nota che lo giustifica:
+    // alto non vuol dire escludibile.
+    let maxNormale = -1;
+    for (let i = 0; i < n; i++) {
+      if (i !== insertIdx && (maxNormale < 0 || multipli[i] > multipli[maxNormale])) maxNormale = i;
+    }
+    note[maxNormale] = NOTA_ALTA_LEGITTIMA;
     const peerLabels = multipli.map((_x, i) => `Peer ${i + 1}`);
 
     const medianaCompleta = mediana(multipli);
@@ -130,7 +146,6 @@ export default defineTemplate({
 
     const rangeMultipli = `B${DATA_START}:B${dataEnd}`;
     const rangeIncludi = `C${DATA_START}:C${dataEnd}`;
-    const outlierRow = DATA_START + insertIdx;
 
     const t1 = (() => {
       const base = taskFormula({
@@ -153,12 +168,9 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T2',
         prompt:
-          `In B${R_MEDIA_PULITA} calcola la MEDIA "pulita" del comp set: la media dei SOLI multipli con ` +
-          `Includi = "SI" (criterio in ${rangeIncludi}, importi in ${rangeMultipli}). Il peer in riga ` +
-          `${outlierRow} e' etichettato "NO" con una motivazione scritta accanto — non escluderlo perche' ` +
-          "il suo numero stona, ma perche' quella motivazione e' documentata e verificabile. Una media " +
-          "che scarta un outlier senza una nota che lo giustifichi non e' analisi, e' arbitrio. Una sola " +
-          "funzione, con un criterio: AVERAGEIF.",
+          `Prima segna "NO" nella colonna Includi (${rangeIncludi}) per il solo peer che le note rendono non ` +
+          `comparabile. Poi in B${R_MEDIA_PULITA} la media "pulita": la media dei soli multipli con Includi = "SI", ` +
+          'con una funzione a criterio.',
         target: `Model!B${R_MEDIA_PULITA}`,
         atteso: mediaPulita,
         referenzia: [`C${DATA_START}`, `C${dataEnd}`, `B${DATA_START}`, `B${dataEnd}`],
@@ -186,19 +198,18 @@ export default defineTemplate({
           "modello possa leggerla e giudicarla — non un giudizio implicito nella testa di chi ha " +
           "costruito il foglio.",
         '',
-        `Il comp set di oggi ha ${num(n)} peer, gia' etichettati: "Includi nel comp set" vale "SI" per ` +
-          `ogni peer normale, "NO" per un solo peer, perche' ${motivoOutlier}.`,
+        `Il comp set di oggi ha ${num(n)} peer, ognuno con una nota dell'analista che l'ha selezionato. ` +
+          "Uno solo ha un motivo documentato per uscire dal campione; un altro ha un multiplo alto ma " +
+          "nessuna ragione per essere escluso. La colonna Includi parte tutta a \"SI\": la decisione e' tua.",
         '',
-        "Il tuo compito non e' decidere chi escludere — quella decisione e' gia' presa e documentata. " +
-          "E' costruire correttamente le due sintesi che ne derivano: la mediana su tutto l'elenco, e " +
-          'la media "pulita" solo sui peer inclusi.',
+        'Costruisci le due sintesi: la mediana su tutto l\'elenco, e la media "pulita" solo sui peer inclusi.',
       ].join('\n'),
       sheets: [
         foglio(
           'Model',
           [
             riga('A1', ['Escludere un outlier: mai "il numero che non mi piace"'], { style: STILE_TITOLO }),
-            riga(`A${HEADER_ROW}`, ['Peer', 'Multiplo EV/EBITDA, x', 'Includi nel comp set', 'Motivo esclusione'], {
+            riga(`A${HEADER_ROW}`, ['Peer', 'Multiplo EV/EBITDA, x', 'Includi nel comp set', "Nota dell'analista"], {
               style: STILE_TITOLO,
             }),
             colonna(`A${DATA_START}`, peerLabels, { style: STILE_ETICHETTA }),
@@ -207,8 +218,8 @@ export default defineTemplate({
               multipli.map((m) => [m]),
               { style: STILE_INPUT_MULTIPLO },
             ),
-            colonna(`C${DATA_START}`, includi, { style: STILE_ETICHETTA }),
-            [{ ref: `D${outlierRow}`, content: motivoOutlier, locked: true, style: STILE_ETICHETTA }],
+            multipli.map((_, i) => ({ ref: `C${DATA_START + i}`, content: 'SI', locked: false })),
+            colonna(`D${DATA_START}`, note, { style: STILE_ETICHETTA }),
 
             riga(`A${riepilogoRow}`, ['Sintesi del comp set'], { style: STILE_TITOLO }),
             colonna(
@@ -224,11 +235,11 @@ export default defineTemplate({
       ],
       tasks,
       hints: [
-        hint('H1', `=MEDIAN(${rangeMultipli}) — qui vale ${multiplo(medianaCompleta)}, outlier incluso.`, 8, 'T1'),
+        hint('H1', `=MEDIAN(${rangeMultipli}): l'outlier resta dentro, la mediana lo assorbe.`, 8, 'T1'),
         hint(
           'H2',
-          `=AVERAGEIF(${rangeIncludi},"SI",${rangeMultipli}) — qui vale ${multiplo(mediaPulita)}: la media dei ` +
-            `${num(n - 1)} peer con Includi = "SI", il peer in riga ${outlierRow} escluso.`,
+          'Leggi le note, non i numeri: si esclude il peer il cui prezzo non e\' un prezzo di mercato ordinario ' +
+            `(acquisizione o sospensione), non quello col multiplo piu' alto. Poi =AVERAGEIF(${rangeIncludi},"SI",${rangeMultipli}).`,
           12,
           'T2',
         ),

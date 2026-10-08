@@ -109,13 +109,9 @@ export default defineTemplate({
     const t1 = taskFormula({
       id: 'T1',
       prompt:
-        `In ${B_PREMIO} estrai il premio di controllo dal deal comparabile: dividi il multiplo di ` +
-        `transazione effettivamente pagato (${B_MULT_TRANSAZIONE_OSS}) per il multiplo trading dello ` +
-        `stesso target PRIMA dell'annuncio del deal (${B_MULT_TRADING_PRE}), poi sottrai 1. Formula: ` +
-        `${B_MULT_TRANSAZIONE_OSS}/${B_MULT_TRADING_PRE}-1. Il benchmark e' il trading PRE-annuncio e ` +
-        "non un multiplo qualsiasi: dopo l'annuncio il prezzo dell'azione salta gia' per incorporare " +
-        "l'attesa del deal, quindi confrontarsi con quello sottostimerebbe il premio che il compratore " +
-        'ha davvero pagato per il controllo.',
+        `In ${B_PREMIO} il premio implicito sul multiplo nel deal comparabile: di quanto, in percentuale, ` +
+        `il multiplo pagato (${B_MULT_TRANSAZIONE_OSS}) supera il multiplo trading della target prima ` +
+        `dell'annuncio (${B_MULT_TRADING_PRE}).`,
       target: `Model!${B_PREMIO}`,
       atteso: premioCalcolato,
       referenzia: [B_MULT_TRANSAZIONE_OSS, B_MULT_TRADING_PRE],
@@ -127,13 +123,9 @@ export default defineTemplate({
     const t2 = taskFormula({
       id: 'T2',
       prompt:
-        `In ${B_MULT_IMPLICITO} fai l'ESERCIZIO INVERSO: prima si e' ESTRATTO il premio di controllo da ` +
-        `un deal osservato (${B_PREMIO}), ora lo si APPLICA per stimare un multiplo di transazione ` +
-        `PLAUSIBILE su un target nuovo, mai coinvolto in nessun deal. Moltiplica il suo multiplo trading ` +
-        `attuale (${B_MULT_TRADING_NUOVO}) per (1 + il premio calcolato in ${B_PREMIO}): ` +
-        `${B_MULT_TRADING_NUOVO}*(1+${B_PREMIO}). Riusa la cella del premio gia' calcolato — non ` +
-        "ricalcolarlo o riscriverlo come numero a mano: e' un dato di mercato osservato una volta e " +
-        'riapplicato, non qualcosa che si re-inventa a ogni target.',
+        `In ${B_MULT_IMPLICITO} l'esercizio inverso: il multiplo di transazione plausibile per il nuovo ` +
+        `target, applicando al suo multiplo trading attuale (${B_MULT_TRADING_NUOVO}) lo stesso premio ` +
+        `appena estratto. Riusa la cella ${B_PREMIO}, non riscrivere il numero.`,
       target: `Model!${B_MULT_IMPLICITO}`,
       atteso: multiploImplicito,
       referenzia: [B_MULT_TRADING_NUOVO, B_PREMIO],
@@ -152,7 +144,10 @@ export default defineTemplate({
         '',
         "Il livello precedente ha mostrato il fatto grezzo: un multiplo di transazione supera sempre " +
           "il multiplo trading dello stesso target, nello stesso periodo. Qui quel fatto diventa un " +
-          "NUMERO USABILE, il premio di controllo in percentuale — e lo si usa in DUE DIREZIONI opposte.",
+          "NUMERO USABILE, il premio implicito sul multiplo in percentuale — e lo si usa in DUE DIREZIONI " +
+          'opposte. Attenzione al nome: il **premio di controllo** in senso stretto si misura sul prezzo per ' +
+          "azione (equity); quello che si legge sul multiplo EV/EBITDA ne e' il riflesso sull'intera azienda, " +
+          "e i due numeri coincidono solo se l'azienda non ha debito.",
         '',
         "**Estrarre (T1).** Da un deal gia' avvenuto, quanto ha pagato il compratore SOPRA il prezzo a " +
           "cui il target trattava in borsa PRIMA che il deal venisse annunciato. Il benchmark e' il " +
@@ -190,8 +185,8 @@ export default defineTemplate({
             [{ ref: B_MULT_TRANSAZIONE_OSS, content: multiploTransazioneOss, style: STILE_INPUT_MULTIPLO, locked: true }],
             [{ ref: B_MULT_TRADING_PRE, content: multiploTradingPre, style: STILE_INPUT_MULTIPLO, locked: true }],
 
-            riga('A7', ['Premio di controllo estratto dal deal'], { style: STILE_TITOLO }),
-            colonna('A8', ['Premio di controllo, %'], { style: STILE_ETICHETTA }),
+            riga('A7', ['Premio sul multiplo estratto dal deal'], { style: STILE_TITOLO }),
+            colonna('A8', ['Premio implicito sul multiplo, %'], { style: STILE_ETICHETTA }),
             [{ ref: B_PREMIO, content: null, locked: false, style: STILE_FORMULA_PCT }],
 
             riga('A10', ['Nuovo target: stima inversa del multiplo di transazione'], { style: STILE_TITOLO }),
@@ -221,7 +216,7 @@ export default defineTemplate({
         hint(
           'H2',
           `=${B_MULT_TRADING_NUOVO}*(1+${B_PREMIO}): multiplo trading attuale del nuovo target, ` +
-            `aumentato dello stesso premio di controllo estratto in T1 (qui vale ${multiplo(multiploImplicito)}).`,
+            `aumentato dello stesso premio estratto in T1 (qui vale ${multiplo(multiploImplicito)}).`,
           10,
           'T2',
         ),

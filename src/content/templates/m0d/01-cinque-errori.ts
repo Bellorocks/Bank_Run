@@ -40,7 +40,7 @@ import {
  */
 const TRAPPOLE = [
   {
-    riga: 'Costo del venduto diviso per le unita vendute',
+    riga: 'Costo unitario del venduto',
     // Riferimenti RELATIVI alla riga r che ospita la formula (r-1 e r+1), mai
     // indirizzi assoluti fissi: l'ordine delle trappole viene rimescolato ad
     // ogni seed (vedi generate()), quindi una formula scritta con "B2/B3"
@@ -57,7 +57,7 @@ const TRAPPOLE = [
       'un denominatore nullo (unita vendute, giorni, clienti attivi) questo errore e sempre in agguato.',
   },
   {
-    riga: 'Somma fra il codice cliente e il fatturato',
+    riga: 'Fatturato del cliente CL-042, con rettifica',
     formula: (r: number) => `="CL-042"+B${r - 1}`,
     nome: 'valore',
     spiegazione:
@@ -65,7 +65,7 @@ const TRAPPOLE = [
       "convertire \"CL-042\" in un numero, quindi si ferma.",
   },
   {
-    riga: 'Ricerca del fornitore "Delta" in un elenco che non lo contiene',
+    riga: 'Posizione del fornitore Delta in anagrafica',
     formula: (r: number) => `=MATCH("Delta",B${r - 1}:D${r - 1},0)`,
     nome: 'disponibile',
     spiegazione:
@@ -73,7 +73,7 @@ const TRAPPOLE = [
       "disponibile nell'intervallo. E' l'errore piu' comune di ogni lookup (MATCH, INDEX/MATCH).",
   },
   {
-    riga: 'Somma con il nome di una funzione scritto male',
+    riga: 'Totale del trimestre',
     formula: (r: number) => `=SOMMA(B${r + 1}:C${r + 1})`,
     nome: 'nome',
     spiegazione:
@@ -81,7 +81,7 @@ const TRAPPOLE = [
       "non riconosce il nome e non prova nemmeno a indovinare cosa intendevi.",
   },
   {
-    riga: 'Riferimento a una cella che nel frattempo e stata eliminata',
+    riga: 'Margine ripreso dal foglio di dettaglio',
     // Letterale puro, senza dipendenze da nessuna cella: l'unica delle cinque
     // formule per cui la posizione non conta affatto.
     formula: (_r: number) => '=#REF!',
@@ -154,7 +154,6 @@ export default defineTemplate({
       return [
         ...blocco(`A${r - 1}`, [[t.riga]], { style: STILE_ETICHETTA }),
         ...blocco(`B${r}`, [[t.formula(r)]], { style: STILE_FORMULA }),
-        ...blocco(`A${r + 1}`, [[`(${t.spiegazione})`]], { style: STILE_ETICHETTA }),
       ];
     });
 

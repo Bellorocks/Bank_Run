@@ -114,8 +114,6 @@ const ROW_SEZ2 = 6;
 const ROW_HEADER = 7; // Voce | Valida | Rettifica (€, con segno)
 const DATA_START = 8;
 
-const formatoSegnato = (n: number): string => `${n >= 0 ? '+' : ''}${eur(n)}`;
-
 export default defineTemplate({
   id: 'M2-12-QOECOMPLETA',
   module: 'M2',
@@ -204,25 +202,12 @@ export default defineTemplate({
     const ebitdaNormalizzato = ebitdaRiportato + rettificheTotali;
     const impattoPct = rettificheTotali / ebitdaRiportato;
 
-    // Solo per il brief: cosa succederebbe se, per errore, si includesse
-    // anche la proposta aggressiva nella somma.
-    const totaleConAggressiva = rettificheTotali + voceAggressiva.importo;
-    const ebitdaSeIncludiTutto = ebitdaRiportato + totaleConAggressiva;
-
     const t1: Task = (() => {
       const base = taskFormula({
         id: 'T1',
         prompt:
-          `In ${C_T1} calcola il totale delle SOLE rettifiche legittime, CON il loro segno: quelle con ` +
-          `Valida = "SI" nell'elenco qui sopra (${rifValida}:B${DATA_END} per la colonna Valida, ` +
-          `${rifRettifiche}:C${DATA_END} per gli importi). Gli importi in colonna C sono gia' scritti con ` +
-          "il segno corretto per la loro categoria — positivo per un costo che ha sgonfiato l'EBITDA " +
-          "riportato (si riaggiunge), negativo per un provento o un costo nascosto da una capitalizzazione " +
-          "impropria che lo ha gonfiato (si toglie): non correggerli, non prendere il valore assoluto, non " +
-          'sommare solo le voci positive. La riga con Valida = "NO" e\' una proposta del management senza ' +
-          "un documento a supportarla (una fattura, un verbale, un contratto di transazione): NON entra " +
-          "nella somma, qualunque importo mostri. Serve una funzione che sommi solo le righe che rispettano " +
-          'il criterio di validita\'.',
+          `In ${C_T1} il totale delle sole rettifiche che hai giudicato valide, ciascuna col segno che ` +
+          'porta gia\' in colonna C, con una funzione che sommi solo le righe "SI".',
         target: `Model!${C_T1}`,
         atteso: rettificheTotali,
         referenzia: [rifValida, rifRettifiche],
@@ -265,18 +250,25 @@ export default defineTemplate({
       minKeystrokes: 6,
     });
 
-    const tasks = [t1, t2, t3];
+    const giudizi: Task[] = voci.map((v, i) => ({
+      id: `V${i + 1}`,
+      prompt: `B${DATA_START + i}: la rettifica in A${DATA_START + i} e' documentabile e quindi accettabile? Scrivi SI o NO.`,
+      targetCell: `Model!B${DATA_START + i}`,
+      check: [
+        {
+          kind: 'text' as const,
+          expected: v.valida,
+          message:
+            v.valida === 'SI'
+              ? "Questa rettifica corrisponde a un fatto documentato: va accettata, col suo segno."
+              : 'Questa proposta del management non ha fattura, verbale o contratto a supporto.',
+        },
+      ],
+      skills: ['qoe.aggressive'],
+      minKeystrokes: 3,
+    }));
 
-    const sogliaSuperata = Math.abs(impattoPct) > 0.15;
-    const notaSoglia = sogliaSuperata
-      ? `Qui le rettifiche legittime pesano il ${pct(Math.abs(impattoPct))} dell'EBITDA riportato: sei ` +
-        "SOPRA la soglia del 15-20% oltre la quale un buyer comincia a insospettirsi, anche se ogni singola " +
-        "voce accettata e' documentata. Non e' un errore del modello — e' un segnale che vale la pena " +
-        "approfondire ulteriormente in due diligence: un EBITDA che si allontana cosi' tanto da quello " +
-        "riportato e' un EBITDA che verra' messo sotto torchio nella negoziazione del multiplo."
-      : `Qui le rettifiche legittime pesano il ${pct(Math.abs(impattoPct))} dell'EBITDA riportato: ben ` +
-        "sotto la soglia del 15-20% oltre la quale un buyer comincia a insospettirsi. Un rapporto contenuto " +
-        "come questo rende l'EBITDA normalizzato piu' facile da difendere in negoziazione.";
+    const tasks = [...giudizi, t1, t2, t3];
 
     return {
       templateId: 'M2-12-QOECOMPLETA',
@@ -299,23 +291,12 @@ export default defineTemplate({
           'gonfiato l\'EBITDA riportato si TOGLIE: rettifica **negativa**.',
         '',
         `L'EBITDA riportato di quest'anno e' ${eur(ebitdaRiportato)}. Qui sotto trovi ${num(n)} proposte di ` +
-          'rettifica, ciascuna con una colonna Valida = "SI"/"NO" gia\' compilata sulla base di cio\' che e\'' +
-          " realmente documentabile, e un importo GIA' scritto con il segno corretto per la sua categoria — " +
-          "non serve rideterminarlo, ma bisogna rispettarlo:",
+          'rettifica, ciascuna con un importo GIA\' scritto col segno corretto per la sua categoria. Una di ' +
+          "queste e' una proposta del management senza documenti a supporto: per ogni riga decidi tu, nella " +
+          'colonna Valida, se e\' accettabile ("SI") o no ("NO").',
         '',
-        ...voci.map((v) =>
-          v.valida === 'SI'
-            ? `- **${v.descrizione}**: ${formatoSegnato(v.importo)} — Valida.`
-            : `- **${v.descrizione}**: ${formatoSegnato(v.importo)} proposti, ma NON documentabile — nessuna ` +
-              'fattura, verbale o contratto a supporto. Valida = "NO", non entra nella somma.',
-        ),
-        '',
-        "Sommare indiscriminatamente l'intero elenco, aggressiva inclusa, darebbe un EBITDA di " +
-          `${eur(ebitdaSeIncludiTutto)} — un numero che un buyer serio smonterebbe alla prima domanda sui ` +
-          `documenti. L'EBITDA davvero difendibile e' un altro: isola prima le righe valide, rispetta il ` +
-          'segno che ciascuna gia\' porta, poi somma.',
-        '',
-        notaSoglia,
+        "Poi guarda il risultato in proporzione: oltre il 15-20% dell'EBITDA riportato un buyer comincia a " +
+          'insospettirsi, anche se ogni voce e\' documentata, e mettera\' sotto torchio il multiplo.',
       ].join('\n'),
       sheets: [
         foglio(
@@ -331,7 +312,7 @@ export default defineTemplate({
             riga(`A${ROW_SEZ2}`, ['Schedule delle rettifiche proposte — elenco completo'], { style: STILE_TITOLO }),
             riga(`A${ROW_HEADER}`, ['Voce', 'Valida', 'Rettifica (€, con segno)'], { style: STILE_TITOLO }),
             colonna(`A${DATA_START}`, voci.map((v) => v.descrizione), { style: STILE_ETICHETTA }),
-            colonna(`B${DATA_START}`, voci.map((v) => v.valida), { style: STILE_ETICHETTA }),
+            voci.map((_, i) => ({ ref: `B${DATA_START + i}`, content: null, locked: false })),
             colonna(`C${DATA_START}`, voci.map((v) => v.importo), { style: STILE_INPUT }),
 
             riga(`A${ROW_SEZ3}`, ['Normalizzazione'], { style: STILE_TITOLO }),
@@ -383,7 +364,7 @@ export default defineTemplate({
         ),
       ],
       parScore: par(tasks, { letturaSecondi: 110 }),
-      startAt: `Model!${C_T1}`,
+      startAt: `Model!B${DATA_START}`,
     };
   },
 });

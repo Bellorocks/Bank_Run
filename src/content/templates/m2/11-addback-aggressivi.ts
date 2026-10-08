@@ -146,15 +146,9 @@ export default defineTemplate({
       const base = taskFormula({
         id: 'T1',
         prompt:
-          `In ${C_RETTIFICA} calcola la somma delle SOLE rettifiche accettate: quelle con Valida = "SI" ` +
-          `nell'elenco qui sopra (${rifValida}:B${DATA_END} per la colonna Valida, ${rifImporti}:C${DATA_END} ` +
-          "per gli importi). La colonna Valida e' gia' compilata, ma leggi bene ogni voce prima di fidarti: " +
-          '"valida" significa che il management puo\'' +
-          ' documentarla — una fattura, un verbale del CdA, un contratto di transazione. Le voci con ' +
-          'Valida = "NO" SEMBRANO rettifiche legittime ma sono stime, sinergie non ancora realizzate, piani ' +
-          'appena approvati e non ancora eseguiti, o costi ricorrenti rietichettati come straordinari: ' +
-          "sommarle gonfierebbe l'EBITDA con soldi che non esistono ancora. Serve una funzione che sommi " +
-          'solo le righe che rispettano il criterio.',
+          `In ${C_RETTIFICA} la somma delle sole rettifiche che hai giudicato valide, con una funzione ` +
+          'che sommi solo le righe con "SI" nella colonna Valida: se cambi idea su una voce, il totale deve ' +
+          'aggiornarsi da solo.',
         target: `Model!${C_RETTIFICA}`,
         atteso: rettifica,
         referenzia: [rifValida, rifImporti],
@@ -183,7 +177,26 @@ export default defineTemplate({
       minKeystrokes: 6,
     });
 
-    const tasks = [t1, t2];
+    // Un task per voce: il giudizio e' del giocatore, non e' scritto nel foglio.
+    const giudizi: Task[] = voci.map((v, i) => ({
+      id: `V${i + 1}`,
+      prompt: `B${DATA_START + i}: la voce in A${DATA_START + i} e' un addback difendibile? Scrivi SI o NO.`,
+      targetCell: `Model!B${DATA_START + i}`,
+      check: [
+        {
+          kind: 'text' as const,
+          expected: v.valida,
+          message:
+            v.valida === 'SI'
+              ? "Questa voce ha una prova concreta e verificabile dietro: e' un costo one-off documentato."
+              : "Questa voce non ha un documento dietro: e' una stima, un'aspirazione o una riclassificazione.",
+        },
+      ],
+      skills: ['qoe.aggressive'],
+      minKeystrokes: 3,
+    }));
+
+    const tasks = [...giudizi, t1, t2];
 
     return {
       templateId: 'M2-11-ADDBACKAGGRESSIVI',
@@ -198,9 +211,8 @@ export default defineTemplate({
           "sparire dall'EBITDA riportato.",
         '',
         `L'EBITDA riportato e' ${eur(ebitdaRiportato)}. Qui sotto trovi ${num(n)} proposte di rettifica del ` +
-          'management, ciascuna con la sua descrizione e una colonna Valida = "SI"/"NO" gia\'' +
-          " compilata sulla base di cio' che e' realmente documentabile. Leggi ogni descrizione prima di " +
-          'usare la colonna: e\' li\' che si vede la differenza tra un fatto e una speranza.',
+          'management. Per ciascuna decidi tu, nella colonna Valida, se e\' difendibile ("SI") o no ' +
+          '("NO"): e\' nella descrizione che si vede la differenza tra un fatto e una speranza.',
         '',
         '- Valida **"SI"**: dietro c\'e\' una prova concreta (fattura, verbale, contratto di transazione). ' +
           'Si RIAGGIUNGE, rettifica positiva.',
@@ -226,7 +238,7 @@ export default defineTemplate({
             riga(`A${ROW_SEZ2}`, ['Rettifiche proposte dal management — elenco completo'], { style: STILE_TITOLO }),
             riga(`A${ROW_HEADER}`, ['Voce', 'Valida', 'Importo (€)'], { style: STILE_TITOLO }),
             colonna(`A${DATA_START}`, voci.map((v) => v.descrizione), { style: STILE_ETICHETTA }),
-            colonna(`B${DATA_START}`, voci.map((v) => v.valida), { style: STILE_ETICHETTA }),
+            voci.map((_, i) => ({ ref: `B${DATA_START + i}`, content: null, locked: false })),
             colonna(`C${DATA_START}`, voci.map((v) => v.importo), { style: STILE_INPUT }),
 
             riga(`A${ROW_SEZ3}`, ['Normalizzazione'], { style: STILE_TITOLO }),
@@ -266,7 +278,7 @@ export default defineTemplate({
         ),
       ],
       parScore: par(tasks, { letturaSecondi: 70 }),
-      startAt: `Model!${C_RETTIFICA}`,
+      startAt: `Model!B${DATA_START}`,
     };
   },
 });
