@@ -237,6 +237,10 @@ const MONTHS_LONG = [
 const MONTHS_SHORT = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
 const WEEKDAYS_LONG = ['domenica', 'lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato'];
 const WEEKDAYS_SHORT = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
+const MONTHS_LONG_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const MONTHS_SHORT_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const WEEKDAYS_LONG_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const WEEKDAYS_SHORT_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 // ---------------------------------------------------------------------------
 // Date seriali
@@ -837,8 +841,13 @@ function isMinuteCode(tokens: readonly FormatToken[], idx: number): boolean {
   return false;
 }
 
-function renderDateSection(section: ParsedSection, serial: number): string {
+function renderDateSection(section: ParsedSection, serial: number, locale: FormatLocale): string {
   const d = serialToDate(serial);
+  const en = locale === 'en-US';
+  const monthsLong = en ? MONTHS_LONG_EN : MONTHS_LONG;
+  const monthsShort = en ? MONTHS_SHORT_EN : MONTHS_SHORT;
+  const weekdaysLong = en ? WEEKDAYS_LONG_EN : WEEKDAYS_LONG;
+  const weekdaysShort = en ? WEEKDAYS_SHORT_EN : WEEKDAYS_SHORT;
   let out = '';
 
   section.tokens.forEach((t, idx) => {
@@ -858,8 +867,8 @@ function renderDateSection(section: ParsedSection, serial: number): string {
 
     if (head === 'g' || head === 'd') {
       // In Excel italiano `g` e' il giorno e `ggg`/`gggg` il giorno della settimana.
-      if (n >= 4) out += WEEKDAYS_LONG[d.weekday];
-      else if (n === 3) out += WEEKDAYS_SHORT[d.weekday];
+      if (n >= 4) out += weekdaysLong[d.weekday];
+      else if (n === 3) out += weekdaysShort[d.weekday];
       else out += String(d.day).padStart(n, '0');
       return;
     }
@@ -868,9 +877,9 @@ function renderDateSection(section: ParsedSection, serial: number): string {
         out += String(d.minute).padStart(Math.min(n, 2), '0');
         return;
       }
-      if (n >= 5) out += MONTHS_LONG[d.month - 1].charAt(0).toUpperCase();
-      else if (n === 4) out += MONTHS_LONG[d.month - 1];
-      else if (n === 3) out += MONTHS_SHORT[d.month - 1];
+      if (n >= 5) out += monthsLong[d.month - 1].charAt(0).toUpperCase();
+      else if (n === 4) out += monthsLong[d.month - 1];
+      else if (n === 3) out += monthsShort[d.month - 1];
       else out += String(d.month).padStart(n, '0');
       return;
     }
@@ -994,7 +1003,7 @@ export function formatNumber(
       negativeSign = false;
       break;
     case 'date':
-      text = renderDateSection(section, value);
+      text = renderDateSection(section, value, opts?.locale ?? 'it-IT');
       negativeSign = false;
       break;
     case 'number':

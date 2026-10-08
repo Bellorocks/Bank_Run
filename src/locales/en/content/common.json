@@ -18,5 +18,17 @@
   "common.settore.manifattura": "manufacturing",
   "common.settore.software": "software",
   "common.settore.distribuzione": "distribution",
-  "common.settore.servizi": "services"
+  "common.settore.servizi": "services",
+  "common.nomeMese.1": "January",
+  "common.nomeMese.2": "February",
+  "common.nomeMese.3": "March",
+  "common.nomeMese.4": "April",
+  "common.nomeMese.5": "May",
+  "common.nomeMese.6": "June",
+  "common.nomeMese.7": "July",
+  "common.nomeMese.8": "August",
+  "common.nomeMese.9": "September",
+  "common.nomeMese.10": "October",
+  "common.nomeMese.11": "November",
+  "common.nomeMese.12": "December"
 }

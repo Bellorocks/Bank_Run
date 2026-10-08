@@ -25,7 +25,7 @@ import {
 import { triangular, roundTo } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
-import { tx } from '../../../i18n/content';
+import { monthName, tx } from '../../../i18n/content';
 const CATEGORIE = () => ([
   tx('M0A-03-AGGREGAZIONI.1'),
   tx('M0A-03-AGGREGAZIONI.2'),
@@ -37,10 +37,7 @@ const CATEGORIE = () => ([
   tx('M0A-03-AGGREGAZIONI.8'),
 ] as const);
 
-const MESI = [
-  'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
-  'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre',
-] as const;
+const MESI = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
 
 const NOTE = () => ([
   tx('M0A-03-AGGREGAZIONI.9'),
@@ -90,7 +87,7 @@ export default defineTemplate({
 
   generate: (rng) => {
     const r = rng.fork('dati');
-    const mese = r.pick(MESI);
+    const mese = monthName(r.pick(MESI));
 
     // Una voce resta senza importo (cella vuota) e una ha solo una nota (testo,
     // non un numero): sono le due eccezioni che rendono COUNT e COUNTA diversi

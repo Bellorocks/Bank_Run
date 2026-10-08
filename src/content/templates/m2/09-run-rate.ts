@@ -55,11 +55,7 @@ import {
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
 
-import { tx } from '../../../i18n/content';
-const MESI_ITALIANI = [
-  'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
-  'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre',
-] as const;
+import { monthName, tx } from '../../../i18n/content';
 
 const AZIONI = () => ([
   tx('M2-09-RUNRATE.1'),
@@ -100,7 +96,7 @@ export default defineTemplate({
 
     const rTempo = rng.fork('tempistica');
     const meseEsecuzione = rTempo.pick(MESI_ESECUZIONE_AMMESSI);
-    const meseNome = MESI_ITALIANI[meseEsecuzione - 1];
+    const meseNome = monthName(meseEsecuzione);
     // L'azione e' attiva dal mese di esecuzione (incluso) a fine anno.
     const mesiTrascorsi = 13 - meseEsecuzione;
 

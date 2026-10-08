@@ -80,11 +80,9 @@ import {
 import { roundTo } from '../../../rng/distributions';
 import type { Task } from '../../types';
 
-import { tx } from '../../../i18n/content';
-const MESI = [
-  'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
-  'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre',
-] as const;
+import { monthName, tx } from '../../../i18n/content';
+const MESI_N = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
+const MESI = () => MESI_N.map((n) => monthName(n, true));
 
 // Forma stagionale deliberata: un'azienda con vendite concentrate a ridosso
 // delle feste di fine anno. Il NWC (magazzino + crediti, al netto dei debiti
@@ -103,7 +101,7 @@ const FORMA_STAGIONALE = [
 
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
 const ROW_STORICO_START = 5;
-const ROW_STORICO_END = ROW_STORICO_START + MESI.length - 1; // 16
+const ROW_STORICO_END = ROW_STORICO_START + MESI_N.length - 1; // 16
 const B_NWC_START = `B${ROW_STORICO_START}`; // B5
 const B_NWC_END = `B${ROW_STORICO_END}`; // B16
 
@@ -207,13 +205,14 @@ export default defineTemplate({
 
     const nwcMax = Math.max(...nwcStorico);
     const nwcMin = Math.min(...nwcStorico);
-    const meseMax = MESI[nwcStorico.indexOf(nwcMax)];
-    const meseMin = MESI[nwcStorico.indexOf(nwcMin)];
+    const mesi = MESI();
+    const meseMax = mesi[nwcStorico.indexOf(nwcMax)];
+    const meseMin = mesi[nwcStorico.indexOf(nwcMin)];
 
     return {
       templateId: 'M3-05-PEGNWC',
       seed: rng.seed,
-      brief: [tx('M3-05-PEGNWC.5', { meseMax, p1: eur(nwcMax), meseMin, p3: eur(nwcMin) }), ...MESI.map((mese, i) => `- ${mese}: ${eur(nwcStorico[i])}`), tx('M3-05-PEGNWC.6', { p0: eur(nwcClosing) })].join('\n'),
+      brief: [tx('M3-05-PEGNWC.5', { meseMax, p1: eur(nwcMax), meseMin, p3: eur(nwcMin) }), ...mesi.map((mese, i) => `- ${mese}: ${eur(nwcStorico[i])}`), tx('M3-05-PEGNWC.6', { p0: eur(nwcClosing) })].join('\n'),
       sheets: [
         foglio(
           'Model',
@@ -222,7 +221,7 @@ export default defineTemplate({
 
             riga('A3', [tx('M3-05-PEGNWC.8')], { style: STILE_TITOLO }),
             riga('A4', [tx('M3-05-PEGNWC.19'), tx('M3-05-PEGNWC.9')], { style: STILE_TITOLO }),
-            colonna(`A${ROW_STORICO_START}`, [...MESI], { style: STILE_ETICHETTA }),
+            colonna(`A${ROW_STORICO_START}`, mesi, { style: STILE_ETICHETTA }),
             colonna(`B${ROW_STORICO_START}`, nwcStorico, { style: STILE_INPUT }),
 
             riga('A18', [tx('M3-05-PEGNWC.10')], { style: STILE_TITOLO }),
