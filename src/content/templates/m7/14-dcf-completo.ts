@@ -170,7 +170,7 @@ export default defineTemplate({
       [{ ref: B_G, content: g, style: { ...STILE_INPUT_PCT, numFmt: '0.00%' }, locked: true }],
       [{ ref: B_EV_MKT, content: evMkt, style: STILE_INPUT, locked: true }],
 
-      riga(`A${ROW_INTEST}`, [tx('M7-14-DCFCOMPLETO.15'), '', ...COLONNE.map((_, i) => `Anno ${i + 1}`)], { style: STILE_TITOLO }),
+      riga(`A${ROW_INTEST}`, [tx('M7-14-DCFCOMPLETO.15'), '', ...COLONNE.map((_, i) => tx('common.anno', { n: i + 1 }))], { style: STILE_TITOLO }),
       colonna(`A${ROW_FCF}`, [tx('M7-14-DCFCOMPLETO.16'), tx('M7-14-DCFCOMPLETO.17'), tx('M7-14-DCFCOMPLETO.18'), tx('M7-14-DCFCOMPLETO.19')], {
         style: STILE_ETICHETTA,
       }),

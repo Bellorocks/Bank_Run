@@ -226,8 +226,7 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_EV}/(${B_EBITDA}-${B_CAPEX}): EV su EBITDA meno Capex (qui vale ${multiplo(multEvCapex)}) — ` +
-            "piu' alto di EV/EBITDA perche' il denominatore e' piu' piccolo.",
+          tx('M5-05-MULTIPLI2.h1', { B_EV, B_EBITDA, B_CAPEX, p0: multiplo(multEvCapex) }),
           10,
           'T1',
         ),

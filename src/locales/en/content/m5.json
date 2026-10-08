@@ -168,5 +168,6 @@
   "M5-10-FOOTBALLFIELD.18": "Peer",
   "M5-10-FOOTBALLFIELD.19": "EBITDA, €",
   "M5-10-FOOTBALLFIELD.20": "EV/EBITDA, x",
-  "M5-10-FOOTBALLFIELD.21": "Target"
+  "M5-10-FOOTBALLFIELD.21": "Target",
+  "M5-05-MULTIPLI2.h1": "={B_EV}/({B_EBITDA}-{B_CAPEX}): EV over EBITDA minus Capex (here it's {p0}) — higher than EV/EBITDA because the denominator is smaller."
 }

@@ -181,8 +181,7 @@ export default defineTemplate({
         hint('H2', tx('M7-02-COSTRUZIONEFCF.17', { B_EBIT, B_ALIQ }), 10, 'T2'),
         hint(
           'H3',
-          `=${B_NOPAT}+${B_DA}-${B_CAPEX}-${B_DNWC}: NOPAT, piu' D&A riaggiunto, meno Capex, meno ΔNWC ` +
-            '(col suo segno).',
+          tx('M7-02-COSTRUZIONEFCF.h3', { B_NOPAT, B_DA, B_CAPEX, B_DNWC }),
           10,
           'T3',
         ),

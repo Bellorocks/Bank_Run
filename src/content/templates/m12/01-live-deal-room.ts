@@ -358,7 +358,7 @@ export default defineTemplate({
 
     const brief = [tx('M12-01-DEALROOM.19', { p0: multiplo(multIn), p1: multiplo(leva), p2: pct(tasso, 2), p3: pct(crescita), p4: pct(conversione, 0), ANNI, p6: multiplo(multOut), p7: pct(hurdle, 0), p8: eurM(ebitdaRep) })].join('\n');
 
-    const intestazioni = ['Closing', ...COLONNE.map((_, i) => `Anno ${i + 1}`)];
+    const intestazioni = ['Closing', ...COLONNE.map((_, i) => tx('common.anno', { n: i + 1 }))];
 
     const sheet = foglio(
       'Model',

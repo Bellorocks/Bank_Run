@@ -137,7 +137,7 @@ export default defineTemplate({
       [{ ref: B_AMORT, content: amort, style: STILE_INPUT, locked: true }],
       [{ ref: B_SWEEP, content: sweepPct, style: { ...STILE_INPUT_PCT, numFmt: '0%' }, locked: true }],
 
-      riga('A8', [tx('M8-03-DEBTSCHEDULE.11'), tx('M8-03-DEBTSCHEDULE.19'), ...COLONNE.map((_, i) => `Anno ${i + 1}`)], { style: STILE_TITOLO }),
+      riga('A8', [tx('M8-03-DEBTSCHEDULE.11'), tx('M8-03-DEBTSCHEDULE.19'), ...COLONNE.map((_, i) => tx('common.anno', { n: i + 1 }))], { style: STILE_TITOLO }),
       colonna(
         `A${ROW_CFADS}`,
         [tx('M8-03-DEBTSCHEDULE.20'), tx('M8-03-DEBTSCHEDULE.12'), tx('M8-03-DEBTSCHEDULE.21'), tx('M8-03-DEBTSCHEDULE.13'), tx('M8-03-DEBTSCHEDULE.14'), tx('M8-03-DEBTSCHEDULE.15')],

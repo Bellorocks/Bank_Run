@@ -195,8 +195,7 @@ export default defineTemplate({
       hints: [
         hint(
           'H1',
-          `=${B_EBIT}*(1-${B_ALIQ})+${B_DA}-${B_CAPEX}-${B_DNWC}: EBIT tassato, piu' D&A, meno Capex, ` +
-            'meno ΔNWC (col suo segno).',
+          tx('M7-01-FCFFFCFE.h1', { B_EBIT, B_ALIQ, B_DA, B_CAPEX, B_DNWC }),
           10,
           'T1',
         ),

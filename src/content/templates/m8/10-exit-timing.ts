@@ -34,7 +34,7 @@ import type { Task } from '../../types';
 import { tx } from '../../../i18n/content';
 const ANNI = [3, 5, 7] as const;
 const COLONNE = ['B', 'C', 'D'] as const;
-const ETICHETTE = ['3 anni', '5 anni', '7 anni'] as const;
+const ETICHETTE = () => [3, 5, 7].map((n) => tx('M8-10-EXITTIMING.anni', { n }));
 
 const B_ENTRY = 'B4';
 const ROW_INTEST = 6;
@@ -77,7 +77,7 @@ export default defineTemplate({
     // Il MoIC nel foglio e' exit/entry: gli attesi partono dagli importi arrotondati.
     const moicFoglio = exit.map((x) => x / entryEq);
     const irrFoglio = moicFoglio.map((m, i) => Math.pow(m, 1 / ANNI[i]) - 1);
-    const migliore = ETICHETTE[irrFoglio.indexOf(Math.max(...irrFoglio))];
+    const migliore = ETICHETTE()[irrFoglio.indexOf(Math.max(...irrFoglio))];
 
     const rg = `${COLONNE[0]}${ROW_IRR}:${COLONNE[2]}${ROW_IRR}`;
     const tasks: Task[] = [
@@ -121,7 +121,7 @@ export default defineTemplate({
       colonna('A4', [tx('M8-10-EXITTIMING.10')], { style: STILE_ETICHETTA }),
       [{ ref: B_ENTRY, content: entryEq, style: STILE_INPUT, locked: true }],
 
-      riga(`A${ROW_INTEST}`, [tx('M8-10-EXITTIMING.17'), ...ETICHETTE], { style: STILE_TITOLO }),
+      riga(`A${ROW_INTEST}`, [tx('M8-10-EXITTIMING.17'), ...ETICHETTE()], { style: STILE_TITOLO }),
       colonna(
         `A${ROW_ANNI}`,
         [tx('M8-10-EXITTIMING.11'), tx('M8-10-EXITTIMING.12'), tx('M8-10-EXITTIMING.13'), tx('M8-10-EXITTIMING.14')],
