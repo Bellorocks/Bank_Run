@@ -34,7 +34,7 @@ import {
 import { PALETTE, UI } from '../styles/palette';
 import type { GridSession, SessionSnapshot } from '../game/session';
 import { Axis, indicesInViewport } from './geometry';
-import { displayCell } from './cellDisplay';
+import { DEFAULT_CHAR_PX as CHAR_PX, displayCell } from './cellDisplay';
 
 import { tr } from '../i18n/ui';
 /**
@@ -221,6 +221,18 @@ export function Grid({ session, snap }: GridProps): JSX.Element {
 
     const style = wb.getStyle(sheet, coord);
 
+    // Come in Excel, un testo allineato a sinistra troppo lungo deborda sulle celle
+    // vuote alla sua destra e si ferma alla prima piena. Senza questo, le etichette
+    // di una colonna stretta si leggono a meta' ("Interessi passi").
+    let larghezzaTesto = w;
+    if (!inEditing && !d.isError && d.align === 'left' && typeof wb.getValue(sheet, coord) === 'string' && d.text.length * CHAR_PX > w - 8) {
+      for (let k = col + 1; k <= col + 15; k++) {
+        if (!wb.isEmpty(sheet, { row, col: k }) || (snap.edit.mode !== 'ready' && snap.edit.cell?.row === row && snap.edit.cell?.col === k)) break;
+        larghezzaTesto += colAxis.size(k);
+      }
+    }
+    const deborda = larghezzaTesto > w;
+
     return (
       <div
         key={`${row}:${col}`}
@@ -249,12 +261,16 @@ export function Grid({ session, snap }: GridProps): JSX.Element {
           borderBottom: `1px solid ${PALETTE.nebbia}88`,
           outline: attiva ? `2px solid ${PALETTE.smeraldo}` : undefined,
           outlineOffset: -2,
-          overflow: 'hidden',
+          overflow: deborda ? 'visible' : 'hidden',
           whiteSpace: 'pre',
-          zIndex: attiva ? 3 : undefined,
+          zIndex: attiva ? 3 : deborda ? 1 : undefined,
         }}
       >
-        {d.text}
+        {deborda ? (
+          <span style={{ display: 'block', width: larghezzaTesto - 8, flex: 'none', overflow: 'hidden' }}>{d.text}</span>
+        ) : (
+          d.text
+        )}
         {inEditing && <span style={caretStyle} />}
       </div>
     );

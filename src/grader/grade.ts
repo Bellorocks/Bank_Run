@@ -234,6 +234,11 @@ function runCheck(
     message: check.message ?? message,
     ...(reveal && detail !== undefined ? { detail } : {}),
   });
+  // Una cella senza formula puo' essere vuota o avere un valore battuto a mano: sono due errori diversi.
+  const senzaFormula = (dettaglio: string): CheckResult =>
+    wb.isEmpty(cell.target.sheetId, cell.target.coord)
+      ? ko(MESSAGES.emptyCell, tr('grade.5', { p0: cell.target.ref }))
+      : ko(MESSAGES.mustBeFormula, dettaglio);
 
   switch (check.kind) {
     // ---------------------------------------------------------------- numerico
@@ -249,6 +254,9 @@ function runCheck(
       }
       const err = errorText(cell.value);
       if (err) return ko(tr('grade.3', { p0: MESSAGES.value, err }), `${cell.target.ref} = ${err}`);
+      if (cell.value === null || cell.value === undefined) {
+        return ko(MESSAGES.emptyCell, tr('grade.5', { p0: cell.target.ref }));
+      }
       if (typeof cell.value !== 'number') {
         return ko(MESSAGES.value, tr('grade.4', { p0: cell.target.ref, p1: describe(cell.value) }));
       }
@@ -315,7 +323,7 @@ function runCheck(
       return ko(MESSAGES.mustBeFormula, tr('grade.6', { p0: cell.target.ref, p1: describe(cell.value) }));
 
     case 'mustReference': {
-      if (cell.formula === undefined) return ko(MESSAGES.mustBeFormula, tr('grade.7', { p0: cell.target.ref }));
+      if (cell.formula === undefined) return senzaFormula(tr('grade.7', { p0: cell.target.ref }));
       const mancanti = check.cells.filter(
         (c) =>
           !referencesCell(cell.ast, c, {
@@ -347,7 +355,7 @@ function runCheck(
     }
 
     case 'anchoring': {
-      if (cell.formula === undefined) return ko(MESSAGES.mustBeFormula, tr('grade.11', { p0: cell.target.ref }));
+      if (cell.formula === undefined) return senzaFormula(tr('grade.11', { p0: cell.target.ref }));
       const atteso = parseCellRef(check.pattern);
       if (!atteso) return ko(MESSAGES.anchoring, tr('grade.12', { p0: check.pattern }));
 
@@ -384,7 +392,7 @@ function runCheck(
     }
 
     case 'mustUseFunction': {
-      if (cell.formula === undefined) return ko(MESSAGES.mustBeFormula, tr('grade.17', { p0: cell.target.ref }));
+      if (cell.formula === undefined) return senzaFormula(tr('grade.17', { p0: cell.target.ref }));
       const usate = new Set(collectFunctions(cell.ast));
       const richieste = check.functions.map((f) => f.toUpperCase());
       const soddisfatto =

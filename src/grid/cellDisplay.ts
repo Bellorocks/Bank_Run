@@ -38,7 +38,7 @@ export interface DisplayInput {
   readonly charPx?: number;
 }
 
-const DEFAULT_CHAR_PX = 7.6;
+export const DEFAULT_CHAR_PX = 7.6;
 
 export function displayCell(input: DisplayInput): CellDisplay {
   const { value, formula, style, showFormulas } = input;

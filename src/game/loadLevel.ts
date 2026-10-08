@@ -9,7 +9,7 @@
 
 import { a1ToCoord, colToLetters } from '../engine/address';
 import { Workbook, type SheetInit } from '../engine/workbook';
-import type { CellRaw } from '../engine/types';
+import { DEFAULT_COL_WIDTH, type CellRaw } from '../engine/types';
 import type { LevelInstance, SheetSpec } from '../content/types';
 
 export interface LoadedLevel {
@@ -43,6 +43,7 @@ export function loadInstance(instance: LevelInstance): LoadedLevel {
         if (coord) layout.colWidths.set(coord.col, px);
       }
     }
+    for (const [col, px] of autoFitWidths(spec)) if (!layout.colWidths.has(col)) layout.colWidths.set(col, px);
     layout.frozenRows = spec.frozenRows ?? 0;
     layout.frozenCols = spec.frozenCols ?? 0;
   }
@@ -56,6 +57,32 @@ export function loadInstance(instance: LevelInstance): LoadedLevel {
   }
 
   return { workbook, instance, start: resolveStart(workbook, instance) };
+}
+
+// Larghezza stimata di un carattere nella griglia e tetto per una colonna adattata.
+const CHAR_PX = 7.6;
+const MAX_AUTO_WIDTH = 380;
+
+/**
+ * Larghezze per le colonne che il template non fissa: abbastanza per le etichette
+ * che verrebbero tagliate (quelle con la cella a destra piena; le altre debordano
+ * come in Excel). Dipende dalla lingua in cui il livello e' stato generato.
+ */
+function autoFitWidths(spec: SheetSpec): Map<number, number> {
+  const piene = new Set<string>();
+  for (const cell of spec.cells) {
+    if (cell.content !== null && cell.content !== undefined && cell.content !== '') piene.add(cell.ref.toUpperCase());
+  }
+  const out = new Map<number, number>();
+  for (const cell of spec.cells) {
+    if (typeof cell.content !== 'string' || cell.content === '' || cell.content.startsWith('=')) continue;
+    const coord = a1ToCoord(cell.ref);
+    if (!coord) continue;
+    if (!piene.has(`${colToLetters(coord.col + 1)}${coord.row + 1}`)) continue;
+    const px = Math.min(MAX_AUTO_WIDTH, Math.ceil(cell.content.length * CHAR_PX + 14));
+    if (px > DEFAULT_COL_WIDTH && px > (out.get(coord.col) ?? 0)) out.set(coord.col, px);
+  }
+  return out;
 }
 
 function toSheetInit(spec: SheetSpec): SheetInit {
