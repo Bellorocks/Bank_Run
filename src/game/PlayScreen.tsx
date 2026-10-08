@@ -24,11 +24,10 @@ import { loadInstance } from './loadLevel';
 import { GridSession } from './session';
 import { gradeLevel, type GradeReport } from '../grader/grade';
 import { detectCycleCells } from '../engine/iterative';
-import { computeMetrics, computeXp, type RunMetrics, type XpResult } from '../input/metrics';
+import { applyReplayPenalty, computeMetrics, computeXp, type RunMetrics, type XpResult } from '../input/metrics';
 import { workbookToExport } from '../export/fromWorkbook';
 import { exportToXlsx } from '../export/toXlsx';
-import { recordRun } from '../persistence/runs';
-import { addXp, loadProfile, touchStreak } from '../persistence/profile';
+import { loadProgress, recordProgress } from '../persistence/progress';
 import { rankForXp, xpWithinRank, XP_PER_RANK } from '../persistence/progression';
 import type { Command } from '../keymap/commands';
 
@@ -60,6 +59,17 @@ export function PlayScreen({ templateId, seed, onRiprovaStessoSeed, onNuovoSeed,
   const colonnaSinistraRef = useRef<HTMLDivElement>(null);
   const reportRef = useRef<GradeReport | null>(null);
   const registrataRef = useRef(false);
+  /** Il livello era gia' stato superato in passato: le ripetizioni valgono meno XP. */
+  const giaSuperatoRef = useRef(false);
+  useEffect(() => {
+    let vivo = true;
+    void loadProgress().then((p) => {
+      if (vivo) giaSuperatoRef.current = p.levels[templateId] !== undefined;
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [templateId]);
 
   useEffect(() => {
     if (!isDragging) return;
@@ -101,6 +111,10 @@ export function PlayScreen({ templateId, seed, onRiprovaStessoSeed, onNuovoSeed,
           verificaRef.current();
           return true;
         }
+        if (c === 'game.hint') {
+          hintRef.current();
+          return true;
+        }
         return false;
       },
     });
@@ -120,7 +134,8 @@ export function PlayScreen({ templateId, seed, onRiprovaStessoSeed, onNuovoSeed,
    * non deve far scorrere il tempo, ma non chiude la partita.
    */
   useEffect(() => {
-    session.recorder.start();
+    // Il cronometro parte al primo tasto premuto (vedi GridSession.handleKey), non
+    // all'apertura: il tempo di lettura del brief non deve costare punti.
     session.recorder.resume();
     const t = window.setInterval(() => setDurataMs(session.recorder.elapsedMs()), 250);
     return () => {
@@ -132,6 +147,9 @@ export function PlayScreen({ templateId, seed, onRiprovaStessoSeed, onNuovoSeed,
   const verifica = useCallback((): void => {
     if (esito !== null) return; // livello gia' chiuso: Verifica non fa piu' nulla
     const wb = caricato.workbook;
+    // Il calcolo iterativo non gira da solo: senza questo, un modello circolare modificato
+    // dopo l'ultimo F9 verrebbe valutato sui valori vecchi.
+    if (wb.getIterative().enabled) wb.recalcIterative();
     const cicli = new Set(detectCycleCells(wb.engine));
     const tentativoCorrente = reportRef.current === null ? 1 : tentativo;
     const r = gradeLevel(wb, caricato.instance, {
@@ -153,7 +171,7 @@ export function PlayScreen({ templateId, seed, onRiprovaStessoSeed, onNuovoSeed,
       minKeystrokes: Math.max(1, caricato.instance.parScore.keystrokes),
     });
     const hintsUsed = session.recorder.events.filter((e) => e.kind === 'hint').length;
-    const xp = computeXp({
+    const xpPieno = computeXp({
       baseXp: BASE_XP,
       mode: template?.mode ?? 'PRACTICE',
       metrics,
@@ -161,12 +179,54 @@ export function PlayScreen({ templateId, seed, onRiprovaStessoSeed, onNuovoSeed,
       retryCount: tentativoCorrente - 1,
       perfectStructure: r.perfectStructure,
     });
+    const xp = giaSuperatoRef.current ? applyReplayPenalty(xpPieno) : xpPieno;
 
     void chiudiLivello(metrics, xp, hintsUsed, r);
   }, [caricato, template, tentativo, session, esito]);
 
   const verificaRef = useRef(verifica);
   verificaRef.current = verifica;
+
+  /**
+   * Suggerimenti: si sbloccano uno alla volta, nell'ordine del template. F1 (o il
+   * pulsante sotto il task) apre il prossimo per il task indicato o, senza task,
+   * per il primo task non ancora risolto. Ogni suggerimento costa XP a fine livello.
+   */
+  const [hintsRevealed, setHintsRevealed] = useState<string[]>([]);
+  const tuttiGliHint = caricato.instance.hints;
+  const hintsLeft = useMemo(
+    () =>
+      new Set(
+        tuttiGliHint
+          .filter((h) => h.taskId !== undefined && !hintsRevealed.includes(h.id))
+          .map((h) => h.taskId as string),
+      ),
+    [tuttiGliHint, hintsRevealed],
+  );
+  const revealHint = useCallback(
+    (taskId?: string): void => {
+      if (esito !== null) return;
+      const nonVisti = tuttiGliHint.filter((h) => !hintsRevealed.includes(h.id));
+      let bersaglio = taskId;
+      if (bersaglio === undefined) {
+        const risolti = new Set((reportRef.current?.tasks ?? []).filter((t) => t.passed).map((t) => t.taskId));
+        bersaglio = caricato.instance.tasks.find(
+          (t) => !risolti.has(t.id) && nonVisti.some((h) => h.taskId === t.id),
+        )?.id;
+      }
+      const scelto =
+        nonVisti.find((h) => h.taskId === bersaglio) ?? nonVisti.find((h) => h.taskId === undefined);
+      if (!scelto) {
+        session.announce('Nessun altro suggerimento disponibile.');
+        return;
+      }
+      session.recorder.record({ kind: 'hint', hintId: scelto.id });
+      setHintsRevealed((prev) => [...prev, scelto.id]);
+    },
+    [esito, tuttiGliHint, hintsRevealed, caricato, session],
+  );
+  const hintRef = useRef(revealHint);
+  hintRef.current = revealHint;
 
   /**
    * Persistenza a fine livello.
@@ -186,11 +246,7 @@ export function PlayScreen({ templateId, seed, onRiprovaStessoSeed, onNuovoSeed,
     let xpTotalePrima = 0;
     let xpTotaleDopo = xp.total;
     try {
-      const profiloPrima = await loadProfile();
-      xpTotalePrima = profiloPrima.xp;
-      xpTotaleDopo = await addXp(xp.total);
-      await touchStreak(new Date().toISOString().slice(0, 10));
-      await recordRun({
+      const out = await recordProgress({
         templateId,
         seed,
         mode: template?.mode ?? 'PRACTICE',
@@ -200,9 +256,11 @@ export function PlayScreen({ templateId, seed, onRiprovaStessoSeed, onNuovoSeed,
         xpEarned: xp.total,
         report: r,
       });
+      xpTotalePrima = out.xpBefore;
+      xpTotaleDopo = out.xpAfter;
     } catch (err) {
       // eslint-disable-next-line no-console -- diagnostica di sviluppo, non un errore per l'utente
-      console.warn('Persistenza non disponibile (fuori dal runtime Tauri?):', err);
+      console.warn('Salvataggio dei progressi non riuscito:', err);
     }
     setEsito({ metrics, xp, xpTotalePrima, xpTotaleDopo });
   };
@@ -275,6 +333,11 @@ export function PlayScreen({ templateId, seed, onRiprovaStessoSeed, onNuovoSeed,
             tasks={caricato.instance.tasks}
             report={report}
             attempt={tentativo}
+            onHint={(taskId) => revealHint(taskId)}
+            revealedHints={hintsRevealed
+              .map((id) => tuttiGliHint.find((h) => h.id === id))
+              .filter((h): h is NonNullable<typeof h> => h !== undefined)}
+            hintsLeft={hintsLeft}
             style={{ flex: `${1 - splitRatio} 1 0px`, minHeight: 120 }}
           />
         </div>

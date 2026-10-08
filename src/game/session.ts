@@ -211,6 +211,12 @@ export class GridSession {
     this.status = message;
   }
 
+  /** Messaggio nella barra di stato, dall'esterno della sessione (es. la schermata di gioco). */
+  announce(message: string): void {
+    this.say(message);
+    this.emit();
+  }
+
   // -------------------------------------------------------------------------
   // Accessori
   // -------------------------------------------------------------------------
@@ -278,6 +284,8 @@ export class GridSession {
    */
   handleKey(ev: KeyLike): boolean {
     if (isModifierKey(ev.key)) return false;
+    // Primo tasto: parte il cronometro della run (no-op se gia' partito).
+    this.recorder.start();
 
     const sig = keySignature(ev);
 
@@ -1014,18 +1022,38 @@ export class GridSession {
   // Struttura e formato
   // -------------------------------------------------------------------------
 
-  private insertRowsOrCols(): void {
+  /**
+   * Ctrl+Maiusc+= e Ctrl+- agiscono su righe o colonne INTERE, selezionate prima con
+   * Maiusc+Spazio o Ctrl+Spazio. Su una selezione parziale Excel apre un dialogo
+   * ("sposta celle a destra/in basso, riga intera, colonna intera"); qui non c'e',
+   * quindi invece di eliminare un'intera riga alla cieca si spiega cosa fare.
+   */
+  private wholeAxis(): { area: RangeCoords; axis: 'row' | 'col' } | null {
     const area = normalizeRange(this.activeArea());
-    const righeIntere = area.left === 0 && area.right >= this.probe().maxCol;
-    const colonneIntere = area.top === 0 && area.bottom >= this.probe().maxRow;
-    if (colonneIntere) this.workbook.insertCols(this.sheet, area.left, area.right - area.left + 1);
-    else if (righeIntere || true) this.workbook.insertRows(this.sheet, area.top, area.bottom - area.top + 1);
+    if (area.top === 0 && area.bottom >= this.probe().maxRow) return { area, axis: 'col' };
+    if (area.left === 0 && area.right >= this.probe().maxCol) return { area, axis: 'row' };
+    return null;
+  }
+
+  private insertRowsOrCols(): void {
+    const sel = this.wholeAxis();
+    if (!sel) {
+      this.say('Seleziona prima righe intere (Maiusc+Spazio) o colonne intere (Ctrl+Spazio).');
+      return;
+    }
+    const { area, axis } = sel;
+    if (axis === 'col') this.workbook.insertCols(this.sheet, area.left, area.right - area.left + 1);
+    else this.workbook.insertRows(this.sheet, area.top, area.bottom - area.top + 1);
   }
 
   private deleteRowsOrCols(): void {
-    const area = normalizeRange(this.activeArea());
-    const colonneIntere = area.top === 0 && area.bottom >= this.probe().maxRow;
-    if (colonneIntere) this.workbook.removeCols(this.sheet, area.left, area.right - area.left + 1);
+    const sel = this.wholeAxis();
+    if (!sel) {
+      this.say('Seleziona prima righe intere (Maiusc+Spazio) o colonne intere (Ctrl+Spazio).');
+      return;
+    }
+    const { area, axis } = sel;
+    if (axis === 'col') this.workbook.removeCols(this.sheet, area.left, area.right - area.left + 1);
     else this.workbook.removeRows(this.sheet, area.top, area.bottom - area.top + 1);
   }
 

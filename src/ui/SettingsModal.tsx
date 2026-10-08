@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { sound } from '../audio/chiptune';
 import { PALETTE } from '../styles/palette';
+import { isFreePlay, setFreePlay } from '../persistence/progress';
 
 export interface SettingsModalProps {
   readonly onClose: () => void;
@@ -14,6 +15,14 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const [muted, setMuted] = useState(sound.isMuted());
   const [musicVol, setMusicVol] = useState(Math.round(sound.getMusicVolume() * 100));
   const [sfxVol, setSfxVol] = useState(Math.round(sound.getSfxVolume() * 100));
+  const [freePlay, setFreePlayState] = useState(isFreePlay());
+
+  const handleToggleFreePlay = () => {
+    const on = !freePlay;
+    setFreePlay(on);
+    setFreePlayState(on);
+    sound.playSelect();
+  };
 
   const handleToggleMute = () => {
     const isNowMuted = sound.toggleMute();
@@ -85,10 +94,23 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             />
           </div>
 
+          <div style={settingRowStyle}>
+            <div>
+              <div style={labelStyle}>Modalita' libera</div>
+              <div style={subLabelStyle}>
+                {freePlay ? 'Tutti i livelli giocabili, prerequisiti ignorati' : 'I livelli si sbloccano completando i prerequisiti'}
+              </div>
+            </div>
+            <button type="button" onClick={handleToggleFreePlay} style={pillButtonStyle(freePlay)}>
+              {freePlay ? 'ON' : 'OFF'}
+            </button>
+          </div>
+
           <div style={hintBoxStyle}>
             <div style={hintTitleStyle}>Comandi rapidi da tastiera</div>
             <div style={hintBodyStyle}>
-              <strong>F1</strong> apri/chiudi il mandato · <strong>F2</strong> modifica la cella selezionata ·{' '}
+              <strong>F1</strong> suggerimento (costa XP) · <strong>Ctrl+F1</strong> mostra/nascondi il mandato ·{' '}
+              <strong>F12</strong> verifica · <strong>F2</strong> modifica la cella selezionata ·{' '}
               <strong>Invio</strong> conferma la formula · <strong>?</strong> guida scorciatoie
             </div>
           </div>

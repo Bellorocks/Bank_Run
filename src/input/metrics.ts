@@ -277,6 +277,23 @@ export function computeXp(input: XpInput): XpResult {
   return { total: sum, breakdown };
 }
 
+/** Quota di XP che un livello gia' superato restituisce a ogni ripetizione. */
+export const XP_REPLAY_SHARE = 0.25;
+
+/**
+ * Le ripetizioni di un livello gia' superato valgono il 25% degli XP: rigiocarlo
+ * resta utile per allenarsi, ma non e' piu' un modo per scalare la carriera
+ * ripetendo all'infinito il livello piu' facile.
+ */
+export function applyReplayPenalty(xp: XpResult): XpResult {
+  const taglio = -Math.round(xp.total * (1 - XP_REPLAY_SHARE));
+  if (taglio === 0) return xp;
+  return {
+    total: xp.total + taglio,
+    breakdown: [...xp.breakdown, { label: `Livello gia' superato (${Math.round(XP_REPLAY_SHARE * 100)}% XP)`, delta: taglio }],
+  };
+}
+
 function formatMult(m: number): string {
   return Number.isInteger(m) ? m.toFixed(1) : String(m);
 }

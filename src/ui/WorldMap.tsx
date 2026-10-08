@@ -4,9 +4,11 @@
  * Palette 16 colori fissa (spec §8), bande piatte e bordi duri.
  */
 
-import { useState } from 'react';
-import { TEMPLATES } from '../content/registry';
-import type { ModuleId } from '../content/types';
+import { useEffect, useMemo, useState } from 'react';
+import { getTemplate, isUnlocked, TEMPLATES } from '../content/registry';
+import type { LevelTemplate, ModuleId } from '../content/types';
+import { isFreePlay, loadProgress, subscribeProgress, type ProgressSnapshot } from '../persistence/progress';
+import { rankForXp } from '../persistence/progression';
 import { PALETTE } from '../styles/palette';
 import { PixelSprite } from './sprites/PixelCanvas';
 import {
@@ -83,7 +85,7 @@ const ISLANDS: IslandDef[] = [
     subtitle: 'Leva, M&A, rating, dati reali',
     moduleIds: ['M8', 'M9', 'M10', 'M11'],
     summary:
-      'Leveraged buyout con interessi circolari veri, fusioni con sinergie ed EPS bridge, capacità di debito ' +
+      'Leveraged buyout con cascata del debito e cash sweep, fusioni con sinergie ed EPS bridge, capacità di debito ' +
       'e stress test, e bilanci reali da leggere con tutto il loro disordine.',
     x: 32,
     y: 22, // Nell'isola più alta col castello
@@ -95,7 +97,7 @@ const ISLANDS: IslandDef[] = [
     subtitle: 'La transazione integrata finale nello spazio cosmico',
     moduleIds: ['M12'],
     summary:
-      'Nessuna guida, un solo tentativo per seed. Tutto quello che hai imparato, in un unico scenario che si ' +
+      'Nessuna formula suggerita, solo il mandato. Tutto quello che hai imparato, in un unico scenario che si ' +
       'chiude — o si rompe — sulle tue scelte.',
     x: 84,
     y: 20, // Nello squarcio cosmico
@@ -106,6 +108,23 @@ const ISLANDS: IslandDef[] = [
 export function WorldMap({ onSelectLevel, onBackToTitle }: WorldMapProps) {
   const [selectedId, setSelectedId] = useState<string>(ISLANDS[0].id);
   const [selectedModule, setSelectedModule] = useState<ModuleId | null>(null);
+
+  const [progress, setProgress] = useState<ProgressSnapshot | null>(null);
+  const [freePlay] = useState(isFreePlay);
+
+  useEffect(() => {
+    let vivo = true;
+    void loadProgress().then((p) => vivo && setProgress(p));
+    const stop = subscribeProgress((p) => vivo && setProgress(p));
+    return () => {
+      vivo = false;
+      stop();
+    };
+  }, []);
+
+  const completed = useMemo(() => new Set(Object.keys(progress?.levels ?? {})), [progress]);
+  const playable = (t: LevelTemplate) => freePlay || isUnlocked(t.id, completed);
+  const xp = progress?.xp ?? 0;
 
   const island = ISLANDS.find((r) => r.id === selectedId) ?? ISLANDS[0];
   const islandTemplates = TEMPLATES.filter((t) => island.moduleIds.includes(t.module));
@@ -121,8 +140,11 @@ export function WorldMap({ onSelectLevel, onBackToTitle }: WorldMapProps) {
           MAPPA DELLE ISOLE FLUTTUANTI
         </span>
         <span style={{ flex: 1 }} />
-        <span style={{ fontFamily: 'var(--font-titolo)', fontSize: 15, color: PALETTE.lime, background: PALETTE.inchiostro, padding: '4px 10px', border: `1px solid ${PALETTE.ardesia}` }}>
-          {TEMPLATES.length} LIVELLI DISPONIBILI
+        <span style={headerChipStyle(PALETTE.ambra)} title="Rank di carriera e XP totali">
+          {rankForXp(xp).toUpperCase()} · {xp} XP
+        </span>
+        <span style={headerChipStyle(PALETTE.lime)}>
+          ✓ {completed.size}/{TEMPLATES.length} LIVELLI{freePlay ? " · MODALITA' LIBERA" : ''}
         </span>
         {onBackToTitle && (
           <button type="button" onClick={onBackToTitle} style={woodHeaderButtonStyle}>
@@ -182,7 +204,9 @@ export function WorldMap({ onSelectLevel, onBackToTitle }: WorldMapProps) {
           {/* Segnaposto e Cartelli in Legno sulle posizioni geografiche reali */}
           {ISLANDS.map((r) => {
             const isSelected = r.id === island.id;
-            const count = TEMPLATES.filter((t) => r.moduleIds.includes(t.module)).length;
+            const islandList = TEMPLATES.filter((t) => r.moduleIds.includes(t.module));
+            const count = islandList.length;
+            const done = islandList.filter((t) => completed.has(t.id)).length;
             return (
               <div
                 key={r.id}
@@ -211,7 +235,7 @@ export function WorldMap({ onSelectLevel, onBackToTitle }: WorldMapProps) {
                     setSelectedId(r.id);
                     setSelectedModule(r.moduleIds[0]);
                   }}
-                  title={`${r.name} — ${count} livelli`}
+                  title={`${r.name} — ${done}/${count} livelli completati`}
                   style={{
                     background: 'none',
                     border: 'none',
@@ -228,7 +252,7 @@ export function WorldMap({ onSelectLevel, onBackToTitle }: WorldMapProps) {
 
                   {/* Cartello in legno intagliato sotto la bandiera */}
                   <div style={woodenSignTagStyle(isSelected, r.boss)}>
-                    {r.labelShort} ({count})
+                    {r.labelShort} ({done}/{count})
                   </div>
                 </button>
               </div>
@@ -276,7 +300,9 @@ export function WorldMap({ onSelectLevel, onBackToTitle }: WorldMapProps) {
           <div style={moduleTabsStyle}>
             {island.moduleIds.map((mId) => {
               const isCurrent = mId === activeModule;
-              const count = islandTemplates.filter((t) => t.module === mId).length;
+              const modList = islandTemplates.filter((t) => t.module === mId);
+              const count = modList.length;
+              const done = modList.filter((t) => completed.has(t.id)).length;
               return (
                 <button
                   key={mId}
@@ -285,7 +311,9 @@ export function WorldMap({ onSelectLevel, onBackToTitle }: WorldMapProps) {
                   style={moduleWoodenPlankStyle(isCurrent)}
                 >
                   <PixelSprite frame={WOOD_IRON_CLAMP} scale={1.0} />
-                  <span>{mId} ({count})</span>
+                  <span>
+                    {mId} ({done}/{count})
+                  </span>
                 </button>
               );
             })}
@@ -293,29 +321,62 @@ export function WorldMap({ onSelectLevel, onBackToTitle }: WorldMapProps) {
 
           {/* Elenco dei livelli: Cartelli in legno intagliati ad asse singola/doppia */}
           <div style={levelListStyle}>
-            {moduleTemplates.map((t, idx) => (
-              <div key={t.id} style={levelPlankCardStyle}>
-                <span style={levelIndexSignStyle}>{idx + 1}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={levelTitleStyle}>{t.title}</div>
-                  <div style={levelMetaStyle}>
-                    Rank {t.rank} · ~{Math.round(t.estimatedSeconds / 60)} min · {t.skills.slice(0, 2).join(', ')}
+            {moduleTemplates.map((t, idx) => {
+              const record = progress?.levels[t.id];
+              const aperto = playable(t);
+              const mancanti = t.prerequisites.filter((p) => !completed.has(p));
+              return (
+                <div key={t.id} style={{ ...levelPlankCardStyle, opacity: aperto ? 1 : 0.6 }}>
+                  <span style={levelIndexSignStyle(record !== undefined)}>{record ? '✓' : idx + 1}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={levelTitleStyle} title={t.title}>
+                      {t.title}
+                    </div>
+                    <div style={levelMetaStyle}>
+                      Rank {t.rank} · ~{Math.round(t.estimatedSeconds / 60)} min
+                      {record
+                        ? ` · record ${record.bestXp} XP${record.bestTimeMs != null ? ` in ${formatTime(record.bestTimeMs)}` : ''}`
+                        : ` · ${t.skills.slice(0, 2).join(', ')}`}
+                    </div>
+                    {!aperto && (
+                      <div style={levelLockStyle}>
+                        Prima completa: {mancanti.map((p) => getTemplate(p)?.title ?? p).join(' · ')}
+                      </div>
+                    )}
                   </div>
+                  {aperto ? (
+                    <button type="button" onClick={() => onSelectLevel(t.id)} style={playWoodArrowButtonStyle}>
+                      {record ? 'RIGIOCA ▶' : 'GIOCA ▶'}
+                    </button>
+                  ) : (
+                    <span style={lockedBadgeStyle} title="Attiva la modalita' libera nelle Impostazioni per giocarlo subito">
+                      🔒 BLOCCATO
+                    </span>
+                  )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => onSelectLevel(t.id)}
-                  style={playWoodArrowButtonStyle}
-                >
-                  GIOCA ▶
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
     </div>
   );
+}
+
+function formatTime(ms: number): string {
+  const sec = Math.round(ms / 1000);
+  return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+}
+
+function headerChipStyle(color: string): React.CSSProperties {
+  return {
+    fontFamily: 'var(--font-titolo)',
+    fontSize: 15,
+    color,
+    background: PALETTE.inchiostro,
+    padding: '4px 10px',
+    border: `1px solid ${PALETTE.ardesia}`,
+  };
 }
 
 /** Punti del sentiero come quadratini pixel pieni */
@@ -521,18 +582,37 @@ const levelPlankCardStyle: React.CSSProperties = {
   boxShadow: `3px 3px 0 ${PALETTE.ardesia}`,
 };
 
-const levelIndexSignStyle: React.CSSProperties = {
+function levelIndexSignStyle(done: boolean): React.CSSProperties {
+  return {
+    fontFamily: 'var(--font-titolo)',
+    fontSize: 15,
+    color: done ? PALETTE.bianco : PALETTE.inchiostro,
+    background: done ? PALETTE.smeraldo : PALETTE.ambra,
+    border: `2px solid ${PALETTE.inchiostro}`,
+    width: 26,
+    height: 26,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  };
+}
+
+const levelLockStyle: React.CSSProperties = {
+  fontFamily: 'var(--font-testo)',
+  fontSize: 13,
+  color: PALETTE.rubino,
+  marginTop: 2,
+};
+
+const lockedBadgeStyle: React.CSSProperties = {
   fontFamily: 'var(--font-titolo)',
-  fontSize: 15,
-  color: PALETTE.inchiostro,
-  background: PALETTE.ambra,
-  border: `2px solid ${PALETTE.inchiostro}`,
-  width: 26,
-  height: 26,
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
+  fontSize: 13,
+  color: PALETTE.ardesia,
+  border: `2px dashed ${PALETTE.ardesia}`,
+  padding: '5px 8px',
   flexShrink: 0,
+  whiteSpace: 'nowrap',
 };
 
 const levelTitleStyle: React.CSSProperties = {

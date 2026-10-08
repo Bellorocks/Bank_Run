@@ -268,7 +268,10 @@ function runCheck(
       const trim = check.trim !== false;
       const actual = typeof cell.value === 'string' ? cell.value : String(cell.value ?? '');
       const norm = (s: string) => {
-        const t = trim ? s.trim().replace(/\s+/g, ' ') : s;
+        // Un apice iniziale in Excel forza il testo e sparisce dalla cella: chi scrive
+        // 'Conto Economico'!B2 vede salvato Conto Economico'!B2. Si confronta senza.
+        const senzaApice = s.replace(/^'/, '');
+        const t = trim ? senzaApice.trim().replace(/\s+/g, ' ') : senzaApice;
         return check.caseSensitive ? t : t.toLowerCase();
       };
       return norm(actual) === norm(check.expected)

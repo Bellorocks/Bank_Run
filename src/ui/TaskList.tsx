@@ -13,17 +13,23 @@ import { Pannello, Badge, TESTO_LUNGO } from './primitives';
 import { PALETTE, UI } from '../styles/palette';
 import { FAMILY_LABEL } from '../grader/messages';
 import type { GradeReport, TaskResult } from '../grader/grade';
-import type { Task } from '../content/types';
+import type { Hint, Task } from '../content/types';
+import { Markdown } from './Brief';
 
 export interface TaskListProps {
   readonly tasks: readonly Task[];
   readonly report: GradeReport | null;
   readonly attempt: number;
   readonly onHint?: (taskId: string) => void;
+  /** Suggerimenti gia' sbloccati dall'utente, nell'ordine in cui li ha chiesti. */
+  readonly revealedHints?: readonly Hint[];
+  /** Task che hanno ancora suggerimenti da sbloccare. */
+  readonly hintsLeft?: ReadonlySet<string>;
   readonly style?: CSSProperties;
 }
 
-export function TaskList({ tasks, report, attempt, onHint, style }: TaskListProps) {
+export function TaskList({ tasks, report, attempt, onHint, revealedHints = [], hintsLeft, style }: TaskListProps) {
+  const generali = revealedHints.filter((h) => h.taskId === undefined || !tasks.some((t) => t.id === h.taskId));
   const esiti = new Map<string, TaskResult>((report?.tasks ?? []).map((t) => [t.taskId, t]));
 
   return (
@@ -42,6 +48,13 @@ export function TaskList({ tasks, report, attempt, onHint, style }: TaskListProp
       }
       style={style}
     >
+      {generali.length > 0 && (
+        <div style={{ ...suggerimentoStyle, marginBottom: 10 }}>
+          {generali.map((h) => (
+            <Markdown key={h.id} source={h.text} />
+          ))}
+        </div>
+      )}
       <ol style={listaStyle}>
         {tasks.map((task, i) => {
           const esito = esiti.get(task.id);
@@ -85,12 +98,19 @@ export function TaskList({ tasks, report, attempt, onHint, style }: TaskListProp
                       Trovalo da solo. Al prossimo tentativo ti dico anche dove.
                     </p>
                   )}
-                  {onHint && (
-                    <button type="button" onClick={() => onHint(task.id)} style={hintStyle}>
-                      Suggerimento (costa XP)
-                    </button>
-                  )}
                 </div>
+              )}
+
+              {revealedHints.filter((h) => h.taskId === task.id).map((h) => (
+                <div key={h.id} style={suggerimentoStyle}>
+                  <Markdown source={h.text} />
+                </div>
+              ))}
+
+              {onHint && esito?.passed !== true && (hintsLeft?.has(task.id) ?? true) && (
+                <button type="button" onClick={() => onHint(task.id)} style={hintStyle}>
+                  Suggerimento (F1) · costa XP
+                </button>
               )}
             </li>
           );
@@ -122,7 +142,17 @@ const erroreStyle: CSSProperties = {
   borderLeft: `2px solid ${UI.errore}`,
 };
 
+const suggerimentoStyle: CSSProperties = {
+  marginTop: 6,
+  marginLeft: 22,
+  padding: '4px 8px',
+  background: PALETTE.ambra + '33',
+  borderLeft: `2px solid ${PALETTE.ambra}`,
+};
+
 const hintStyle: CSSProperties = {
+  marginTop: 6,
+  marginLeft: 22,
   background: PALETTE.grafite,
   border: `1px solid ${PALETTE.inchiostro}`,
   color: PALETTE.ambra,
