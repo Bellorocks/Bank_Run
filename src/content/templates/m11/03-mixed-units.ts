@@ -53,12 +53,12 @@ export default defineTemplate({
 
     const revKEur = roundTo(triangular(r, 60_000, 80_000, 100_000), 1_000); // 80.000 k€ = 80M €
     const costMEur = roundTo(triangular(r, 45, 55, 65), 1); // 55 M€ = 55.000.000 €
-    const capexUsd = 11_000_000; // $11.0M
-    const fxRate = 1.10; // EUR/USD (1 € = 1.10 $)
+    const capexUsd = roundTo(triangular(r, 6_000_000, 10_000_000, 15_000_000), 100_000);
+    const fxRate = roundTo(triangular(r, 1.02, 1.1, 1.2), 0.005); // EUR/USD: dollari per 1 euro
 
     const revEur = revKEur * 1_000;
     const costEur = costMEur * 1_000_000;
-    const capexEur = capexUsd / fxRate; // 10.0M €
+    const capexEur = capexUsd / fxRate;
 
     const brief = [
       `Normalizza i dati di budget espressi in diverse unità e valute in **Euro assoluti (€)**.`,
@@ -67,12 +67,13 @@ export default defineTemplate({
       `- **Ricavi Operativi**: ${num(revKEur)} k€ (migliaia di euro)`,
       `- **Costi Operativi**: ${num(costMEur)} M€ (milioni di euro)`,
       `- **Capex Globale**: $ ${num(capexUsd)} (in Dollari USA)`,
-      `- **Tasso di Cambio EUR/USD**: ${num(fxRate, 2)}`,
+      `- **Tasso di Cambio EUR/USD**: ${num(fxRate, 3)} (dollari per 1 euro)`,
       ``,
-      `### I tuoi compiti:`,
-      `1. Converti i **Ricavi in Euro (€)** in \`${B_REV_EUR}\`: \`=${B_REV_KEUR}*1000\`.`,
-      `2. Converti i **Costi in Euro (€)** in \`${B_COST_EUR}\`: \`=${B_COST_MEUR}*1000000\`.`,
-      `3. Converti i **Capex in Euro (€)** in \`${B_CAPEX_EUR}\`: \`=${B_CAPEX_USD}/${B_FX_RATE}\`.`,
+      "Ogni fonte usa la sua unita': il commerciale ragiona in migliaia, il controllo di gestione in milioni, " +
+        "la casa madre americana in dollari. Prima di sommarli vanno portati tutti in euro. Occhio al cambio: " +
+        'EUR/USD dice quanti dollari vale un euro, quindi per passare da dollari a euro si divide.',
+      '',
+      "Converti le tre voci; il flusso netto si calcola da solo.",
     ].join('\n');
 
     const sheet = foglio('Model', [
@@ -84,7 +85,8 @@ export default defineTemplate({
         'Capex Globale (USD $)',
         'Tasso di Cambio (EUR/USD)',
       ], { style: STILE_ETICHETTA }),
-      colonna('B4', [revKEur, costMEur, capexUsd, fxRate], { style: STILE_INPUT }),
+      colonna('B4', [revKEur, costMEur, capexUsd], { style: STILE_INPUT }),
+      [{ ref: B_FX_RATE, content: fxRate, style: { ...STILE_INPUT, numFmt: '0.000' }, locked: true }],
 
       riga('A9', ['Voci Normalizzate in Euro Assoluti (€)', 'Importo (€)'], { style: STILE_TITOLO }),
       colonna('A10', [
@@ -102,27 +104,33 @@ export default defineTemplate({
     const tasks = [
       taskFormula({
         id: 'T1',
-        prompt: `Converti i Ricavi in € in ${B_REV_EUR}: =${B_REV_KEUR}*1000.`,
+        prompt: `In ${B_REV_EUR} i ricavi in euro.`,
         target: `Model!${B_REV_EUR}`,
         atteso: revEur,
         referenzia: [B_REV_KEUR],
+        senzaLiteral: [1000, 1_000_000],
         skills: ['real.units'],
+        minKeystrokes: 9,
       }),
       taskFormula({
         id: 'T2',
-        prompt: `Converti i Costi in € in ${B_COST_EUR}: =${B_COST_MEUR}*1000000.`,
+        prompt: `In ${B_COST_EUR} i costi in euro.`,
         target: `Model!${B_COST_EUR}`,
         atteso: costEur,
         referenzia: [B_COST_MEUR],
+        senzaLiteral: [1000, 1_000_000],
         skills: ['real.units'],
+        minKeystrokes: 12,
       }),
       taskFormula({
         id: 'T3',
-        prompt: `Converti i Capex in € in ${B_CAPEX_EUR}: =${B_CAPEX_USD}/${B_FX_RATE}.`,
+        prompt: `In ${B_CAPEX_EUR} il capex in euro.`,
         target: `Model!${B_CAPEX_EUR}`,
         atteso: capexEur,
         referenzia: [B_CAPEX_USD, B_FX_RATE],
+        senzaLiteral: [],
         skills: ['real.units'],
+        minKeystrokes: 8,
       }),
     ];
 
@@ -132,11 +140,12 @@ export default defineTemplate({
       brief,
       sheets: [sheet],
       tasks,
-      parScore: par(tasks, { letturaSecondi: 20 }),
+      parScore: par(tasks, { letturaSecondi: 45 }),
+      startAt: `Model!${B_REV_EUR}`,
       hints: [
-        hint('H1', 'In B10 moltiplica i k€ per 1000: =B4*1000.', 10, 'T1'),
-        hint('H2', 'In B11 moltiplica i M€ per 1.000.000: =B5*1000000.', 10, 'T2'),
-        hint('H3', 'In B12 dividi i dollari per il tasso di cambio EUR/USD: =B6/B7.', 10, 'T3'),
+        hint('H1', '=B4*1000', 10, 'T1'),
+        hint('H2', '=B5*1000000', 10, 'T2'),
+        hint('H3', '=B6/B7: dollari diviso dollari-per-euro = euro.', 10, 'T3'),
       ],
     };
   },

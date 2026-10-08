@@ -1,15 +1,21 @@
 /**
- * M11 · 05 — Caccia all'Errore: individuare formule errate, hardcode e segni invertiti.
+ * M11 · 05 — Caccia all'Errore: un modello ricevuto dalla controparte, tre errori.
  *
- * Durante l'audit di un modello ricevuto da una controparte, l'analista deve
- * individuare e correggere gli errori più insidiosi:
+ * Il foglio e' un piccolo conto economico con flusso di cassa: tutte le celle
+ * formula sono modificabili e hanno lo stesso aspetto, quindi lo stato del
+ * foglio non tradisce dove stanno gli errori. Il seed sceglie tre celle fra
+ * cinque possibili e, per ciascuna, una variante d'errore:
  *
- *   1. Errore 1 (Hardcode mascherato): la cella B7 dei Costi Operativi Totali
- *      è stata sovrascritta con un numero fisso battuto a mano invece di =SUM(B4:B6).
- *   2. Errore 2 (Segno invertito): il Free Cash Flow in B12 somma il Capex
- *      invece di sottrarlo (=B10+B11 invece di =B10-B11).
- *   3. Errore 3 (Range incompleto / Off-by-one): le Imposte Totali in B17
- *      sommano solo la prima riga (=SUM(B15:B15)) dimenticando l'IRAP in B16.
+ *   B8   totale costi     hardcode di una versione precedente | range che salta una riga
+ *   B11  EBIT             ammortamenti sommati invece che sottratti
+ *   B15  IRES             calcolata sull'EBIT | aliquota battuta a mano nella formula
+ *   B17  totale imposte   IRAP dimenticata
+ *   B21  free cash flow   capex sommato invece che sottratto
+ *
+ * I task controllano solo i tre risultati che il comitato legge (EBITDA,
+ * utile netto, FCF) e che restino collegati ai loro precedenti diretti: per
+ * farli tornare bisogna risalire la catena e correggere le celle sbagliate,
+ * non riscrivere il risultato da zero. Il brief non dice dove guardare.
  */
 
 import {
@@ -19,18 +25,25 @@ import {
   hint,
   par,
   riga,
-  taskFormula,
   STILE_ETICHETTA,
+  STILE_FORMULA,
   STILE_INPUT,
+  STILE_INPUT_PCT,
   STILE_TITOLO,
   STILE_TOTALE,
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
+import type { Task } from '../../types';
 
-// Geometria fissa
-const B_COST_TOT = 'B7'; // T1: Errore 1 (Hardcode da sostituire con =SUM(B4:B6))
-const B_FCF = 'B12'; // T2: Errore 2 (Segno invertito da correggere con =B10-B11)
-const B_TAX_TOT = 'B17'; // T3: Errore 3 (Range incompleto da correggere con =SUM(B15:B16))
+type Cella = 'B8' | 'B11' | 'B15' | 'B17' | 'B21';
+
+const CORRETTE: Record<Cella, string> = {
+  B8: '=SUM(B5:B7)',
+  B11: '=B9-B10',
+  B15: '=B13*B14',
+  B17: '=SUM(B15:B16)',
+  B21: '=B9-B17-B19-B20',
+};
 
 export default defineTemplate({
   id: 'M11-05-FINDERRORS',
@@ -38,87 +51,149 @@ export default defineTemplate({
   title: 'Trovare gli errori piantati: audit, hardcode e formule incoerenti',
   rank: 3,
   mode: 'AUDIT',
-  estimatedSeconds: 300,
+  estimatedSeconds: 420,
   skills: ['real.find-errors'],
   prerequisites: ['M0D-01-CINQUEERRORI', 'M0F-10-COMBOAUDIT'],
 
   generate: (rng) => {
     const r = rng.fork('dati');
 
-    const cost1 = roundTo(triangular(r, 4_000_000, 5_000_000, 6_000_000), 500_000);
-    const cost2 = roundTo(triangular(r, 2_000_000, 3_000_000, 4_000_000), 500_000);
-    const cost3 = roundTo(triangular(r, 1_000_000, 1_500_000, 2_000_000), 250_000);
-    const expectedTotCost = cost1 + cost2 + cost3;
+    const ricavi = roundTo(triangular(r, 40_000_000, 55_000_000, 70_000_000), 100_000);
+    const materie = roundTo(ricavi * triangular(r, 0.3, 0.36, 0.42), 10_000);
+    const servizi = roundTo(ricavi * triangular(r, 0.12, 0.15, 0.18), 10_000);
+    const personale = roundTo(ricavi * triangular(r, 0.15, 0.19, 0.23), 10_000);
+    const ammortamenti = roundTo(ricavi * triangular(r, 0.03, 0.04, 0.05), 10_000);
+    const oneriFin = roundTo(ricavi * triangular(r, 0.01, 0.02, 0.03), 10_000);
+    const aliquota = 0.24;
+    const irap = roundTo(ricavi * triangular(r, 0.008, 0.011, 0.014), 10_000);
+    const capex = roundTo(ricavi * triangular(r, 0.03, 0.045, 0.06), 10_000);
+    const varCcn = roundTo(ricavi * triangular(r, -0.01, 0.01, 0.025), 10_000);
 
-    const ebitda = roundTo(triangular(r, 12_000_000, 15_000_000, 18_000_000), 500_000);
-    const capex = roundTo(triangular(r, 2_000_000, 3_000_000, 4_000_000), 500_000);
-    const expectedFcf = ebitda - capex;
+    const costi = materie + servizi + personale;
+    const ebitda = ricavi - costi;
+    const ebit = ebitda - ammortamenti;
+    const ebt = ebit - oneriFin;
+    const ires = ebt * aliquota;
+    const imposte = ires + irap;
+    const utile = ebt - imposte;
+    const fcf = ebitda - imposte - capex - varCcn;
 
-    const ires = roundTo(triangular(r, 2_000_000, 2_500_000, 3_000_000), 100_000);
-    const irap = roundTo(triangular(r, 400_000, 500_000, 600_000), 50_000);
-    const expectedTotTax = ires + irap;
+    // --- Errori piantati: tre celle diverse su cinque, variante a caso. ---
+    const candidate: Cella[] = ['B8', 'B11', 'B15', 'B17', 'B21'];
+    const scelte: Cella[] = [];
+    while (scelte.length < 3) {
+      const c = candidate[r.int(0, candidate.length - 1)];
+      if (!scelte.includes(c)) scelte.push(c);
+    }
+    const sbagliate: Partial<Record<Cella, string | number>> = {};
+    for (const c of scelte) {
+      const variante = r.int(0, 1);
+      switch (c) {
+        case 'B8':
+          sbagliate.B8 = variante === 0 ? roundTo(costi * triangular(r, 0.93, 0.96, 0.98), 10_000) : '=SUM(B5:B6)';
+          break;
+        case 'B11':
+          sbagliate.B11 = '=B9+B10';
+          break;
+        case 'B15':
+          sbagliate.B15 = variante === 0 ? '=B11*B14' : '=B13*0.275';
+          break;
+        case 'B17':
+          sbagliate.B17 = '=SUM(B15:B15)';
+          break;
+        case 'B21':
+          sbagliate.B21 = '=B9-B17+B19-B20';
+          break;
+      }
+    }
+    const formula = (c: Cella) => sbagliate[c] ?? CORRETTE[c];
+
+    const kpi = (id: string, target: string, cosa: string, atteso: number, referenzia: string[]): Task => ({
+      id,
+      prompt: `${cosa} (${target}) deve tornare, restando collegato alle righe da cui dipende.`,
+      targetCell: `Model!${target}`,
+      check: [
+        { kind: 'mustBeFormula' },
+        { kind: 'value', expected: atteso },
+        { kind: 'mustReference', cells: referenzia, allowViaRange: true },
+        { kind: 'mustNotContainLiteral', except: [] },
+      ],
+      skills: ['real.find-errors'],
+      minKeystrokes: 20,
+    });
+
+    const tasks: Task[] = [
+      kpi('T1', 'B9', "L'EBITDA", ebitda, ['B4', 'B8']),
+      kpi('T2', 'B18', "L'utile netto", utile, ['B13', 'B17']),
+      kpi('T3', 'B21', 'Il free cash flow', fcf, ['B9', 'B17', 'B19', 'B20']),
+    ];
 
     const brief = [
-      `Hai aperto un modello finanziario difettoso inviato dal sell-side che contiene **3 gravi errori di calcolo**.`,
-      ``,
-      `### I tuoi compiti di Audit:`,
-      `1. **Errore 1 (Hardcode in \`${B_COST_TOT}\`)**: la cella dei costi totali contiene un numero statico. Sostituiscila con la formula corretta: \`=SUM(B4:B6)\`.`,
-      `2. **Errore 2 (Segno in \`${B_FCF}\`)**: il Free Cash Flow sta sommando il Capex! Correggi la formula in: \`=B10-B11\`.`,
-      `3. **Errore 3 (Range in \`${B_TAX_TOT}\`)**: il totale delle imposte salta l'IRAP. Correggi il range in: \`=SUM(B15:B16)\`.`,
+      "La controparte ti ha mandato il suo modello. Il comitato legge tre numeri: **EBITDA**, **utile netto** " +
+        "e **free cash flow**. Nel modello ci sono **tre errori**, e almeno uno dei tre numeri non torna.",
+      '',
+      "Ricalcola a mente l'ordine di grandezza, poi risali i precedenti di ogni risultato (F2 su una cella " +
+        'mostra la formula) finche\' non trovi le celle sbagliate. Correggile li\', dove nascono: riscrivere ' +
+        'il risultato finale da zero non conta come correzione.',
+      '',
+      'Gli errori tipici di un modello ricevuto: numeri battuti a mano dove dovrebbe esserci una formula, ' +
+        'range che saltano una riga, segni invertiti, imposte calcolate sulla base sbagliata, costanti nascoste ' +
+        "dentro le formule invece che nelle celle d'ipotesi.",
     ].join('\n');
 
     const sheet = foglio('Model', [
-      riga('A1', ['AUDIT MODELLO DIFETTOSO (TROVA GLI ERRORI)'], { style: STILE_TITOLO }),
-      riga('A3', ['Costi Operativi', 'Importo (€)'], { style: STILE_TITOLO }),
-      colonna('A4', [
-        'Materie Prime',
-        'Servizi',
-        'Personale',
-        'TOTALE COSTI OPERATIVI',
-      ], { style: STILE_ETICHETTA }),
-      colonna('B4', [cost1, cost2, cost3], { style: STILE_INPUT }),
-      // Errore 1 piantato: hardcode 999.999
-      colonna(B_COST_TOT, [999_999], { style: STILE_TOTALE, locked: false }),
-
-      riga('A9', ['Free Cash Flow', 'Importo (€)'], { style: STILE_TITOLO }),
-      colonna('A10', ['EBITDA', 'Capex', 'FREE CASH FLOW'], { style: STILE_ETICHETTA }),
-      colonna('B10', [ebitda, capex], { style: STILE_INPUT }),
-      // Errore 2 piantato: somma invece che sottrazione
-      colonna(B_FCF, ['=B10+B11'], { style: STILE_TOTALE, locked: false }),
-
-      riga('A14', ['Imposte', 'Importo (€)'], { style: STILE_TITOLO }),
-      colonna('A15', ['IRES (24%)', 'IRAP (3.9%)', 'TOTALE IMPOSTE'], { style: STILE_ETICHETTA }),
-      colonna('B15', [ires, irap], { style: STILE_INPUT }),
-      // Errore 3 piantato: range tronco
-      colonna(B_TAX_TOT, ['=SUM(B15:B15)'], { style: STILE_TOTALE, locked: false }),
-    ]);
-
-    const tasks = [
-      taskFormula({
-        id: 'T1',
-        prompt: `Correggi l'hardcode in ${B_COST_TOT} inserendo =SUM(B4:B6).`,
-        target: `Model!${B_COST_TOT}`,
-        atteso: expectedTotCost,
-        referenzia: ['B4', 'B5', 'B6'],
-        skills: ['real.find-errors'],
-      }),
-      taskFormula({
-        id: 'T2',
-        prompt: `Correggi la formula del FCF in ${B_FCF} sottraendo il Capex: =B10-B11.`,
-        target: `Model!${B_FCF}`,
-        atteso: expectedFcf,
-        referenzia: ['B10', 'B11'],
-        skills: ['real.find-errors'],
-      }),
-      taskFormula({
-        id: 'T3',
-        prompt: `Correggi il totale imposte in ${B_TAX_TOT} includendo entrambe le righe: =SUM(B15:B16) o =B15+B16.`,
-        target: `Model!${B_TAX_TOT}`,
-        atteso: expectedTotTax,
-        referenzia: ['B15', 'B16'],
-        skills: ['real.find-errors'],
-      }),
-    ];
+      riga('A1', ['MODELLO DELLA CONTROPARTE — AUDIT'], { style: STILE_TITOLO }),
+      riga('A3', ['Conto economico', '€'], { style: STILE_TITOLO }),
+      colonna(
+        'A4',
+        [
+          'Ricavi',
+          'Materie prime',
+          'Servizi',
+          'Personale',
+          'Totale costi operativi',
+          'EBITDA',
+          'Ammortamenti',
+          'EBIT',
+          'Oneri finanziari',
+          'Utile ante imposte',
+          'Aliquota IRES',
+          'IRES',
+          'IRAP',
+          'Totale imposte',
+          'Utile netto',
+          'Capex',
+          'Variazione capitale circolante (aumento = assorbimento)',
+          'Free cash flow',
+        ],
+        { style: STILE_ETICHETTA },
+      ),
+      colonna('B4', [ricavi, materie, servizi, personale], { style: STILE_INPUT }),
+      [{ ref: 'B10', content: ammortamenti, style: STILE_INPUT, locked: true }],
+      [{ ref: 'B12', content: oneriFin, style: STILE_INPUT, locked: true }],
+      [{ ref: 'B14', content: aliquota, style: STILE_INPUT_PCT, locked: true }],
+      [{ ref: 'B16', content: irap, style: STILE_INPUT, locked: true }],
+      colonna('B19', [capex, varCcn], { style: STILE_INPUT }),
+      ...(
+        [
+          ['B8', formula('B8')],
+          ['B9', '=B4-B8'],
+          ['B11', formula('B11')],
+          ['B13', '=B11-B12'],
+          ['B15', formula('B15')],
+          ['B17', formula('B17')],
+          ['B18', '=B13-B17'],
+          ['B21', formula('B21')],
+        ] as const
+      ).map(([ref, content]) => [
+        {
+          ref,
+          content,
+          locked: false,
+          style: ref === 'B9' || ref === 'B18' || ref === 'B21' ? STILE_TOTALE : STILE_FORMULA,
+        },
+      ]),
+    ], { colWidths: { A: 420, B: 150 } });
 
     return {
       templateId: 'M11-05-FINDERRORS',
@@ -126,11 +201,12 @@ export default defineTemplate({
       brief,
       sheets: [sheet],
       tasks,
-      parScore: par(tasks, { letturaSecondi: 20 }),
+      parScore: par(tasks, { letturaSecondi: 120 }),
+      startAt: 'Model!B9',
       hints: [
-        hint('H1', 'In B7 scrivi la formula dinamica: =SUM(B4:B6).', 10, 'T1'),
-        hint('H2', 'In B12 il Capex è un\'uscita di cassa, va sottratto: =B10-B11.', 10, 'T2'),
-        hint('H3', 'In B17 allarga il range per sommare B15 e B16: =SUM(B15:B16).', 10, 'T3'),
+        hint('H1', 'Parti dai costi: il totale e\' davvero la somma delle tre righe sopra, ed e\' una formula?', 15),
+        hint('H2', "Controlla i segni: l'EBIT toglie gli ammortamenti, il free cash flow toglie il capex.", 15),
+        hint('H3', "Le imposte: l'IRES si calcola sull'utile ante imposte con l'aliquota in B14, e il totale include l'IRAP.", 15),
       ],
     };
   },

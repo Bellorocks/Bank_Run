@@ -1,14 +1,14 @@
 /**
  * M11 · 02 — Tabelle Mal Formattate: pulizia e aggregazione condizionale.
  *
- * Nei deal veri i dati arrivano spesso estratti male da gestionali o PDF:
- * righe con codici prodotto misti a righe di subtotale spurie (es. "SUBTOTALE REGIONE").
+ * I dati veri arrivano estratti male da gestionali e PDF: righe di dettaglio
+ * mescolate a subtotali di regione e a un totale generale. Una SUM sulla
+ * colonna li conta due o tre volte.
  *
- *   1. Usare `SUMIF` / `SUMIFS` per aggregare SOLO le righe di dettaglio operative,
- *      escludendo i subtotali (criterio `<>*SUBTOTALE*` o selezionando solo i codici "PROD-*").
- *   2. Calcolare i Ricavi Netti aggregando solo i prodotti reali.
- *   3. Calcolare i Costi Diretti aggregando solo i prodotti reali.
- *   4. Margine Lordo Reale = Ricavi Netti - Costi Diretti.
+ * Il dump ha 2-3 regioni con 2-4 prodotti ciascuna, un subtotale dopo ogni
+ * regione e un totale generale in fondo: righe e ordine cambiano col seed.
+ * I task chiedono una somma condizionale sui soli codici prodotto (SUMIF /
+ * SUMIFS), cosi' la formula resta giusta anche se il dump cambia lunghezza.
  */
 
 import {
@@ -18,8 +18,6 @@ import {
   hint,
   par,
   riga,
-  taskFormula,
-  eur,
   STILE_ETICHETTA,
   STILE_FORMULA,
   STILE_INPUT,
@@ -27,11 +25,10 @@ import {
   STILE_TOTALE,
 } from '../../authoring';
 import { roundTo, triangular } from '../../../rng/distributions';
+import type { Task } from '../../types';
 
-// Geometria fissa
-const B_TOT_REV = 'B14'; // T1: Ricavi con SUMIF = SUMIF(A5:A12, "PROD*", B5:B12)
-const B_TOT_COST = 'B15'; // T2: Costi con SUMIF = SUMIF(A5:A12, "PROD*", C5:C12)
-const B_GROSS_MARGIN = 'B16'; // T3: Margine Lordo = B14 - B15
+const REGIONI = ['NORD', 'CENTRO', 'SUD'] as const;
+const ROW_START = 5;
 
 export default defineTemplate({
   id: 'M11-02-DIRTYTABLES',
@@ -46,79 +43,96 @@ export default defineTemplate({
   generate: (rng) => {
     const r = rng.fork('dati');
 
-    const rev1 = roundTo(triangular(r, 10_000_000, 12_000_000, 15_000_000), 500_000);
-    const rev2 = roundTo(triangular(r, 8_000_000, 10_000_000, 12_000_000), 500_000);
-    const rev3 = roundTo(triangular(r, 14_000_000, 16_000_000, 20_000_000), 500_000);
+    const nRegioni = r.int(2, 3);
+    type Riga = { codice: string; ricavi: number; costi: number };
+    const righe: Riga[] = [];
+    let prodotto = 1;
+    let totRev = 0;
+    let totCost = 0;
+    for (let g = 0; g < nRegioni; g++) {
+      const n = r.int(2, 4);
+      let subRev = 0;
+      let subCost = 0;
+      for (let k = 0; k < n; k++) {
+        const ricavi = roundTo(triangular(r, 3_000_000, 8_000_000, 15_000_000), 10_000);
+        const costi = roundTo(ricavi * triangular(r, 0.5, 0.6, 0.72), 10_000);
+        righe.push({ codice: `PROD-${String(prodotto++).padStart(2, '0')} (${REGIONI[g]})`, ricavi, costi });
+        subRev += ricavi;
+        subCost += costi;
+      }
+      righe.push({ codice: `SUBTOTALE-${REGIONI[g]}`, ricavi: subRev, costi: subCost });
+      totRev += subRev;
+      totCost += subCost;
+    }
+    righe.push({ codice: 'TOTALE GENERALE', ricavi: totRev, costi: totCost });
 
-    const cost1 = roundTo(rev1 * 0.60, 250_000);
-    const cost2 = roundTo(rev2 * 0.55, 250_000);
-    const cost3 = roundTo(rev3 * 0.65, 250_000);
+    const fine = ROW_START + righe.length - 1;
+    const rowOut = fine + 3;
+    const B_REV = `B${rowOut}`;
+    const B_COST = `B${rowOut + 1}`;
+    const B_MARGIN = `B${rowOut + 2}`;
+    const colA = `A${ROW_START}:A${fine}`;
+    const colB = `B${ROW_START}:B${fine}`;
+    const colC = `C${ROW_START}:C${fine}`;
 
-    const subRev12 = rev1 + rev2; // subtotale spurio inserito nel report
-    const subCost12 = cost1 + cost2;
+    const condTask = (id: string, target: string, cosa: string, atteso: number): Task => ({
+      id,
+      prompt: `In ${target} ${cosa}, sommando solo le righe dei prodotti con una somma condizionale.`,
+      targetCell: `Model!${target}`,
+      check: [
+        { kind: 'mustBeFormula' },
+        { kind: 'value', expected: atteso },
+        { kind: 'mustUseFunction', functions: ['SUMIF', 'SUMIFS'] },
+        { kind: 'mustNotContainLiteral', except: [] },
+      ],
+      skills: ['real.dirty-tables'],
+      minKeystrokes: 30,
+    });
 
-    const totRevClean = rev1 + rev2 + rev3;
-    const totCostClean = cost1 + cost2 + cost3;
-    const grossMargin = totRevClean - totCostClean;
+    const tasks: Task[] = [
+      condTask('T1', B_REV, 'i ricavi totali veri', totRev),
+      condTask('T2', B_COST, 'i costi diretti totali veri', totCost),
+      {
+        id: 'T3',
+        prompt: `In ${B_MARGIN} il margine lordo effettivo.`,
+        targetCell: `Model!${B_MARGIN}`,
+        check: [
+          { kind: 'mustBeFormula' },
+          { kind: 'value', expected: totRev - totCost },
+          { kind: 'mustReference', cells: [B_REV, B_COST] },
+        ],
+        skills: ['real.dirty-tables'],
+        minKeystrokes: 8,
+      },
+    ];
 
     const brief = [
-      `Hai ricevuto un dump grezzo da un ERP contenente righe di subtotale duplicate ("SUBTOTALE-NORD") che falsano la somma semplice.`,
-      ``,
-      `Tavola grezza:`,
-      `- **PROD-01**: Ricavi ${eur(rev1)} | Costi ${eur(cost1)}`,
-      `- **PROD-02**: Ricavi ${eur(rev2)} | Costi ${eur(cost2)}`,
-      `- *SUBTOTALE-NORD*: Ricavi ${eur(subRev12)} | Costi ${eur(subCost12)} (Spurio!)`,
-      `- **PROD-03**: Ricavi ${eur(rev3)} | Costi ${eur(cost3)}`,
-      ``,
-      `### I tuoi compiti:`,
-      `1. Calcola i **Ricavi Totali Puliti (€)** in \`${B_TOT_REV}\` usando \`=SUMIF(A5:A8, "PROD*", B5:B8)\`.`,
-      `2. Calcola i **Costi Totali Puliti (€)** in \`${B_TOT_COST}\` usando \`=SUMIF(A5:A8, "PROD*", C5:C8)\`.`,
-      `3. Calcola il **Margine Lordo Effettivo (€)** in \`${B_GROSS_MARGIN}\`: \`=${B_TOT_REV}-${B_TOT_COST}\`.`,
+      "Il CFO della target ti manda l'estrazione del gestionale per prodotto. Sembra pulita, ma dentro " +
+        'ci sono i **subtotali per regione** e il **totale generale**: una SUM sulla colonna conta ogni ' +
+        'euro tre volte.',
+      '',
+      'Somma solo le righe di dettaglio: hanno tutte un codice che comincia con "PROD". Scrivi le formule ' +
+        "in modo che restino giuste anche se domani l'estrazione arriva con piu' righe: niente somme " +
+        'cella per cella.',
     ].join('\n');
 
     const sheet = foglio('Model', [
       riga('A1', ['PULIZIA REPORT GREZZO ERP'], { style: STILE_TITOLO }),
-      riga('A4', ['Codice Linea', 'Ricavi (€)', 'Costi Diretti (€)'], { style: STILE_TITOLO }),
-      riga('A5', ['PROD-01 (Nord-Est)', rev1, cost1], { style: STILE_INPUT }),
-      riga('A6', ['PROD-02 (Nord-Ovest)', rev2, cost2], { style: STILE_INPUT }),
-      riga('A7', ['SUBTOTALE-NORD', subRev12, subCost12], { style: STILE_INPUT }),
-      riga('A8', ['PROD-03 (Centro-Sud)', rev3, cost3], { style: STILE_INPUT }),
+      riga('A4', ['Codice linea', 'Ricavi (€)', 'Costi diretti (€)'], { style: STILE_TITOLO }),
+      ...righe.map((x, i) => [
+        { ref: `A${ROW_START + i}`, content: x.codice, locked: true },
+        { ref: `B${ROW_START + i}`, content: x.ricavi, style: STILE_INPUT, locked: true },
+        { ref: `C${ROW_START + i}`, content: x.costi, style: STILE_INPUT, locked: true },
+      ]),
 
-      riga('A13', ['Aggregati Depurati', 'Risultato (€)'], { style: STILE_TITOLO }),
-      colonna('A14', [
-        'Ricavi Totali Puliti (SUMIF PROD*)',
-        'Costi Totali Puliti (SUMIF PROD*)',
-        'Margine Lordo Effettivo',
-      ], { style: STILE_ETICHETTA }),
-      colonna(B_TOT_REV, [null], { style: STILE_FORMULA, locked: false }),
-      colonna(B_TOT_COST, [null], { style: STILE_FORMULA, locked: false }),
-      colonna(B_GROSS_MARGIN, [null], { style: STILE_TOTALE, locked: false }),
-    ]);
-
-    const tasks = [
-      taskFormula({
-        id: 'T1',
-        prompt: `Calcola i Ricavi puliti in ${B_TOT_REV} con =SUMIF(A5:A8, "PROD*", B5:B8).`,
-        target: `Model!${B_TOT_REV}`,
-        atteso: totRevClean,
-        skills: ['real.dirty-tables'],
+      riga(`A${rowOut - 1}`, ['Aggregati depurati', 'Risultato (€)'], { style: STILE_TITOLO }),
+      colonna(`A${rowOut}`, ['Ricavi totali puliti', 'Costi diretti totali puliti', 'Margine lordo effettivo'], {
+        style: STILE_ETICHETTA,
       }),
-      taskFormula({
-        id: 'T2',
-        prompt: `Calcola i Costi puliti in ${B_TOT_COST} con =SUMIF(A5:A8, "PROD*", C5:C8).`,
-        target: `Model!${B_TOT_COST}`,
-        atteso: totCostClean,
-        skills: ['real.dirty-tables'],
-      }),
-      taskFormula({
-        id: 'T3',
-        prompt: `Calcola il Margine Lordo in ${B_GROSS_MARGIN}: =${B_TOT_REV}-${B_TOT_COST}.`,
-        target: `Model!${B_GROSS_MARGIN}`,
-        atteso: grossMargin,
-        referenzia: [B_TOT_REV, B_TOT_COST],
-        skills: ['real.dirty-tables'],
-      }),
-    ];
+      [{ ref: B_REV, content: null, locked: false, style: STILE_FORMULA }],
+      [{ ref: B_COST, content: null, locked: false, style: STILE_FORMULA }],
+      [{ ref: B_MARGIN, content: null, locked: false, style: STILE_TOTALE }],
+    ], { colWidths: { A: 260, B: 140, C: 140 } });
 
     return {
       templateId: 'M11-02-DIRTYTABLES',
@@ -126,11 +140,12 @@ export default defineTemplate({
       brief,
       sheets: [sheet],
       tasks,
-      parScore: par(tasks, { letturaSecondi: 20 }),
+      parScore: par(tasks, { letturaSecondi: 40 }),
+      startAt: `Model!${B_REV}`,
       hints: [
-        hint('H1', 'In B14 filtra le righe che iniziano per PROD: =SUMIF(A5:A8, "PROD*", B5:B8).', 10, 'T1'),
-        hint('H2', 'In B15 usa la stessa logica sui costi in colonna C: =SUMIF(A5:A8, "PROD*", C5:C8).', 10, 'T2'),
-        hint('H3', 'In B16 sottrai i costi dai ricavi: =B14-B15.', 10, 'T3'),
+        hint('H1', `=SUMIF(${colA},"PROD*",${colB}): l'asterisco accetta qualunque seguito dopo "PROD".`, 10, 'T1'),
+        hint('H2', `=SUMIF(${colA},"PROD*",${colC})`, 10, 'T2'),
+        hint('H3', `=${B_REV}-${B_COST}`, 5, 'T3'),
       ],
     };
   },
