@@ -31,6 +31,7 @@ export function detectLanguage(): Language {
 }
 
 let current: Language = detectLanguage();
+if (typeof document !== 'undefined') document.documentElement.lang = current;
 const listeners = new Set<(lang: Language) => void>();
 
 export function getLanguage(): Language {

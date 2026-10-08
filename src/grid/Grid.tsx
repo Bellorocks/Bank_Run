@@ -36,6 +36,7 @@ import type { GridSession, SessionSnapshot } from '../game/session';
 import { Axis, indicesInViewport } from './geometry';
 import { displayCell } from './cellDisplay';
 
+import { tr } from '../i18n/ui';
 /**
  * Quante righe e colonne oltre l'area utilizzata restano raggiungibili con lo
  * scroll. Il foglio ne ha 1.048.576, ma materializzare una barra di scorrimento
@@ -328,7 +329,7 @@ export function Grid({ session, snap }: GridProps): JSX.Element {
         cursor: 'pointer',
         background: PALETTE.ambra + '88',
       }}
-      title="Seleziona tutto (Ctrl+A)"
+      title={tr('Grid.1')}
     />
   );
 

@@ -7,6 +7,8 @@ import { sound } from '../audio/chiptune';
 import { PALETTE } from '../styles/palette';
 import { isFreePlay, setFreePlay } from '../persistence/progress';
 
+import { tr } from '../i18n/ui';
+import { LanguageSwitch } from './LanguageSwitch';
 export interface SettingsModalProps {
   readonly onClose: () => void;
 }
@@ -45,7 +47,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     <div style={overlayStyle}>
       <div style={modalStyle}>
         <div style={headerRowStyle}>
-          <h2 style={titleStyle}>IMPOSTAZIONI</h2>
+          <h2 style={titleStyle}>{tr('SettingsModal.1')}</h2>
           <button type="button" onClick={onClose} style={closeButtonStyle}>
             ✕
           </button>
@@ -54,17 +56,25 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 14 }}>
           <div style={settingRowStyle}>
             <div>
-              <div style={labelStyle}>Audio generale (musica &amp; SFX)</div>
-              <div style={subLabelStyle}>{muted ? 'Disattivato' : 'Attivo'}</div>
+              <div style={labelStyle}>{tr('SettingsModal.lingua')}</div>
+              <div style={subLabelStyle}>{tr('SettingsModal.linguaNota')}</div>
+            </div>
+            <LanguageSwitch />
+          </div>
+
+          <div style={settingRowStyle}>
+            <div>
+              <div style={labelStyle}>{tr('SettingsModal.2')}</div>
+              <div style={subLabelStyle}>{muted ? tr('SettingsModal.3') : tr('SettingsModal.4')}</div>
             </div>
             <button type="button" onClick={handleToggleMute} style={pillButtonStyle(!muted)}>
-              {muted ? 'OFF' : 'ON'}
+              {muted ? tr('SettingsModal.5') : 'ON'}
             </button>
           </div>
 
           <div style={settingRowStyle}>
             <div>
-              <div style={labelStyle}>Volume musica</div>
+              <div style={labelStyle}>{tr('SettingsModal.6')}</div>
               <div style={subLabelStyle}>{musicVol}%</div>
             </div>
             <input
@@ -80,7 +90,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
           <div style={settingRowStyle}>
             <div>
-              <div style={labelStyle}>Volume effetti sonori</div>
+              <div style={labelStyle}>{tr('SettingsModal.7')}</div>
               <div style={subLabelStyle}>{sfxVol}%</div>
             </div>
             <input
@@ -96,28 +106,28 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
           <div style={settingRowStyle}>
             <div>
-              <div style={labelStyle}>Modalita' libera</div>
+              <div style={labelStyle}>{tr('SettingsModal.8')}</div>
               <div style={subLabelStyle}>
-                {freePlay ? 'Tutti i livelli giocabili, prerequisiti ignorati' : 'I livelli si sbloccano completando i prerequisiti'}
+                {freePlay ? tr('SettingsModal.9') : tr('SettingsModal.10')}
               </div>
             </div>
             <button type="button" onClick={handleToggleFreePlay} style={pillButtonStyle(freePlay)}>
-              {freePlay ? 'ON' : 'OFF'}
+              {freePlay ? 'ON' : tr('SettingsModal.11')}
             </button>
           </div>
 
           <div style={hintBoxStyle}>
-            <div style={hintTitleStyle}>Comandi rapidi da tastiera</div>
+            <div style={hintTitleStyle}>{tr('SettingsModal.12')}</div>
             <div style={hintBodyStyle}>
-              <strong>F1</strong> suggerimento (costa XP) · <strong>Ctrl+F1</strong> mostra/nascondi il mandato ·{' '}
-              <strong>F12</strong> verifica · <strong>F2</strong> modifica la cella selezionata ·{' '}
-              <strong>Invio</strong> conferma la formula · <strong>?</strong> guida scorciatoie
+              <strong>F1</strong>{' '}{tr('SettingsModal.13')}{' '}<strong>{tr('SettingsModal.14')}</strong>{' '}{tr('SettingsModal.15')}{' '}
+              <strong>F12</strong>{' '}{tr('SettingsModal.16')}{' '}<strong>F2</strong>{' '}{tr('SettingsModal.17')}{' '}
+              <strong>{tr('SettingsModal.18')}</strong>{' '}{tr('SettingsModal.19')}{' '}<strong>?</strong>{' '}{tr('SettingsModal.20')}
             </div>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
             <button type="button" onClick={onClose} style={saveButtonStyle}>
-              SALVA E CHIUDI
+              {tr('SettingsModal.21')}
             </button>
           </div>
         </div>

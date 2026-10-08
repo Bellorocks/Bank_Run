@@ -19,6 +19,7 @@ import { PALETTE, UI } from '../styles/palette';
 import { parseMarkdown, type MdInline, type MdNode } from './markdown';
 import { Badge, Pannello, TESTO_LUNGO, TESTO_UI } from './primitives';
 
+import { tr } from '../i18n/ui';
 // ---------------------------------------------------------------------------
 // Renderer
 // ---------------------------------------------------------------------------
@@ -153,19 +154,19 @@ const COLORE_MODE: Readonly<Record<LevelMode, string>> = {
 export function Brief({ brief, titolo, mode, seed, style }: BriefProps) {
   return (
     <Pannello
-      titolo={titolo ?? 'Il mandato'}
+      titolo={titolo ?? tr('Brief.1')}
       variante="pergamena"
       scorrevole
       style={style}
       azione={
         <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           {mode !== undefined && (
-            <Badge colore={COLORE_MODE[mode]} pieno title="Modalita' del livello">
+            <Badge colore={COLORE_MODE[mode]} pieno title={tr('Brief.2')}>
               {mode}
             </Badge>
           )}
           {seed !== undefined && (
-            <Badge title="Seed dell'istanza: stesso seed, stesso livello">#{seed}</Badge>
+            <Badge title={tr('Brief.3')}>#{seed}</Badge>
           )}
         </span>
       }

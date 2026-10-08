@@ -14,6 +14,7 @@
 
 import type { CheckFamily } from '../content/types';
 
+import { tr } from '../i18n/ui';
 export const FAMILY_LABEL: Record<CheckFamily, string> = {
   numerico: 'valore',
   strutturale: 'struttura',
@@ -21,56 +22,56 @@ export const FAMILY_LABEL: Record<CheckFamily, string> = {
 };
 
 export const MESSAGES = {
-  value: 'Il numero non torna.',
+  value: tr('messages.1'),
   valueClose:
-    'Ci sei quasi: il numero e\' vicino ma fuori tolleranza. Di solito e\' un arrotondamento fatto troppo presto, oppure una posta inclusa a meta\'.',
+    tr('messages.2'),
   valueSignFlipped:
-    'Il valore e\' giusto in modulo ma col segno invertito. Decidi una convenzione (costi negativi oppure costi positivi) e tienila su tutto il modello.',
-  text: 'Il testo non corrisponde a quello richiesto.',
-  boolean: 'Il valore logico non e\' quello atteso.',
+    tr('messages.3'),
+  text: tr('messages.4'),
+  boolean: tr('messages.5'),
 
   mustBeFormula:
-    'Hai battuto il numero a mano. Il valore e\' giusto ma il livello e\' fallito: un numero hardcodato non si aggiorna quando cambiano le assumption, ed e\' il modo piu\' comune di far esplodere un modello in comitato.',
+    tr('messages.6'),
   mustReference:
-    'La formula non pesca dalle celle giuste. Il risultato puo\' anche coincidere per caso: quello che conta e\' che il legame ci sia.',
+    tr('messages.7'),
   mustNotContainLiteral:
-    'C\'e\' un numero magico dentro la formula. Ogni parametro deve stare in una cella di assumption, visibile e modificabile, non sepolto in mezzo a un calcolo.',
+    tr('messages.8'),
   anchoring:
-    'Gli ancoraggi non sono quelli richiesti. Senza il $ giusto la formula smette di funzionare appena la copi: e\' il primo test che le fai fare.',
+    tr('messages.9'),
   consistentRow:
-    'La riga non e\' coerente: almeno una cella contiene una formula diversa dalle altre. E\' l\'errore silenzioso piu\' comune nei modelli veri, perche\' nessuno lo vede finche\' non e\' tardi.',
+    tr('messages.10'),
   noCircular:
-    'C\'e\' un riferimento circolare dove non dovrebbe essercene. Segui la catena dei precedenti per trovare dove si chiude l\'anello.',
+    tr('messages.11'),
   requiresCircular:
-    'Qui il riferimento circolare ci vuole: gli interessi dipendono dal debito medio, che dipende dal rimborso, che dipende dalla cassa dopo interessi. Attiva il calcolo iterativo e chiudi l\'anello.',
-  mustUseFunction: 'Non hai usato la funzione richiesta dal task.',
+    tr('messages.12'),
+  mustUseFunction: tr('messages.13'),
   mustNotUseFunction:
-    'Hai usato una funzione che questo livello vieta. Non e\' un capriccio: c\'e\' un motivo tecnico, ed e\' spiegato nel brief.',
-  noError: 'La cella restituisce un errore.',
+    tr('messages.14'),
+  noError: tr('messages.15'),
   colorDiscipline:
-    'Il color coding non e\' rispettato. Convenzione di mestiere: input battuti a mano in blu, formule in nero, link ad altri fogli in verde. Serve a chi apre il tuo file a capire in tre secondi cosa puo\' toccare.',
-  numberFormat: 'Il formato numerico non e\' quello richiesto.',
+    tr('messages.16'),
+  numberFormat: tr('messages.17'),
 
-  emptyCell: 'La cella e\' vuota.',
-  lockedCell: 'Hai scritto in una cella che il livello aveva bloccato.',
+  emptyCell: tr('messages.18'),
+  lockedCell: tr('messages.19'),
 } as const;
 
 /** Sintesi mostrata al primo tentativo: dice quale task e di che famiglia, non dove. */
 export function firstAttemptSummary(failing: { taskId: string; families: CheckFamily[] }[]): string {
-  if (failing.length === 0) return 'Tutto corretto.';
+  if (failing.length === 0) return tr('messages.20');
   const parti = failing.map((f) => {
     const fam = f.families.map((x) => FAMILY_LABEL[x]).join(' + ');
     return `${f.taskId} (${fam})`;
   });
   return failing.length === 1
-    ? `Un task non passa: ${parti[0]}. Ritrova l'errore da solo — poi te lo spiego.`
-    : `${failing.length} task non passano: ${parti.join(', ')}.`;
+    ? tr('messages.21', { p0: parti[0] })
+    : tr('messages.22', { p0: failing.length, p1: parti.join(', ') });
 }
 
 export function passedSummary(tasks: number, seconds: number, par: number): string {
   if (seconds <= par) {
-    return `Tutti i ${tasks} task corretti, e sotto il par time. Questo e\' il ritmo giusto.`;
+    return tr('messages.23', { tasks });
   }
   const scarto = Math.round(((seconds - par) / par) * 100);
-  return `Tutti i ${tasks} task corretti, ma ${scarto}% sopra il par time. La correttezza c\'e\', la velocita\' no.`;
+  return tr('messages.24', { tasks, scarto });
 }

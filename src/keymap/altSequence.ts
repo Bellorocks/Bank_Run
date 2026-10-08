@@ -21,6 +21,7 @@
 
 import type { Command } from './commands';
 
+import { tr } from '../i18n/ui';
 export interface AltLeaf {
   readonly kind: 'leaf';
   /** Etichetta italiana per la barra di stato e il cheat sheet. */
@@ -178,40 +179,40 @@ export function createAltMachine(tree: AltNode): AltMachine {
 
 const BORDERS_BRANCH: AltBranch = {
   kind: 'branch',
-  label: 'Bordi',
+  label: tr('altSequence.1'),
   children: {
-    A: { kind: 'leaf', label: 'Tutti i bordi', command: 'format.borderAll' },
-    S: { kind: 'leaf', label: 'Bordo esterno (box)', command: 'format.borderOutside' },
-    O: { kind: 'leaf', label: 'Bordo inferiore', command: 'format.borderBottom' },
-    T: { kind: 'leaf', label: 'Bordo superiore', command: 'format.borderTop' },
-    L: { kind: 'leaf', label: 'Bordo sinistro', command: 'format.borderLeft' },
-    R: { kind: 'leaf', label: 'Bordo destro', command: 'format.borderRight' },
-    N: { kind: 'leaf', label: 'Nessun bordo', command: 'format.borderNone' },
+    A: { kind: 'leaf', label: tr('altSequence.2'), command: 'format.borderAll' },
+    S: { kind: 'leaf', label: tr('altSequence.3'), command: 'format.borderOutside' },
+    O: { kind: 'leaf', label: tr('altSequence.4'), command: 'format.borderBottom' },
+    T: { kind: 'leaf', label: tr('altSequence.5'), command: 'format.borderTop' },
+    L: { kind: 'leaf', label: tr('altSequence.6'), command: 'format.borderLeft' },
+    R: { kind: 'leaf', label: tr('altSequence.7'), command: 'format.borderRight' },
+    N: { kind: 'leaf', label: tr('altSequence.8'), command: 'format.borderNone' },
   },
 };
 
 const HOME_BRANCH: AltBranch = {
   kind: 'branch',
-  label: 'Home',
+  label: tr('altSequence.9'),
   children: {
     O: {
       kind: 'branch',
-      label: 'Formato',
+      label: tr('altSequence.10'),
       children: {
-        I: { kind: 'leaf', label: 'Adatta larghezza colonna', command: 'structure.autofitColumn' },
-        A: { kind: 'leaf', label: 'Adatta altezza riga', command: 'structure.autofitRow' },
-        W: { kind: 'leaf', label: 'Larghezza colonna...', command: 'structure.columnWidth' },
-        H: { kind: 'leaf', label: 'Altezza riga...', command: 'structure.rowHeight' },
+        I: { kind: 'leaf', label: tr('altSequence.11'), command: 'structure.autofitColumn' },
+        A: { kind: 'leaf', label: tr('altSequence.12'), command: 'structure.autofitRow' },
+        W: { kind: 'leaf', label: tr('altSequence.13'), command: 'structure.columnWidth' },
+        H: { kind: 'leaf', label: tr('altSequence.14'), command: 'structure.rowHeight' },
       },
     },
     // Attenzione: `H` qui dentro e' il colore di riempimento, non un sotto-ramo.
     // Alt,H,H e Alt,H,O,H sono due cose diverse ed e' un classico inciampo.
-    H: { kind: 'leaf', label: 'Colore riempimento', command: 'format.fillColor' },
+    H: { kind: 'leaf', label: tr('altSequence.15'), command: 'format.fillColor' },
     F: {
       kind: 'branch',
-      label: 'Carattere',
+      label: tr('altSequence.16'),
       children: {
-        C: { kind: 'leaf', label: 'Colore carattere', command: 'format.fontColor' },
+        C: { kind: 'leaf', label: tr('altSequence.17'), command: 'format.fontColor' },
       },
     },
     B: BORDERS_BRANCH,
@@ -220,39 +221,39 @@ const HOME_BRANCH: AltBranch = {
 
 export const EXCEL_ALT_TREE: AltBranch = {
   kind: 'branch',
-  label: 'Barra dei menu',
+  label: tr('altSequence.18'),
   children: {
     H: HOME_BRANCH,
     A: {
       kind: 'branch',
-      label: 'Dati',
+      label: tr('altSequence.19'),
       children: {
         S: {
           kind: 'branch',
-          label: 'Ordina',
+          label: tr('altSequence.20'),
           children: {
-            S: { kind: 'leaf', label: 'Ordina...', command: 'data.sort' },
+            S: { kind: 'leaf', label: tr('altSequence.21'), command: 'data.sort' },
           },
         },
       },
     },
     M: {
       kind: 'branch',
-      label: 'Formule',
+      label: tr('altSequence.22'),
       children: {
-        P: { kind: 'leaf', label: 'Individua precedenti', command: 'formula.tracePrecedents' },
-        D: { kind: 'leaf', label: 'Individua dipendenti', command: 'formula.traceDependents' },
+        P: { kind: 'leaf', label: tr('altSequence.23'), command: 'formula.tracePrecedents' },
+        D: { kind: 'leaf', label: tr('altSequence.24'), command: 'formula.traceDependents' },
       },
     },
     E: {
       kind: 'branch',
-      label: 'Modifica (legacy)',
+      label: tr('altSequence.25'),
       children: {
-        S: { kind: 'leaf', label: 'Incolla speciale...', command: 'clipboard.pasteSpecialDialog' },
+        S: { kind: 'leaf', label: tr('altSequence.26'), command: 'clipboard.pasteSpecialDialog' },
       },
     },
     // Caso a se': `=` e' una foglia della radice, quindi Alt+= esegue e chiude.
-    '=': { kind: 'leaf', label: 'Somma automatica', command: 'formula.autosum' },
+    '=': { kind: 'leaf', label: tr('altSequence.27'), command: 'formula.autosum' },
   },
 };
 

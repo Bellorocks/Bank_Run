@@ -23,6 +23,7 @@ import {
 } from './address';
 import { EMPTY_STYLE, type CellRaw, type CellStyle } from './types';
 
+import { tr } from '../i18n/ui';
 // ---------------------------------------------------------------------------
 // Tipi
 // ---------------------------------------------------------------------------
@@ -216,8 +217,7 @@ export function resolvePasteTarget(
       return {
         ok: false,
         reason:
-          `Impossibile incollare: l'area copiata e' ${describeShape(srcRows, srcCols)} e non ` +
-          `entra nel foglio a partire da questa cella. Scegli una destinazione piu' in alto o piu' a sinistra.`,
+          tr('clipboard.1', { p0: describeShape(srcRows, srcCols) }),
       };
     }
     return { ok: true, area: { top: t.top, left: t.left, bottom, right } };
@@ -228,9 +228,7 @@ export function resolvePasteTarget(
     return {
       ok: false,
       reason:
-        `Impossibile spostare le celle: l'area tagliata e' ${describeShape(srcRows, srcCols)}, ` +
-        `l'area selezionata e' ${describeShape(tgtRows, tgtCols)}. ` +
-        `Un taglia richiede una destinazione di forma identica, oppure una cella singola.`,
+        tr('clipboard.2', { p0: describeShape(srcRows, srcCols), p1: describeShape(tgtRows, tgtCols) }),
     };
   }
 
@@ -238,9 +236,7 @@ export function resolvePasteTarget(
     return {
       ok: false,
       reason:
-        `Impossibile incollare: l'area copiata e' ${describeShape(srcRows, srcCols)}, ` +
-        `l'area selezionata e' ${describeShape(tgtRows, tgtCols)}. ` +
-        `La selezione deve essere una cella singola oppure un multiplo esatto dell'area copiata.`,
+        tr('clipboard.3', { p0: describeShape(srcRows, srcCols), p1: describeShape(tgtRows, tgtCols) }),
     };
   }
 

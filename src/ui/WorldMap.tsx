@@ -24,6 +24,7 @@ import {
   SELECTION_CURSOR,
 } from './sprites/islands';
 
+import { tr } from '../i18n/ui';
 export interface WorldMapProps {
   readonly onSelectLevel: (templateId: string) => void;
   readonly onBackToTitle?: () => void;
@@ -44,61 +45,56 @@ interface IslandDef {
 const ISLANDS: IslandDef[] = [
   {
     id: 'isola-fondamentali',
-    name: 'Isola dei Fondamentali',
-    labelShort: '1. Fondamentali',
-    subtitle: 'Navigazione, formule, igiene del foglio',
+    name: tr('WorldMap.1'),
+    labelShort: tr('WorldMap.2'),
+    subtitle: tr('WorldMap.3'),
     moduleIds: ['M0-A', 'M0-B', 'M0-C', 'M0-D', 'M0-E', 'M0-F'],
     summary:
-      'Si comincia da qui, sempre: niente mouse, niente hardcode, ancoraggi con il dollaro al posto giusto. ' +
-      'La velocità da tastiera che serve per tutto il resto del percorso si costruisce in questa isola.',
+      tr('WorldMap.4'),
     x: 52,
     y: 84, // Giù nel lago del continente
   },
   {
     id: 'isola-prospetti',
-    name: 'Arcipelago dei Tre Prospetti',
-    labelShort: '2. Tre Prospetti',
-    subtitle: 'Contabilità, EBITDA normalizzato, capitale circolante',
+    name: tr('WorldMap.5'),
+    labelShort: tr('WorldMap.6'),
+    subtitle: tr('WorldMap.7'),
     moduleIds: ['M1', 'M2', 'M3'],
     summary:
-      'Conto Economico, Stato Patrimoniale e Rendiconto Finanziario che si parlano — con il balance check ' +
-      "obbligatorio — poi la qualità dell'utile e il capitale circolante che mangia (o libera) cassa.",
+      tr('WorldMap.8'),
     x: 14,
     y: 50, // Verso le colonne a sinistra
   },
   {
     id: 'isola-valutazioni',
-    name: 'Isola delle Valutazioni',
-    labelShort: '3. Valutazioni',
-    subtitle: 'Bridge EV↔Equity, comps, precedenti, DCF',
+    name: tr('WorldMap.9'),
+    labelShort: tr('WorldMap.10'),
+    subtitle: tr('WorldMap.11'),
     moduleIds: ['M4', 'M5', 'M6', 'M7'],
     summary:
-      "Dall'Enterprise Value al prezzo per azione: multipli di mercato, transazioni precedenti e un DCF " +
-      'completo con WACC, terminal value e tre scenari a confronto col mercato.',
+      tr('WorldMap.12'),
     x: 46,
     y: 54, // Al centro prima delle scale
   },
   {
     id: 'isola-credito',
-    name: 'Isola del Credito & LBO',
-    labelShort: '4. Credito & LBO',
-    subtitle: 'Leva, M&A, rating, dati reali',
+    name: tr('WorldMap.13'),
+    labelShort: tr('WorldMap.14'),
+    subtitle: tr('WorldMap.15'),
     moduleIds: ['M8', 'M9', 'M10', 'M11'],
     summary:
-      'Leveraged buyout con cascata del debito e cash sweep, fusioni con sinergie ed EPS bridge, capacità di debito ' +
-      'e stress test, e bilanci reali da leggere con tutto il loro disordine.',
+      tr('WorldMap.16'),
     x: 32,
     y: 22, // Nell'isola più alta col castello
   },
   {
     id: 'isola-finale',
-    name: 'La Deal Room (Boss Planet)',
-    labelShort: '★ Deal Room',
-    subtitle: 'La transazione integrata finale nello spazio cosmico',
+    name: tr('WorldMap.17'),
+    labelShort: tr('WorldMap.18'),
+    subtitle: tr('WorldMap.19'),
     moduleIds: ['M12'],
     summary:
-      'Nessuna formula suggerita, solo il mandato. Tutto quello che hai imparato, in un unico scenario che si ' +
-      'chiude — o si rompe — sulle tue scelte.',
+      tr('WorldMap.20'),
     x: 84,
     y: 20, // Nello squarcio cosmico
     boss: true,
@@ -137,18 +133,18 @@ export function WorldMap({ onSelectLevel, onBackToTitle }: WorldMapProps) {
       <header style={headerStyle}>
         <div style={badgeStyle}>DD</div>
         <span style={{ fontFamily: 'var(--font-titolo)', fontSize: 19, color: PALETTE.ambra, textShadow: `2px 2px 0 ${PALETTE.prugna}` }}>
-          MAPPA DELLE ISOLE FLUTTUANTI
+          {tr('WorldMap.21')}
         </span>
         <span style={{ flex: 1 }} />
-        <span style={headerChipStyle(PALETTE.ambra)} title="Rank di carriera e XP totali">
+        <span style={headerChipStyle(PALETTE.ambra)} title={tr('WorldMap.22')}>
           {rankForXp(xp).toUpperCase()} · {xp} XP
         </span>
         <span style={headerChipStyle(PALETTE.lime)}>
-          ✓ {completed.size}/{TEMPLATES.length} LIVELLI{freePlay ? " · MODALITA' LIBERA" : ''}
+          ✓ {completed.size}/{TEMPLATES.length}{' '}{tr('WorldMap.23')}{freePlay ? tr('WorldMap.24') : ''}
         </span>
         {onBackToTitle && (
           <button type="button" onClick={onBackToTitle} style={woodHeaderButtonStyle}>
-            ◀ TITOLO
+            {tr('WorldMap.25')}
           </button>
         )}
       </header>
@@ -235,7 +231,7 @@ export function WorldMap({ onSelectLevel, onBackToTitle }: WorldMapProps) {
                     setSelectedId(r.id);
                     setSelectedModule(r.moduleIds[0]);
                   }}
-                  title={`${r.name} — ${done}/${count} livelli completati`}
+                  title={tr('WorldMap.26', { p0: r.name, done, count })}
                   style={{
                     background: 'none',
                     border: 'none',
@@ -293,7 +289,7 @@ export function WorldMap({ onSelectLevel, onBackToTitle }: WorldMapProps) {
           {/* Selezione modulo dell'isola: Cartelli in legno concatenati */}
           <div style={{ marginBottom: 6 }}>
             <span style={{ fontFamily: 'var(--font-titolo)', fontSize: 14, color: PALETTE.ardesia }}>
-              SELEZIONA MODULO:
+              {tr('WorldMap.27')}
             </span>
           </div>
 
@@ -333,24 +329,24 @@ export function WorldMap({ onSelectLevel, onBackToTitle }: WorldMapProps) {
                       {t.title}
                     </div>
                     <div style={levelMetaStyle}>
-                      Rank {t.rank} · ~{Math.round(t.estimatedSeconds / 60)} min
+                      {tr('WorldMap.28')}{' '}{t.rank} · ~{Math.round(t.estimatedSeconds / 60)}{' '}{tr('WorldMap.29')}
                       {record
-                        ? ` · record ${record.bestXp} XP${record.bestTimeMs != null ? ` in ${formatTime(record.bestTimeMs)}` : ''}`
+                        ? tr('WorldMap.30', { p0: record.bestXp, p1: record.bestTimeMs != null ? ` in ${formatTime(record.bestTimeMs)}` : '' })
                         : ` · ${t.skills.slice(0, 2).join(', ')}`}
                     </div>
                     {!aperto && (
                       <div style={levelLockStyle}>
-                        Prima completa: {mancanti.map((p) => getTemplate(p)?.title ?? p).join(' · ')}
+                        {tr('WorldMap.31')}{' '}{mancanti.map((p) => getTemplate(p)?.title ?? p).join(' · ')}
                       </div>
                     )}
                   </div>
                   {aperto ? (
                     <button type="button" onClick={() => onSelectLevel(t.id)} style={playWoodArrowButtonStyle}>
-                      {record ? 'RIGIOCA ▶' : 'GIOCA ▶'}
+                      {record ? tr('WorldMap.32') : tr('WorldMap.33')}
                     </button>
                   ) : (
-                    <span style={lockedBadgeStyle} title="Attiva la modalita' libera nelle Impostazioni per giocarlo subito">
-                      🔒 BLOCCATO
+                    <span style={lockedBadgeStyle} title={tr('WorldMap.34')}>
+                      {tr('WorldMap.35')}
                     </span>
                   )}
                 </div>

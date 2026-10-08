@@ -30,6 +30,7 @@ import { loadProgress, recordProgress } from '../persistence/progress';
 import { rankForXp, xpWithinRank, XP_PER_RANK } from '../persistence/progression';
 import type { Command } from '../keymap/commands';
 
+import { tr } from '../i18n/ui';
 export interface PlayScreenProps {
   readonly templateId: string;
   readonly seed: number;
@@ -216,7 +217,7 @@ export function PlayScreen({ templateId, seed, onRiprovaStessoSeed, onNuovoSeed,
       const scelto =
         nonVisti.find((h) => h.taskId === bersaglio) ?? nonVisti.find((h) => h.taskId === undefined);
       if (!scelto) {
-        session.announce('Nessun altro suggerimento disponibile.');
+        session.announce(tr('PlayScreen.1'));
         return;
       }
       session.recorder.record({ kind: 'hint', hintId: scelto.id });
@@ -318,7 +319,7 @@ export function PlayScreen({ templateId, seed, onRiprovaStessoSeed, onNuovoSeed,
               background: isDragging ? PALETTE.ardesia : isHovered ? PALETTE.grafite : 'transparent',
               transition: 'background 0.1s ease',
             }}
-            title="Trascina per ridimensionare"
+            title={tr('PlayScreen.2')}
           >
             <div
               style={{

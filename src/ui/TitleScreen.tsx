@@ -17,6 +17,8 @@ import {
   WOOD_PLANK_CAP_R,
 } from './sprites/decorations';
 
+import { tr } from '../i18n/ui';
+import { LanguageSwitch } from './LanguageSwitch';
 export interface TitleScreenProps {
   readonly onStartGame: () => void;
 }
@@ -117,9 +119,9 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
         {/* 1. TAVOLA SUPERIORE: Intestazione Titolo & Logo */}
         <div style={headerPlankStyle}>
           <div style={badgeStyle}>DD</div>
-          <h1 style={logoStyle}>DEAL DESK</h1>
-          <div style={taglineStyle}>EXCEL, TASTIERA, ZERO SCUSE</div>
-          <div style={statLineStyle}>144 livelli · zero mouse · 100% tastiera</div>
+          <h1 style={logoStyle}>{tr('TitleScreen.1')}</h1>
+          <div style={taglineStyle}>{tr('TitleScreen.2')}</div>
+          <div style={statLineStyle}>{tr('TitleScreen.3')}</div>
         </div>
 
         {/* Graffette di ferro di raccordo tra Tavola 1 e Tavola 2 */}
@@ -129,7 +131,7 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
         </div>
 
         {/* 2. TAVOLA 1: AVVIA CAMPAGNA */}
-        {menuPlank('start', 'AVVIA CAMPAGNA', handleStart, 'INVIO')}
+        {menuPlank('start', tr('TitleScreen.4'), handleStart, tr('TitleScreen.invio'))}
 
         {/* Graffette di ferro di raccordo tra Tavola 2 e Tavola 3 */}
         <div style={stapleRowStyle}>
@@ -138,7 +140,7 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
         </div>
 
         {/* 3. TAVOLA 2: ALBERO DELLE SKILL */}
-        {menuPlank('grimoire', 'ALBERO DELLE SKILL', () => {
+        {menuPlank('grimoire', tr('TitleScreen.5'), () => {
           sound.playSelect();
           setShowGrimoire(true);
         })}
@@ -150,9 +152,9 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
         </div>
 
         {/* 4. TAVOLA 3: IMPOSTAZIONI & AUDIO */}
-        {menuPlank('settings', 'IMPOSTAZIONI & AUDIO', () => {
+        {menuPlank('settings', tr('TitleScreen.6'), () => {
           sound.playSelect();
-          setShowGrimoire(true);
+          setShowSettings(true);
         })}
 
         {/* Graffette di ferro di raccordo tra Tavola 4 e Tavola 5 */}
@@ -163,9 +165,10 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
 
         {/* 5. TAVOLA INFERIORE: FOOTER & TOGGLE AUDIO LITTLEROOT TOWN */}
         <div style={footerPlankStyle}>
-          <span style={footerTextStyle}>v1.0 · Musica originale</span>
+          <span style={footerTextStyle}>{tr('TitleScreen.7')}</span>
+          <LanguageSwitch compatto />
           <button type="button" onClick={handleToggleAudio} style={woodSmallButtonStyle}>
-            {sound.isMuted() ? 'AUDIO: OFF' : 'AUDIO: ON'}
+            {sound.isMuted() ? tr('TitleScreen.8') : tr('TitleScreen.9')}
           </button>
         </div>
       </div>

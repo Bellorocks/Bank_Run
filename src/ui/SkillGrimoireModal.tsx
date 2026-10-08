@@ -6,18 +6,19 @@ import { useState } from 'react';
 import { SKILLS, skillsOfArea, type SkillArea } from '../content/skills';
 import { PALETTE } from '../styles/palette';
 
+import { tr } from '../i18n/ui';
 export interface SkillGrimoireModalProps {
   readonly onClose: () => void;
 }
 
 const AREAS: { id: SkillArea; name: string }[] = [
-  { id: 'meccanica', name: 'Navigazione & tasti' },
-  { id: 'formule', name: 'Logica & formule' },
-  { id: 'igiene', name: 'Igiene & audit' },
-  { id: 'contabilita', name: 'Contabilità & 3 prospetti' },
-  { id: 'valutazione', name: 'Valutazione & DCF' },
-  { id: 'transazione', name: 'Transazione & NWC' },
-  { id: 'strutturazione', name: 'LBO, credito & M&A' },
+  { id: 'meccanica', name: tr('SkillGrimoireModal.1') },
+  { id: 'formule', name: tr('SkillGrimoireModal.2') },
+  { id: 'igiene', name: tr('SkillGrimoireModal.3') },
+  { id: 'contabilita', name: tr('SkillGrimoireModal.4') },
+  { id: 'valutazione', name: tr('SkillGrimoireModal.5') },
+  { id: 'transazione', name: tr('SkillGrimoireModal.6') },
+  { id: 'strutturazione', name: tr('SkillGrimoireModal.7') },
 ];
 
 export function SkillGrimoireModal({ onClose }: SkillGrimoireModalProps) {
@@ -30,8 +31,8 @@ export function SkillGrimoireModal({ onClose }: SkillGrimoireModalProps) {
       <div style={modalStyle}>
         <div style={headerRowStyle}>
           <div>
-            <h2 style={titleStyle}>ALBERO DELLE SKILL ({SKILLS.length})</h2>
-            <div style={subtitleStyle}>Ogni skill è un nodo: si sblocca giocando i livelli che la allenano.</div>
+            <h2 style={titleStyle}>{tr('SkillGrimoireModal.8')}{SKILLS.length})</h2>
+            <div style={subtitleStyle}>{tr('SkillGrimoireModal.9')}</div>
           </div>
           <button type="button" onClick={onClose} style={closeButtonStyle}>
             ✕
@@ -56,11 +57,11 @@ export function SkillGrimoireModal({ onClose }: SkillGrimoireModalProps) {
             <div key={skill.id} style={skillCardStyle}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={skillLabelStyle}>{skill.label}</span>
-                <span style={modBadgeStyle}>MODULO {skill.module}</span>
+                <span style={modBadgeStyle}>{tr('SkillGrimoireModal.10')}{' '}{skill.module}</span>
               </div>
               <p style={skillDescStyle}>{skill.description}</p>
               {skill.requires.length > 0 && (
-                <div style={skillPrereqStyle}>Prerequisiti: {skill.requires.join(', ')}</div>
+                <div style={skillPrereqStyle}>{tr('SkillGrimoireModal.11')}{' '}{skill.requires.join(', ')}</div>
               )}
             </div>
           ))}
@@ -68,7 +69,7 @@ export function SkillGrimoireModal({ onClose }: SkillGrimoireModalProps) {
 
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
           <button type="button" onClick={onClose} style={closeBottomButtonStyle}>
-            CHIUDI
+            {tr('SkillGrimoireModal.12')}
           </button>
         </div>
       </div>

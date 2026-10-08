@@ -15,6 +15,8 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { PALETTE, UI } from '../styles/palette';
 
+import { tr } from '../i18n/ui';
+import { displayLocale } from '../i18n/language';
 // ---------------------------------------------------------------------------
 // Stili condivisi
 // ---------------------------------------------------------------------------
@@ -86,7 +88,7 @@ export function Pannello({
 
   return (
     <section
-      className={crt === true ? 'dd-crt dd-pannello' : 'dd-pannello'}
+      className={crt === true ? tr('primitives.1') : tr('primitives.2')}
       style={{
         position: 'relative',
         display: 'flex',
@@ -372,5 +374,5 @@ export function formatScarto(ms: number, parSecondi: number): string {
 
 /** Numero con separatore italiano, senza decimali. */
 export function formatIntero(n: number): string {
-  return Math.round(n).toLocaleString('it-IT');
+  return Math.round(n).toLocaleString(displayLocale());
 }

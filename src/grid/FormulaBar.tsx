@@ -17,6 +17,7 @@ import { collectRefsFromText, assignRefColors } from '../engine/formula/refs';
 import { PALETTE, UI } from '../styles/palette';
 import type { GridSession, SessionSnapshot } from '../game/session';
 
+import { tr } from '../i18n/ui';
 /** Tavolozza dei riferimenti: colori distinguibili anche accostati, presi dalla palette di §8. */
 const REF_COLORS = [
   PALETTE.oltremare,
@@ -40,7 +41,7 @@ export function FormulaBar({ session, snap }: FormulaBarProps): JSX.Element {
   return (
     <div style={barraStyle}>
       <NameBox session={session} snap={snap} />
-      <div style={fxStyle} title="Inserisci funzione">fx</div>
+      <div style={fxStyle} title={tr('FormulaBar.1')}>fx</div>
       <div style={campoStyle} className="dd-selezionabile">
         <TestoColorato
           testo={testo}
@@ -147,7 +148,7 @@ function NameBox({ session, snap }: FormulaBarProps): JSX.Element {
       onBlur={() => setBozza(null)}
       spellCheck={false}
       style={nameBoxStyle}
-      title="Casella Nome — F5 o Ctrl+G per saltare a un riferimento"
+      title={tr('FormulaBar.2')}
     />
   );
 }

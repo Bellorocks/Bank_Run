@@ -9,6 +9,7 @@
 import type { LevelMode, ParScore } from '../content/types';
 import type { InputEvent } from './InputRecorder';
 
+import { tr } from '../i18n/ui';
 /**
  * Il minimo che serve a `computeMetrics`. Tipizzare la sorgente in modo
  * strutturale (invece che come `InputRecorder`) permette ai test — e alla
@@ -242,7 +243,7 @@ export function computeXp(input: XpInput): XpResult {
   const breakdown: XpBreakdownEntry[] = [];
 
   const modeMult = MODE_MULTIPLIER[mode];
-  breakdown.push({ label: `Base ${mode} (x${formatMult(modeMult)})`, delta: Math.round(baseXp * modeMult) });
+  breakdown.push({ label: tr('metrics.1', { mode, p1: formatMult(modeMult) }), delta: Math.round(baseXp * modeMult) });
 
   const push = (label: string, fraction: number): void => {
     if (fraction === 0) return;
@@ -251,19 +252,19 @@ export function computeXp(input: XpInput): XpResult {
 
   // Par centrato esatto conta come raggiunto: il par e' un bersaglio, non un limite.
   const parMs = par.seconds * 1000;
-  if (metrics.durationMs <= parMs) push('Sotto il par time', XP_BONUS_UNDER_PAR);
-  if (metrics.mouseClicks === 0) push('Zero mouse', XP_BONUS_ZERO_MOUSE);
-  if (metrics.hintsUsed === 0) push('Zero hint', XP_BONUS_ZERO_HINT);
-  if (perfectStructure) push('Struttura perfetta', XP_BONUS_PERFECT_STRUCTURE);
+  if (metrics.durationMs <= parMs) push(tr('metrics.2'), XP_BONUS_UNDER_PAR);
+  if (metrics.mouseClicks === 0) push(tr('metrics.3'), XP_BONUS_ZERO_MOUSE);
+  if (metrics.hintsUsed === 0) push(tr('metrics.4'), XP_BONUS_ZERO_HINT);
+  if (perfectStructure) push(tr('metrics.5'), XP_BONUS_PERFECT_STRUCTURE);
 
   if (metrics.hintsUsed > 0) {
-    push(`Hint usati: ${metrics.hintsUsed}`, -XP_MALUS_PER_HINT * metrics.hintsUsed);
+    push(tr('metrics.6', { p0: metrics.hintsUsed }), -XP_MALUS_PER_HINT * metrics.hintsUsed);
   }
   if (metrics.cheatSheetOpens > 0) {
     // 6 scrive "cheat sheet aperto (-5%)" senza "ciascuno" (che invece c'e' per
     // gli hint): il malus e' forfettario, non per apertura. Altrimenti aprire e
     // chiudere l'overlay per sbaglio dieci volte azzererebbe la run.
-    push('Cheat sheet consultato', -XP_MALUS_CHEAT_SHEET);
+    push(tr('metrics.7'), -XP_MALUS_CHEAT_SHEET);
   }
   if (retryCount > 0) {
     push(`Retry: ${retryCount}`, -XP_MALUS_PER_RETRY * retryCount);
@@ -271,7 +272,7 @@ export function computeXp(input: XpInput): XpResult {
 
   const sum = breakdown.reduce((acc, e) => acc + e.delta, 0);
   if (sum < 0) {
-    breakdown.push({ label: 'Pavimento a zero', delta: -sum });
+    breakdown.push({ label: tr('metrics.8'), delta: -sum });
     return { total: 0, breakdown };
   }
   return { total: sum, breakdown };
@@ -290,7 +291,7 @@ export function applyReplayPenalty(xp: XpResult): XpResult {
   if (taglio === 0) return xp;
   return {
     total: xp.total + taglio,
-    breakdown: [...xp.breakdown, { label: `Livello gia' superato (${Math.round(XP_REPLAY_SHARE * 100)}% XP)`, delta: taglio }],
+    breakdown: [...xp.breakdown, { label: tr('metrics.9', { p0: Math.round(XP_REPLAY_SHARE * 100) }), delta: taglio }],
   };
 }
 

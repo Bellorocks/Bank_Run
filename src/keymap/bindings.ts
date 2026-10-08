@@ -32,6 +32,7 @@
 import type { EditMode } from '../engine/types';
 import type { Command } from './commands';
 
+import { tr } from '../i18n/ui';
 // ---------------------------------------------------------------------------
 // Tipi
 // ---------------------------------------------------------------------------
@@ -135,145 +136,145 @@ export const BINDINGS: readonly Binding[] = [
   // -------------------------------------------------------------------------
 
   // Frecce: quattro significati per la stessa firma, uno per modalita'.
-  nav('ArrowUp', 'nav.moveUp', READY, 'Sposta la selezione in alto'),
-  nav('ArrowDown', 'nav.moveDown', READY, 'Sposta la selezione in basso'),
-  nav('ArrowLeft', 'nav.moveLeft', READY, 'Sposta la selezione a sinistra'),
-  nav('ArrowRight', 'nav.moveRight', READY, 'Sposta la selezione a destra'),
+  nav('ArrowUp', 'nav.moveUp', READY, tr('bindings.1')),
+  nav('ArrowDown', 'nav.moveDown', READY, tr('bindings.2')),
+  nav('ArrowLeft', 'nav.moveLeft', READY, tr('bindings.3')),
+  nav('ArrowRight', 'nav.moveRight', READY, tr('bindings.4')),
 
   // In Immissione (stai digitando) la freccia CONFERMA e si sposta.
-  edt('ArrowUp', 'edit.confirmAndMoveUp', ['enter'], 'Conferma e sale (durante la digitazione)'),
-  edt('ArrowDown', 'edit.confirmAndMoveDown', ['enter'], 'Conferma e scende (durante la digitazione)'),
-  edt('ArrowLeft', 'edit.confirmAndMoveLeft', ['enter'], 'Conferma e va a sinistra (durante la digitazione)'),
-  edt('ArrowRight', 'edit.confirmAndMoveRight', ['enter'], 'Conferma e va a destra (durante la digitazione)'),
+  edt('ArrowUp', 'edit.confirmAndMoveUp', ['enter'], tr('bindings.5')),
+  edt('ArrowDown', 'edit.confirmAndMoveDown', ['enter'], tr('bindings.6')),
+  edt('ArrowLeft', 'edit.confirmAndMoveLeft', ['enter'], tr('bindings.7')),
+  edt('ArrowRight', 'edit.confirmAndMoveRight', ['enter'], tr('bindings.8')),
 
   // In Modifica (F2) la freccia muove il CARET dentro il testo: niente navigazione.
-  edt('ArrowUp', 'edit.caretUp', EDIT_ONLY, 'Riga precedente del testo in modifica'),
-  edt('ArrowDown', 'edit.caretDown', EDIT_ONLY, 'Riga successiva del testo in modifica'),
-  edt('ArrowLeft', 'edit.caretLeft', EDIT_ONLY, 'Cursore a sinistra nel testo'),
-  edt('ArrowRight', 'edit.caretRight', EDIT_ONLY, 'Cursore a destra nel testo'),
+  edt('ArrowUp', 'edit.caretUp', EDIT_ONLY, tr('bindings.9')),
+  edt('ArrowDown', 'edit.caretDown', EDIT_ONLY, tr('bindings.10')),
+  edt('ArrowLeft', 'edit.caretLeft', EDIT_ONLY, tr('bindings.11')),
+  edt('ArrowRight', 'edit.caretRight', EDIT_ONLY, tr('bindings.12')),
 
   // In Punta la freccia sposta il riferimento che si sta scrivendo.
-  nav('ArrowUp', 'point.moveUp', POINT_ONLY, 'Sposta in alto il riferimento puntato'),
-  nav('ArrowDown', 'point.moveDown', POINT_ONLY, 'Sposta in basso il riferimento puntato'),
-  nav('ArrowLeft', 'point.moveLeft', POINT_ONLY, 'Sposta a sinistra il riferimento puntato'),
-  nav('ArrowRight', 'point.moveRight', POINT_ONLY, 'Sposta a destra il riferimento puntato'),
+  nav('ArrowUp', 'point.moveUp', POINT_ONLY, tr('bindings.13')),
+  nav('ArrowDown', 'point.moveDown', POINT_ONLY, tr('bindings.14')),
+  nav('ArrowLeft', 'point.moveLeft', POINT_ONLY, tr('bindings.15')),
+  nav('ArrowRight', 'point.moveRight', POINT_ONLY, tr('bindings.16')),
 
   // Ctrl+frecce: salto al bordo del blocco dati.
-  nav('Ctrl+ArrowUp', 'nav.blockUp', READY, 'Salta al bordo superiore del blocco dati'),
-  nav('Ctrl+ArrowDown', 'nav.blockDown', READY, 'Salta al bordo inferiore del blocco dati'),
-  nav('Ctrl+ArrowLeft', 'nav.blockLeft', READY, 'Salta al bordo sinistro del blocco dati'),
-  nav('Ctrl+ArrowRight', 'nav.blockRight', READY, 'Salta al bordo destro del blocco dati'),
+  nav('Ctrl+ArrowUp', 'nav.blockUp', READY, tr('bindings.17')),
+  nav('Ctrl+ArrowDown', 'nav.blockDown', READY, tr('bindings.18')),
+  nav('Ctrl+ArrowLeft', 'nav.blockLeft', READY, tr('bindings.19')),
+  nav('Ctrl+ArrowRight', 'nav.blockRight', READY, tr('bindings.20')),
   // ...ma dentro il testo Ctrl+Sinistra/Destra e' il salto di parola.
-  edt('Ctrl+ArrowLeft', 'edit.caretWordLeft', TEXT_EDIT, 'Parola precedente nel testo'),
-  edt('Ctrl+ArrowRight', 'edit.caretWordRight', TEXT_EDIT, 'Parola successiva nel testo'),
+  edt('Ctrl+ArrowLeft', 'edit.caretWordLeft', TEXT_EDIT, tr('bindings.21')),
+  edt('Ctrl+ArrowRight', 'edit.caretWordRight', TEXT_EDIT, tr('bindings.22')),
 
   // Maiusc+frecce: estensione di una cella.
-  nav('Shift+ArrowUp', 'nav.extendUp', READY, 'Estende la selezione in alto'),
-  nav('Shift+ArrowDown', 'nav.extendDown', READY, 'Estende la selezione in basso'),
-  nav('Shift+ArrowLeft', 'nav.extendLeft', READY, 'Estende la selezione a sinistra'),
-  nav('Shift+ArrowRight', 'nav.extendRight', READY, 'Estende la selezione a destra'),
-  nav('Shift+ArrowUp', 'point.extendUp', POINT_ONLY, 'Estende in alto il riferimento puntato'),
-  nav('Shift+ArrowDown', 'point.extendDown', POINT_ONLY, 'Estende in basso il riferimento puntato'),
-  nav('Shift+ArrowLeft', 'point.extendLeft', POINT_ONLY, 'Estende a sinistra il riferimento puntato'),
-  nav('Shift+ArrowRight', 'point.extendRight', POINT_ONLY, 'Estende a destra il riferimento puntato'),
+  nav('Shift+ArrowUp', 'nav.extendUp', READY, tr('bindings.23')),
+  nav('Shift+ArrowDown', 'nav.extendDown', READY, tr('bindings.24')),
+  nav('Shift+ArrowLeft', 'nav.extendLeft', READY, tr('bindings.25')),
+  nav('Shift+ArrowRight', 'nav.extendRight', READY, tr('bindings.26')),
+  nav('Shift+ArrowUp', 'point.extendUp', POINT_ONLY, tr('bindings.27')),
+  nav('Shift+ArrowDown', 'point.extendDown', POINT_ONLY, tr('bindings.28')),
+  nav('Shift+ArrowLeft', 'point.extendLeft', POINT_ONLY, tr('bindings.29')),
+  nav('Shift+ArrowRight', 'point.extendRight', POINT_ONLY, tr('bindings.30')),
   // Nel testo, Maiusc+Sinistra/Destra seleziona caratteri.
-  edt('Shift+ArrowLeft', 'edit.selectCaretLeft', EDIT_ONLY, 'Seleziona un carattere a sinistra'),
-  edt('Shift+ArrowRight', 'edit.selectCaretRight', EDIT_ONLY, 'Seleziona un carattere a destra'),
+  edt('Shift+ArrowLeft', 'edit.selectCaretLeft', EDIT_ONLY, tr('bindings.31')),
+  edt('Shift+ArrowRight', 'edit.selectCaretRight', EDIT_ONLY, tr('bindings.32')),
 
   // Ctrl+Maiusc+frecce: estensione con salto.
-  nav('Ctrl+Shift+ArrowUp', 'nav.extendBlockUp', READY, 'Estende fino al bordo superiore del blocco'),
-  nav('Ctrl+Shift+ArrowDown', 'nav.extendBlockDown', READY, 'Estende fino al bordo inferiore del blocco'),
-  nav('Ctrl+Shift+ArrowLeft', 'nav.extendBlockLeft', READY, 'Estende fino al bordo sinistro del blocco'),
-  nav('Ctrl+Shift+ArrowRight', 'nav.extendBlockRight', READY, 'Estende fino al bordo destro del blocco'),
+  nav('Ctrl+Shift+ArrowUp', 'nav.extendBlockUp', READY, tr('bindings.33')),
+  nav('Ctrl+Shift+ArrowDown', 'nav.extendBlockDown', READY, tr('bindings.34')),
+  nav('Ctrl+Shift+ArrowLeft', 'nav.extendBlockLeft', READY, tr('bindings.35')),
+  nav('Ctrl+Shift+ArrowRight', 'nav.extendBlockRight', READY, tr('bindings.36')),
 
   // Home / Fine.
-  nav('Home', 'nav.rowStart', READY, 'Vai alla prima colonna della riga'),
-  edt('Home', 'edit.caretLineStart', TEXT_EDIT, 'Inizio della riga di testo'),
-  nav('End', 'nav.toggleEndMode', READY, 'Attiva la modalità Fine (Fine + freccia)'),
-  edt('End', 'edit.caretLineEnd', TEXT_EDIT, 'Fine della riga di testo'),
-  nav('Shift+Home', 'nav.extendToRowStart', READY, 'Estende fino alla prima colonna della riga'),
-  edt('Shift+Home', 'edit.selectToLineStart', TEXT_EDIT, 'Seleziona fino a inizio riga di testo'),
-  edt('Shift+End', 'edit.selectToLineEnd', TEXT_EDIT, 'Seleziona fino a fine riga di testo'),
-  nav('Ctrl+Home', 'nav.sheetStart', READY, 'Vai a A1'),
-  nav('Ctrl+End', 'nav.sheetEnd', READY, "Vai all'ultima cella usata del foglio"),
-  nav('Ctrl+Shift+Home', 'nav.extendToSheetStart', READY, 'Estende la selezione fino ad A1'),
-  nav('Ctrl+Shift+End', 'nav.extendToSheetEnd', READY, "Estende fino all'ultima cella usata"),
+  nav('Home', 'nav.rowStart', READY, tr('bindings.37')),
+  edt('Home', 'edit.caretLineStart', TEXT_EDIT, tr('bindings.38')),
+  nav('End', 'nav.toggleEndMode', READY, tr('bindings.39')),
+  edt('End', 'edit.caretLineEnd', TEXT_EDIT, tr('bindings.40')),
+  nav('Shift+Home', 'nav.extendToRowStart', READY, tr('bindings.41')),
+  edt('Shift+Home', 'edit.selectToLineStart', TEXT_EDIT, tr('bindings.42')),
+  edt('Shift+End', 'edit.selectToLineEnd', TEXT_EDIT, tr('bindings.43')),
+  nav('Ctrl+Home', 'nav.sheetStart', READY, tr('bindings.44')),
+  nav('Ctrl+End', 'nav.sheetEnd', READY, tr('bindings.45')),
+  nav('Ctrl+Shift+Home', 'nav.extendToSheetStart', READY, tr('bindings.46')),
+  nav('Ctrl+Shift+End', 'nav.extendToSheetEnd', READY, tr('bindings.47')),
 
   // Pagine e fogli.
-  nav('PageUp', 'nav.pageUp', READY, 'Una schermata in su'),
-  nav('PageDown', 'nav.pageDown', READY, 'Una schermata in giù'),
-  nav('Shift+PageUp', 'nav.extendPageUp', READY, 'Estende di una schermata in su'),
-  nav('Shift+PageDown', 'nav.extendPageDown', READY, 'Estende di una schermata in giù'),
-  nav('Alt+PageUp', 'nav.pageLeft', READY, 'Una schermata a sinistra'),
-  nav('Alt+PageDown', 'nav.pageRight', READY, 'Una schermata a destra'),
-  nav('Ctrl+PageUp', 'nav.prevSheet', READY, 'Foglio precedente'),
-  nav('Ctrl+PageDown', 'nav.nextSheet', READY, 'Foglio successivo'),
+  nav('PageUp', 'nav.pageUp', READY, tr('bindings.48')),
+  nav('PageDown', 'nav.pageDown', READY, tr('bindings.49')),
+  nav('Shift+PageUp', 'nav.extendPageUp', READY, tr('bindings.50')),
+  nav('Shift+PageDown', 'nav.extendPageDown', READY, tr('bindings.51')),
+  nav('Alt+PageUp', 'nav.pageLeft', READY, tr('bindings.52')),
+  nav('Alt+PageDown', 'nav.pageRight', READY, tr('bindings.53')),
+  nav('Ctrl+PageUp', 'nav.prevSheet', READY, tr('bindings.54')),
+  nav('Ctrl+PageDown', 'nav.nextSheet', READY, tr('bindings.55')),
 
   // Tab e Invio: da Pronto navigano, da editor confermano.
-  nav('Tab', 'nav.tabNext', READY, 'Cella a destra (e ritorno a capo dopo Invio)'),
-  nav('Shift+Tab', 'nav.tabPrev', READY, 'Cella a sinistra'),
+  nav('Tab', 'nav.tabNext', READY, tr('bindings.56')),
+  nav('Shift+Tab', 'nav.tabPrev', READY, tr('bindings.57')),
   // Tab non e' "conferma e vai a destra": apre la catena che Invio chiude
   // riportando il cursore a capo. La freccia destra, invece, conferma e basta.
-  edt('Tab', 'edit.confirmAndTabNext', TYPING, 'Conferma e passa alla cella a destra (apre la catena)'),
-  edt('Shift+Tab', 'edit.confirmAndTabPrev', TYPING, 'Conferma e passa alla cella a sinistra'),
-  nav('Enter', 'nav.enterNext', READY, 'Scendi di una cella'),
-  nav('Shift+Enter', 'nav.enterPrev', READY, 'Sali di una cella'),
-  edt('Enter', 'edit.confirmAndMoveDown', TYPING, 'Conferma la modifica e scendi'),
-  edt('Shift+Enter', 'edit.confirmAndMoveUp', TYPING, 'Conferma la modifica e sali'),
+  edt('Tab', 'edit.confirmAndTabNext', TYPING, tr('bindings.58')),
+  edt('Shift+Tab', 'edit.confirmAndTabPrev', TYPING, tr('bindings.59')),
+  nav('Enter', 'nav.enterNext', READY, tr('bindings.60')),
+  nav('Shift+Enter', 'nav.enterPrev', READY, tr('bindings.61')),
+  edt('Enter', 'edit.confirmAndMoveDown', TYPING, tr('bindings.62')),
+  edt('Shift+Enter', 'edit.confirmAndMoveUp', TYPING, tr('bindings.63')),
 
   // Vai a: due firme per lo stesso comando, come in Excel.
-  nav('F5', 'nav.goTo', READY, 'Vai a... (indirizzo o nome)'),
-  nav('Ctrl+G', 'nav.goTo', READY, 'Vai a... (indirizzo o nome)'),
+  nav('F5', 'nav.goTo', READY, tr('bindings.64')),
+  nav('Ctrl+G', 'nav.goTo', READY, tr('bindings.65')),
 
   // Audit di navigazione.
-  nav('Ctrl+BracketLeft', 'nav.selectPrecedents', READY, 'Seleziona le celle precedenti'),
-  nav('Ctrl+BracketRight', 'nav.selectDependents', READY, 'Seleziona le celle dipendenti'),
+  nav('Ctrl+BracketLeft', 'nav.selectPrecedents', READY, tr('bindings.66')),
+  nav('Ctrl+BracketRight', 'nav.selectDependents', READY, tr('bindings.67')),
 
-  nav('F8', 'nav.toggleExtendMode', READY, 'Modalità Estendi selezione'),
-  nav('Ctrl+.', 'nav.nextSelectionCorner', READY, 'Ruota fra gli angoli della selezione'),
+  nav('F8', 'nav.toggleExtendMode', READY, tr('bindings.68')),
+  nav('Ctrl+.', 'nav.nextSelectionCorner', READY, tr('bindings.69')),
 
   // -------------------------------------------------------------------------
   // Editing (§3.1 "Editing")
   // -------------------------------------------------------------------------
 
-  edt('F2', 'edit.begin', READY, 'Modifica la cella (cursore in fondo)'),
-  edt('F2', 'edit.toggleEditPoint', TYPING, 'Alterna Modifica e Punta'),
+  edt('F2', 'edit.begin', READY, tr('bindings.70')),
+  edt('F2', 'edit.toggleEditPoint', TYPING, tr('bindings.71')),
 
   // Esc: da Pronto smonta lo stato transitorio (marching ants, Estendi,
   // selezione multipla in costruzione); da editor annulla la modifica.
-  edt('Escape', 'clipboard.clearMarquee', READY, 'Annulla appunti, modalità Estendi e selezione multipla'),
-  edt('Escape', 'edit.cancel', TYPING, 'Annulla la modifica'),
+  edt('Escape', 'clipboard.clearMarquee', READY, tr('bindings.72')),
+  edt('Escape', 'edit.cancel', TYPING, tr('bindings.73')),
 
-  edt('Delete', 'edit.clearContents', READY, 'Cancella il contenuto della selezione'),
-  edt('Delete', 'edit.deleteForward', TYPING, 'Cancella il carattere a destra'),
-  edt('Backspace', 'edit.clearAndBegin', READY, 'Svuota la cella e apri la modifica'),
-  edt('Backspace', 'edit.deleteBackward', TYPING, 'Cancella il carattere a sinistra'),
+  edt('Delete', 'edit.clearContents', READY, tr('bindings.74')),
+  edt('Delete', 'edit.deleteForward', TYPING, tr('bindings.75')),
+  edt('Backspace', 'edit.clearAndBegin', READY, tr('bindings.76')),
+  edt('Backspace', 'edit.deleteBackward', TYPING, tr('bindings.77')),
 
-  edt('Ctrl+Enter', 'edit.fillSelection', ANY, 'Compila tutta la selezione con la voce corrente'),
-  edt('Alt+Enter', 'edit.newlineInCell', TYPING, 'A capo dentro la cella'),
+  edt('Ctrl+Enter', 'edit.fillSelection', ANY, tr('bindings.78')),
+  edt('Alt+Enter', 'edit.newlineInCell', TYPING, tr('bindings.79')),
 
-  edt('Ctrl+D', 'edit.fillDown', READY, 'Ricopia verso il basso (fill down)'),
-  edt('Ctrl+R', 'edit.fillRight', READY, 'Ricopia verso destra (fill right)'),
+  edt('Ctrl+D', 'edit.fillDown', READY, tr('bindings.80')),
+  edt('Ctrl+R', 'edit.fillRight', READY, tr('bindings.81')),
 
   // F4: il caso contestuale per eccellenza. In Immissione Excel cicla comunque
   // gli ancoraggi del riferimento appena scritto, quindi TYPING e non IN_FORMULA.
-  edt('F4', 'edit.cycleAnchor', TYPING, 'Ciclo ancoraggi A1 → $A$1 → A$1 → $A1'),
-  edt('F4', 'edit.repeatLastAction', READY, "Ripeti l'ultima azione"),
+  edt('F4', 'edit.cycleAnchor', TYPING, tr('bindings.82')),
+  edt('F4', 'edit.repeatLastAction', READY, tr('bindings.83')),
 
   // Appunti.
   edt('Ctrl+C', 'clipboard.copy', READY, 'Copia'),
   edt('Ctrl+X', 'clipboard.cut', READY, 'Taglia'),
   edt('Ctrl+V', 'clipboard.paste', READY, 'Incolla'),
-  edt('Ctrl+Alt+V', 'clipboard.pasteSpecialDialog', READY, 'Incolla speciale... (V valori, F formule, T formati, E trasponi)', {
+  edt('Ctrl+Alt+V', 'clipboard.pasteSpecialDialog', READY, tr('bindings.84'), {
     requiresClipboard: true,
   }),
 
-  edt('Ctrl+Quote', 'edit.copyFormulaFromAbove', READY, 'Copia la formula dalla cella sopra (senza traslare)'),
-  edt('Ctrl+Shift+Quote', 'edit.copyValueFromAbove', READY, 'Copia il valore dalla cella sopra'),
+  edt('Ctrl+Quote', 'edit.copyFormulaFromAbove', READY, tr('bindings.85')),
+  edt('Ctrl+Shift+Quote', 'edit.copyValueFromAbove', READY, tr('bindings.86')),
 
   edt('Ctrl+Z', 'edit.undo', READY, 'Annulla'),
   edt('Ctrl+Y', 'edit.redo', READY, 'Ripristina'),
-  edt('Ctrl+A', 'edit.selectAll', READY, 'Seleziona la regione corrente, poi tutto il foglio'),
+  edt('Ctrl+A', 'edit.selectAll', READY, tr('bindings.87')),
   edt('Ctrl+F', 'edit.find', READY, 'Trova'),
   edt('Ctrl+H', 'edit.replace', READY, 'Sostituisci'),
 
@@ -283,44 +284,44 @@ export const BINDINGS: readonly Binding[] = [
 
   // Ctrl+Maiusc++ : sulla riga dei numeri il "+" e' Maiusc+"=", sul tastierino
   // e' un tasto suo. Due firme, stesso comando.
-  str('Ctrl+Shift+=', 'structure.insertDialog', READY, 'Inserisci celle/righe/colonne...'),
-  str('Ctrl++', 'structure.insertDialog', READY, 'Inserisci celle/righe/colonne...'),
-  str('Ctrl+-', 'structure.deleteDialog', READY, 'Elimina celle/righe/colonne...'),
+  str('Ctrl+Shift+=', 'structure.insertDialog', READY, tr('bindings.88')),
+  str('Ctrl++', 'structure.insertDialog', READY, tr('bindings.89')),
+  str('Ctrl+-', 'structure.deleteDialog', READY, tr('bindings.90')),
 
-  str('Ctrl+Space', 'structure.selectColumn', READY, 'Seleziona la colonna'),
-  str('Shift+Space', 'structure.selectRow', READY, 'Seleziona la riga'),
+  str('Ctrl+Space', 'structure.selectColumn', READY, tr('bindings.91')),
+  str('Shift+Space', 'structure.selectRow', READY, tr('bindings.92')),
 
-  str('Alt+Shift+ArrowRight', 'structure.group', READY, 'Raggruppa righe/colonne'),
-  str('Alt+Shift+ArrowLeft', 'structure.ungroup', READY, 'Separa righe/colonne'),
+  str('Alt+Shift+ArrowRight', 'structure.group', READY, tr('bindings.93')),
+  str('Alt+Shift+ArrowLeft', 'structure.ungroup', READY, tr('bindings.94')),
 
-  str('Ctrl+9', 'structure.hideRows', READY, 'Nascondi righe'),
-  str('Ctrl+0', 'structure.hideCols', READY, 'Nascondi colonne'),
-  str('Ctrl+Shift+9', 'structure.unhideRows', READY, 'Mostra righe'),
-  str('Ctrl+Shift+0', 'structure.unhideCols', READY, 'Mostra colonne'),
+  str('Ctrl+9', 'structure.hideRows', READY, tr('bindings.95')),
+  str('Ctrl+0', 'structure.hideCols', READY, tr('bindings.96')),
+  str('Ctrl+Shift+9', 'structure.unhideRows', READY, tr('bindings.97')),
+  str('Ctrl+Shift+0', 'structure.unhideCols', READY, tr('bindings.98')),
 
   // -------------------------------------------------------------------------
   // Formattazione (§3.1 "Formattazione")
   // -------------------------------------------------------------------------
 
-  fmt('Ctrl+1', 'format.cellsDialog', READY, 'Formato celle...'),
+  fmt('Ctrl+1', 'format.cellsDialog', READY, tr('bindings.99')),
   fmt('Ctrl+B', 'format.bold', READY, 'Grassetto'),
   fmt('Ctrl+I', 'format.italic', READY, 'Corsivo'),
   fmt('Ctrl+U', 'format.underline', READY, 'Sottolineato'),
 
-  fmt('Ctrl+Shift+1', 'format.numberTwoDecimals', READY, 'Formato numero: separatore migliaia, 2 decimali'),
-  fmt('Ctrl+Shift+2', 'format.time', READY, 'Formato ora'),
-  fmt('Ctrl+Shift+3', 'format.date', READY, 'Formato data'),
-  fmt('Ctrl+Shift+4', 'format.currency', READY, 'Formato valuta'),
-  fmt('Ctrl+Shift+5', 'format.percent', READY, 'Formato percentuale'),
-  fmt('Ctrl+Shift+6', 'format.exponential', READY, 'Formato esponenziale'),
-  fmt('Ctrl+Shift+7', 'format.borderOutside', READY, 'Bordo esterno (box)'),
-  fmt('Ctrl+Shift+-', 'format.borderNone', READY, 'Togli tutti i bordi'),
-  fmt('Ctrl+Shift+Backquote', 'format.general', READY, 'Formato Generale'),
+  fmt('Ctrl+Shift+1', 'format.numberTwoDecimals', READY, tr('bindings.100')),
+  fmt('Ctrl+Shift+2', 'format.time', READY, tr('bindings.101')),
+  fmt('Ctrl+Shift+3', 'format.date', READY, tr('bindings.102')),
+  fmt('Ctrl+Shift+4', 'format.currency', READY, tr('bindings.103')),
+  fmt('Ctrl+Shift+5', 'format.percent', READY, tr('bindings.104')),
+  fmt('Ctrl+Shift+6', 'format.exponential', READY, tr('bindings.105')),
+  fmt('Ctrl+Shift+7', 'format.borderOutside', READY, tr('bindings.106')),
+  fmt('Ctrl+Shift+-', 'format.borderNone', READY, tr('bindings.107')),
+  fmt('Ctrl+Shift+Backquote', 'format.general', READY, tr('bindings.108')),
 
   // Ingresso alle sequenze Alt legacy: da qui in poi comanda `altSequence.ts`
   // (Alt,H,O,I autofit colonna; Alt,H,H riempimento; Alt,H,F,C carattere;
   // Alt,H,B bordi; Alt,A,S,S ordina; Alt,M,P/D individua precedenti/dipendenti).
-  fmt('Alt', 'altMenu.open', READY, 'Apre la barra dei menu (sequenze Alt legacy)'),
+  fmt('Alt', 'altMenu.open', READY, tr('bindings.109')),
 
   // -------------------------------------------------------------------------
   // Formule e audit (§3.1 "Formule e audit")
@@ -328,40 +329,40 @@ export const BINDINGS: readonly Binding[] = [
 
   // Alt+= e' anche una foglia della radice dell'albero Alt: chi lo preme come
   // accordo passa di qui, chi fa Alt poi "=" passa da altSequence.
-  fml('Alt+=', 'formula.autosum', ANY, 'Somma automatica'),
-  fml('Ctrl+Backquote', 'formula.toggleShowFormulas', READY, 'Mostra le formule al posto dei valori'),
+  fml('Alt+=', 'formula.autosum', ANY, tr('bindings.110')),
+  fml('Ctrl+Backquote', 'formula.toggleShowFormulas', READY, tr('bindings.111')),
 
   // F9: con un frammento selezionato lo valuta, altrimenti ricalcola.
   // Il guard `requiresTextSelection` vince sul binding generico.
-  fml('F9', 'formula.evaluateFragment', IN_FORMULA, 'Valuta il frammento di formula selezionato', {
+  fml('F9', 'formula.evaluateFragment', IN_FORMULA, tr('bindings.112'), {
     requiresTextSelection: true,
   }),
-  fml('F9', 'formula.recalculate', ANY, 'Ricalcola le formule modificate'),
-  fml('Shift+F9', 'formula.recalculateSheet', ANY, 'Ricalcola il foglio attivo'),
-  fml('Ctrl+Alt+F9', 'formula.recalculateFull', ANY, 'Ricalcolo completo della cartella'),
+  fml('F9', 'formula.recalculate', ANY, tr('bindings.113')),
+  fml('Shift+F9', 'formula.recalculateSheet', ANY, tr('bindings.114')),
+  fml('Ctrl+Alt+F9', 'formula.recalculateFull', ANY, tr('bindings.115')),
 
-  fml('Shift+F3', 'formula.insertFunction', ANY, 'Inserisci funzione...'),
-  fml('Ctrl+Shift+Enter', 'formula.arrayEnter', TYPING, 'Conferma come formula in forma di matrice'),
+  fml('Shift+F3', 'formula.insertFunction', ANY, tr('bindings.116')),
+  fml('Ctrl+Shift+Enter', 'formula.arrayEnter', TYPING, tr('bindings.117')),
 
-  fml('Ctrl+F3', 'name.manager', READY, 'Gestione nomi'),
-  fml('Ctrl+Shift+F3', 'name.createFromSelection', READY, 'Crea nomi dalla selezione'),
-  fml('F3', 'name.paste', TYPING, 'Incolla un nome nella formula'),
+  fml('Ctrl+F3', 'name.manager', READY, tr('bindings.118')),
+  fml('Ctrl+Shift+F3', 'name.createFromSelection', READY, tr('bindings.119')),
+  fml('F3', 'name.paste', TYPING, tr('bindings.120')),
   // Estensione del gioco: Excel non ha un tasto documentato per la casella
   // Nome, ma senza mouse serve un modo per arrivarci (§3.3 modalità mouse-free).
-  fml('Alt+F3', 'name.focusNameBox', READY, 'Vai alla casella Nome'),
+  fml('Alt+F3', 'name.focusNameBox', READY, tr('bindings.121')),
 
   // -------------------------------------------------------------------------
   // Altro (§3.1 "Altro" e interfaccia del gioco §3.2)
   // -------------------------------------------------------------------------
 
-  oth('Ctrl+Shift+L', 'data.filter', READY, 'Attiva/disattiva i filtri'),
+  oth('Ctrl+Shift+L', 'data.filter', READY, tr('bindings.122')),
 
   // "?" apre il cheat sheet solo da Pronto: mentre digiti e' un carattere.
-  oth('?', 'ui.toggleCheatSheet', READY, 'Mostra il cheat sheet (costa XP)'),
-  oth('F1', 'game.hint', READY, 'Suggerimento (costa XP)'),
-  oth('Ctrl+F1', 'ui.toggleTaskPanel', READY, 'Mostra/nascondi il pannello del mandato'),
-  oth('Ctrl+Shift+M', 'ui.toggleMouseFree', ANY, 'Attiva/disattiva la modalità mouse-free'),
-  oth('F12', 'game.verify', READY, 'Verifica il livello'),
+  oth('?', 'ui.toggleCheatSheet', READY, tr('bindings.123')),
+  oth('F1', 'game.hint', READY, tr('bindings.124')),
+  oth('Ctrl+F1', 'ui.toggleTaskPanel', READY, tr('bindings.125')),
+  oth('Ctrl+Shift+M', 'ui.toggleMouseFree', ANY, tr('bindings.126')),
+  oth('F12', 'game.verify', READY, tr('bindings.127')),
 ];
 
 // ---------------------------------------------------------------------------
@@ -382,12 +383,12 @@ export interface PasteSpecialOption {
  * chi impara qui deve ritrovarle identiche in ufficio.
  */
 export const PASTE_SPECIAL_OPTIONS: readonly PasteSpecialOption[] = [
-  { key: 'A', command: 'clipboard.pasteAll', label: 'Tutto' },
-  { key: 'F', command: 'clipboard.pasteFormulas', label: 'Formule' },
-  { key: 'V', command: 'clipboard.pasteValues', label: 'Valori' },
-  { key: 'T', command: 'clipboard.pasteFormats', label: 'Formati' },
-  { key: 'E', command: 'clipboard.pasteTranspose', label: 'Trasponi' },
-  { key: 'M', command: 'clipboard.pasteMultiply', label: 'Moltiplica' },
+  { key: 'A', command: 'clipboard.pasteAll', label: tr('bindings.128') },
+  { key: 'F', command: 'clipboard.pasteFormulas', label: tr('bindings.129') },
+  { key: 'V', command: 'clipboard.pasteValues', label: tr('bindings.130') },
+  { key: 'T', command: 'clipboard.pasteFormats', label: tr('bindings.131') },
+  { key: 'E', command: 'clipboard.pasteTranspose', label: tr('bindings.132') },
+  { key: 'M', command: 'clipboard.pasteMultiply', label: tr('bindings.133') },
 ];
 
 // ---------------------------------------------------------------------------

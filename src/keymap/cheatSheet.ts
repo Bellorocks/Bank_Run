@@ -25,6 +25,7 @@ import {
 import { EXCEL_ALT_TREE, flattenAltTree } from './altSequence';
 import { formatSignatureForDisplay } from './keySignature';
 
+import { tr } from '../i18n/ui';
 // ---------------------------------------------------------------------------
 // Tipi
 // ---------------------------------------------------------------------------
@@ -56,7 +57,7 @@ export const CATEGORY_TITLES: Readonly<Record<BindingCategory, string>> = {
   editing: 'Editing',
   struttura: 'Struttura',
   formattazione: 'Formattazione',
-  formule: 'Formule e audit',
+  formule: tr('cheatSheet.1'),
   altro: 'Altro',
 };
 
@@ -92,8 +93,8 @@ function contextOf(b: Binding): string | undefined {
   if (!readyOnly && !everywhere) {
     parts.push(`in ${b.modes.map((m) => MODE_LABELS[m]).join('/')}`);
   }
-  if (b.requiresTextSelection === true) parts.push('con testo selezionato');
-  if (b.requiresClipboard === true) parts.push('con appunti pieni');
+  if (b.requiresTextSelection === true) parts.push(tr('cheatSheet.2'));
+  if (b.requiresClipboard === true) parts.push(tr('cheatSheet.3'));
   return parts.length > 0 ? parts.join(', ') : undefined;
 }
 
@@ -190,8 +191,8 @@ function rowsFromPasteSpecial(): CheatSheetRow[] {
     keys: `Ctrl+Alt+V, ${opt.key}`,
     signatures: [],
     command: opt.command,
-    description: `Incolla speciale: ${opt.label.toLowerCase()}`,
-    context: 'nel dialogo Incolla speciale',
+    description: tr('cheatSheet.4', { p0: opt.label.toLowerCase() }),
+    context: tr('cheatSheet.5'),
   }));
 }
 

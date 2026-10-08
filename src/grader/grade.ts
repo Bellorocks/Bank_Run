@@ -43,6 +43,8 @@ import {
 } from '../content/types';
 import { MESSAGES, firstAttemptSummary, FAMILY_LABEL } from './messages';
 
+import { tr } from '../i18n/ui';
+import { displayLocale } from '../i18n/language';
 // ---------------------------------------------------------------------------
 // Risultati
 // ---------------------------------------------------------------------------
@@ -198,7 +200,7 @@ export function gradeLevel(
     tasksTotal: tasks.length,
     summary:
       correct === tasks.length
-        ? `Tutti i ${tasks.length} task corretti.`
+        ? tr('grade.1', { p0: tasks.length })
         : firstAttemptSummary(failing),
     perfectStructure,
   };
@@ -240,15 +242,15 @@ function runCheck(
         // Valore di un'altra cella del bersaglio (tipicamente l'ultima di una
         // riga copiata): e' li' che un ancoraggio mancante smette di nascondersi.
         const coord = a1ToCoord(check.at);
-        if (!coord) return ko(MESSAGES.value, `cella "${check.at}" non valida nel template`);
+        if (!coord) return ko(MESSAGES.value, tr('grade.2', { p0: check.at }));
         const altrove: Target = { ...cell.target, coord, ref: coordToA1(coord) };
         const { at: _at, ...resto } = check;
         return runCheck(wb, resto, { target: altrove, formula: undefined, value: wb.getValue(cell.target.sheetId, coord), ast: undefined }, opts);
       }
       const err = errorText(cell.value);
-      if (err) return ko(`${MESSAGES.value} La cella restituisce ${err}.`, `${cell.target.ref} = ${err}`);
+      if (err) return ko(tr('grade.3', { p0: MESSAGES.value, err }), `${cell.target.ref} = ${err}`);
       if (typeof cell.value !== 'number') {
-        return ko(MESSAGES.value, `${cell.target.ref} non contiene un numero ma ${describe(cell.value)}`);
+        return ko(MESSAGES.value, tr('grade.4', { p0: cell.target.ref, p1: describe(cell.value) }));
       }
       const tol = check.tolerance ?? DEFAULT_TOLERANCE;
       const mode = check.toleranceMode ?? 'hybrid';
@@ -308,12 +310,12 @@ function runCheck(
     case 'mustBeFormula':
       if (cell.formula !== undefined) return ok();
       if (wb.isEmpty(cell.target.sheetId, cell.target.coord)) {
-        return ko(MESSAGES.emptyCell, `${cell.target.ref} e' vuota`);
+        return ko(MESSAGES.emptyCell, tr('grade.5', { p0: cell.target.ref }));
       }
-      return ko(MESSAGES.mustBeFormula, `${cell.target.ref} contiene il valore ${describe(cell.value)}, non una formula`);
+      return ko(MESSAGES.mustBeFormula, tr('grade.6', { p0: cell.target.ref, p1: describe(cell.value) }));
 
     case 'mustReference': {
-      if (cell.formula === undefined) return ko(MESSAGES.mustBeFormula, `${cell.target.ref} non e' una formula`);
+      if (cell.formula === undefined) return ko(MESSAGES.mustBeFormula, tr('grade.7', { p0: cell.target.ref }));
       const mancanti = check.cells.filter(
         (c) =>
           !referencesCell(cell.ast, c, {
@@ -323,14 +325,14 @@ function runCheck(
       );
       return mancanti.length === 0
         ? ok()
-        : ko(MESSAGES.mustReference, `non referenzia: ${mancanti.join(', ')}`);
+        : ko(MESSAGES.mustReference, tr('grade.8', { p0: mancanti.join(', ') }));
     }
 
     case 'mustNotContainLiteral': {
       if (cell.formula === undefined) {
         // Un valore battuto a mano E' un literal: il check ha comunque senso.
         return typeof cell.value === 'number' && !check.except.includes(cell.value)
-          ? ko(MESSAGES.mustNotContainLiteral, `${cell.target.ref} contiene il numero ${fmt(cell.value)}`)
+          ? ko(MESSAGES.mustNotContainLiteral, tr('grade.9', { p0: cell.target.ref, p1: fmt(cell.value) }))
           : ok();
       }
       const vietati = collectNumericLiterals(cell.ast)
@@ -340,28 +342,28 @@ function runCheck(
         ? ok()
         : ko(
             MESSAGES.mustNotContainLiteral,
-            `numeri magici nella formula: ${vietati.map((l) => fmt(l.effettivo)).join(', ')}`,
+            tr('grade.10', { p0: vietati.map((l) => fmt(l.effettivo)).join(', ') }),
           );
     }
 
     case 'anchoring': {
-      if (cell.formula === undefined) return ko(MESSAGES.mustBeFormula, `${cell.target.ref} non e' una formula`);
+      if (cell.formula === undefined) return ko(MESSAGES.mustBeFormula, tr('grade.11', { p0: cell.target.ref }));
       const atteso = parseCellRef(check.pattern);
-      if (!atteso) return ko(MESSAGES.anchoring, `pattern "${check.pattern}" non valido nel template`);
+      if (!atteso) return ko(MESSAGES.anchoring, tr('grade.12', { p0: check.pattern }));
 
       const refs = collectRefs(cell.ast);
       const stessaCella = refs.filter(
         (r) => r.area.top === atteso.row && r.area.left === atteso.col && r.kind === 'cell',
       );
       if (stessaCella.length === 0) {
-        return ko(MESSAGES.mustReference, `la formula non referenzia ${coordToA1({ row: atteso.row, col: atteso.col })}`);
+        return ko(MESSAGES.mustReference, tr('grade.13', { p0: coordToA1({ row: atteso.row, col: atteso.col }) }));
       }
       const corretto = stessaCella.some(
         (r) => r.anchors.startRowAbs === atteso.rowAbs && r.anchors.startColAbs === atteso.colAbs,
       );
       return corretto
         ? ok()
-        : ko(MESSAGES.anchoring, `hai scritto ${stessaCella.map((r) => r.text).join(', ')}, serve ${check.pattern}`);
+        : ko(MESSAGES.anchoring, tr('grade.14', { p0: stessaCella.map((r) => r.text).join(', '), p1: check.pattern }));
     }
 
     case 'consistentRow':
@@ -372,17 +374,17 @@ function runCheck(
       // vengono quotati allo stesso modo da entrambe le parti.
       const key = iterativeKey(cell.target.sheetName, cell.target.coord.row, cell.target.coord.col);
       const inCiclo = opts.cycleCells?.has(key) === true || errorText(cell.value) === '#CYCLE!';
-      return inCiclo ? ko(MESSAGES.noCircular, `${cell.target.ref} fa parte di un ciclo`) : ok();
+      return inCiclo ? ko(MESSAGES.noCircular, tr('grade.15', { p0: cell.target.ref })) : ok();
     }
 
     case 'requiresCircular': {
       const key = iterativeKey(cell.target.sheetName, cell.target.coord.row, cell.target.coord.col);
       const inCiclo = opts.cycleCells?.has(key) === true || errorText(cell.value) === '#CYCLE!';
-      return inCiclo ? ok() : ko(MESSAGES.requiresCircular, `${cell.target.ref} non chiude alcun anello`);
+      return inCiclo ? ok() : ko(MESSAGES.requiresCircular, tr('grade.16', { p0: cell.target.ref }));
     }
 
     case 'mustUseFunction': {
-      if (cell.formula === undefined) return ko(MESSAGES.mustBeFormula, `${cell.target.ref} non e' una formula`);
+      if (cell.formula === undefined) return ko(MESSAGES.mustBeFormula, tr('grade.17', { p0: cell.target.ref }));
       const usate = new Set(collectFunctions(cell.ast));
       const richieste = check.functions.map((f) => f.toUpperCase());
       const soddisfatto =
@@ -390,8 +392,8 @@ function runCheck(
       return soddisfatto
         ? ok()
         : ko(
-            `${MESSAGES.mustUseFunction} Serve ${check.quantifier === 'all' ? 'ognuna di' : 'almeno una fra'}: ${richieste.join(', ')}.`,
-            `hai usato: ${[...usate].join(', ') || 'nessuna funzione'}`,
+            tr('grade.20', { p0: MESSAGES.mustUseFunction, p1: check.quantifier === 'all' ? tr('grade.18') : tr('grade.19'), p2: richieste.join(', ') }),
+            tr('grade.22', { p0: [...usate].join(', ') || tr('grade.21') }),
           );
     }
 
@@ -401,7 +403,7 @@ function runCheck(
       const vietate = check.functions.map((f) => f.toUpperCase()).filter((f) => usate.has(f));
       return vietate.length === 0
         ? ok()
-        : ko(`${MESSAGES.mustNotUseFunction} Vietata qui: ${vietate.join(', ')}.`, `in ${cell.target.ref}`);
+        : ko(tr('grade.23', { p0: MESSAGES.mustNotUseFunction, p1: vietate.join(', ') }), `in ${cell.target.ref}`);
     }
 
     // -------------------------------------------------------------- stilistico
@@ -413,7 +415,7 @@ function runCheck(
       if (ruolo === atteso) return ok();
       return ko(
         MESSAGES.colorDiscipline,
-        `${cell.target.ref} dovrebbe essere ${ROLE_LABEL[atteso]}, e' ${ruolo ? ROLE_LABEL[ruolo] : 'di un colore fuori convenzione'}`,
+        tr('grade.25', { p0: cell.target.ref, p1: ROLE_LABEL[atteso], p2: ruolo ? ROLE_LABEL[ruolo] : tr('grade.24') }),
       );
     }
 
@@ -423,17 +425,17 @@ function runCheck(
       const cmp = opts.formatComparator ?? formatsEquivalent;
       return [check.expected, ...(check.accept ?? [])].some((f) => cmp(actual, f))
         ? ok()
-        : ko(MESSAGES.numberFormat, `${cell.target.ref} ha "${actual}", atteso "${check.expected}"`);
+        : ko(MESSAGES.numberFormat, tr('grade.26', { p0: cell.target.ref, actual, p2: check.expected }));
     }
   }
 }
 
 const ROLE_LABEL: Record<string, string> = {
-  input: 'blu (input battuto a mano)',
-  formula: 'nero (formula)',
-  crossSheet: 'verde (link a un altro foglio)',
-  external: 'rosso (link esterno)',
-  locked: 'grigio (cella bloccata)',
+  input: tr('grade.27'),
+  formula: tr('grade.28'),
+  crossSheet: tr('grade.29'),
+  external: tr('grade.30'),
+  locked: tr('grade.31'),
 };
 
 function expectedColorRole(cell: CellUnderTest): 'input' | 'formula' | 'crossSheet' {
@@ -463,7 +465,7 @@ function checkConsistentRow(
   const sheetName = bang >= 0 ? unquote(rangeSpec.slice(0, bang)) : contextSheet;
   const rangePart = bang >= 0 ? rangeSpec.slice(bang + 1) : rangeSpec;
   const area = a1ToRange(rangePart);
-  if (!area) return ko(MESSAGES.consistentRow, `range "${rangeSpec}" non valido nel template`);
+  if (!area) return ko(MESSAGES.consistentRow, tr('grade.32', { rangeSpec }));
 
   const sheetId = wb.sheetId(sheetName);
   const celle = cellsOf(area);
@@ -491,19 +493,19 @@ function checkConsistentRow(
     if (!formulasEquivalent(atteso, f)) divergenti.push(coordToA1(coord));
   }
 
-  if (!base) return ko(MESSAGES.consistentRow, `nessuna formula in ${rangeSpec}`);
+  if (!base) return ko(MESSAGES.consistentRow, tr('grade.33', { rangeSpec }));
   if (vuote.length > 0) {
     // Un range lasciato a meta' non e' coerente: la formula deve coprirlo tutto.
-    return ko(MESSAGES.consistentRow, `celle ancora vuote: ${vuote.join(', ')}`);
+    return ko(MESSAGES.consistentRow, tr('grade.34', { p0: vuote.join(', ') }));
   }
   if (senzaFormula.length > 0) {
     return ko(
       MESSAGES.consistentRow,
-      `hardcode in mezzo alla riga: ${senzaFormula.join(', ')}`,
+      tr('grade.35', { p0: senzaFormula.join(', ') }),
     );
   }
   if (divergenti.length > 0) {
-    return ko(MESSAGES.consistentRow, `formula diversa in: ${divergenti.join(', ')}`);
+    return ko(MESSAGES.consistentRow, tr('grade.36', { p0: divergenti.join(', ') }));
   }
   return ok();
 }
@@ -520,13 +522,13 @@ function fmt(n: number): string {
   if (!Number.isFinite(n)) return String(n);
   const abs = Math.abs(n);
   const dec = abs >= 100 ? 0 : abs >= 1 ? 2 : 4;
-  return n.toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: dec });
+  return n.toLocaleString(displayLocale(), { minimumFractionDigits: 0, maximumFractionDigits: dec });
 }
 
 function describe(v: unknown): string {
   if (v === null || v === undefined) return 'niente';
   if (isCellError(v)) return String(v.value);
-  if (typeof v === 'string') return `il testo "${v}"`;
+  if (typeof v === 'string') return tr('grade.37', { v });
   if (typeof v === 'boolean') return String(v);
   if (typeof v === 'number') return fmt(v);
   return String(v);

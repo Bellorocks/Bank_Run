@@ -8,6 +8,7 @@ import { TitleScreen } from './ui/TitleScreen';
 import { PALETTE } from './styles/palette';
 import { SpriteDebug } from './ui/sprites/SpriteDebug';
 
+import { tr } from './i18n/ui';
 // Il livello porta con se' il motore di calcolo (HyperFormula), il pezzo piu'
 // pesante del bundle: si scarica quando si entra nel primo livello, non prima.
 const PlayScreen = lazy(() => import('./game/PlayScreen').then((m) => ({ default: m.PlayScreen })));
@@ -53,7 +54,7 @@ export default function App() {
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: PALETTE.bianco }}>
         <div style={barraStyle}>
           <span className="dd-titolo" style={{ fontSize: 19, color: PALETTE.bianco, textShadow: `2px 2px 0 ${PALETTE.inchiostro}` }}>
-            DEAL DESK
+            {tr('App.1')}
           </span>
 
           <span style={{ flex: 1 }} />
@@ -72,12 +73,12 @@ export default function App() {
               boxShadow: `2px 2px 0 ${PALETTE.rubino}`,
             }}
           >
-            ◀ TORNA ALLA MAPPA
+            {tr('App.2')}
           </button>
         </div>
 
         <div style={{ flex: 1, minHeight: 0 }}>
-          <Suspense fallback={<div style={caricamentoStyle}>Caricamento del livello...</div>}>
+          <Suspense fallback={<div style={caricamentoStyle}>{tr('App.3')}</div>}>
           <PlayScreen
             key={`${scelta.id}:${scelta.seed}:${scelta.run}`}
             templateId={scelta.id}

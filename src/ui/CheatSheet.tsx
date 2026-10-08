@@ -11,6 +11,7 @@ import { CHEAT_SHEET, searchCheatSheet, type CheatSheetRow } from '../keymap/che
 import { UI } from '../styles/palette';
 import { Badge } from './primitives';
 
+import { tr } from '../i18n/ui';
 export interface CheatSheetProps {
   readonly open: boolean;
   readonly onClose: () => void;
@@ -39,7 +40,7 @@ export function CheatSheet({ open, onClose }: CheatSheetProps) {
       <div className="dd-crt" style={pannelloStyle}>
         <header style={intestazioneStyle}>
           <span className="dd-titolo" style={{ fontSize: 19, color: UI.accento }}>
-            Scorciatoie
+            {tr('CheatSheet.1')}
           </span>
           <input
             autoFocus
@@ -49,24 +50,24 @@ export function CheatSheet({ open, onClose }: CheatSheetProps) {
               e.stopPropagation();
               if (e.key === 'Escape') onClose();
             }}
-            placeholder="Cerca un comando o un tasto…"
+            placeholder={tr('CheatSheet.2')}
             spellCheck={false}
             style={ricercaStyle}
           />
-          <button type="button" onClick={onClose} style={chiudiStyle} title="Chiudi (Esc)">
+          <button type="button" onClick={onClose} style={chiudiStyle} title={tr('CheatSheet.3')}>
             ✕
           </button>
         </header>
 
         <div style={corpoStyle}>
           {risultati ? (
-            <Sezione titolo={`Risultati per "${query}"`} rows={risultati} />
+            <Sezione titolo={tr('CheatSheet.4', { query })} rows={risultati} />
           ) : (
             CHEAT_SHEET.map((s) => <Sezione key={s.category} titolo={s.title} rows={s.rows} />)
           )}
           {risultati && risultati.length === 0 && (
             <p style={{ color: UI.testoTenue, fontFamily: 'var(--font-testo)', fontSize: 16 }}>
-              Nessuna scorciatoia trovata.
+              {tr('CheatSheet.5')}
             </p>
           )}
         </div>
@@ -76,7 +77,7 @@ export function CheatSheet({ open, onClose }: CheatSheetProps) {
             −5% XP
           </Badge>
           <span style={{ color: UI.testoTenue, fontFamily: 'var(--font-testo)', fontSize: 15 }}>
-            Tenerlo aperto costa. Impara le mosse, poi chiudilo.
+            {tr('CheatSheet.6')}
           </span>
         </footer>
       </div>

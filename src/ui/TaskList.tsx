@@ -16,6 +16,7 @@ import type { GradeReport, TaskResult } from '../grader/grade';
 import type { Hint, Task } from '../content/types';
 import { Markdown } from './Brief';
 
+import { tr } from '../i18n/ui';
 export interface TaskListProps {
   readonly tasks: readonly Task[];
   readonly report: GradeReport | null;
@@ -95,7 +96,7 @@ export function TaskList({ tasks, report, attempt, onHint, revealedHints = [], h
                     ))}
                   {attempt < 2 && (
                     <p style={{ ...TESTO_LUNGO, margin: 0, color: PALETTE.petrolio, fontStyle: 'italic' }}>
-                      Trovalo da solo. Al prossimo tentativo ti dico anche dove.
+                      {tr('TaskList.1')}
                     </p>
                   )}
                 </div>
@@ -109,7 +110,7 @@ export function TaskList({ tasks, report, attempt, onHint, revealedHints = [], h
 
               {onHint && esito?.passed !== true && (hintsLeft?.has(task.id) ?? true) && (
                 <button type="button" onClick={() => onHint(task.id)} style={hintStyle}>
-                  Suggerimento (F1) · costa XP
+                  {tr('TaskList.2')}
                 </button>
               )}
             </li>

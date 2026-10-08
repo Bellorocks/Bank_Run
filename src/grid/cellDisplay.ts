@@ -10,6 +10,7 @@ import { formatNumber, type FormattedCell } from '../engine/numberFormat';
 import { MODEL_COLORS } from '../styles/palette';
 import type { CellStyle } from '../engine/types';
 
+import { displayLocale } from '../i18n/language';
 export interface CellDisplay extends FormattedCell {
   /** Vero se il contenuto e' un errore Excel: va mostrato in rosso, mai troncato. */
   readonly isError: boolean;
@@ -57,7 +58,7 @@ export function displayCell(input: DisplayInput): CellDisplay {
   }
 
   const formato = style.numFmt ?? 'General';
-  const base = formatNumber(value as number | string | boolean | null, formato);
+  const base = formatNumber(value as number | string | boolean | null, formato, { locale: displayLocale() });
 
   const colore = base.color ?? style.fontColor;
   const align = style.halign && style.halign !== 'general' ? style.halign : base.align;

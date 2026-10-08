@@ -17,6 +17,7 @@ import type { GradeReport } from '../grader/grade';
 import type { RunMetrics, XpResult } from '../input/metrics';
 import type { ParScore } from '../content/types';
 
+import { tr } from '../i18n/ui';
 export interface RisultatoProps {
   readonly report: GradeReport;
   readonly metrics: RunMetrics;
@@ -52,7 +53,7 @@ export function Risultato(props: RisultatoProps) {
           className="dd-titolo"
           style={{ fontSize: 30, color: superato ? UI.successo : UI.errore, textAlign: 'center', margin: 0 }}
         >
-          {superato ? 'DEAL CLOSED' : 'DEAL BROKEN'}
+          {superato ? tr('Risultato.1') : tr('Risultato.2')}
         </h1>
 
         <Pannello titolo="Punteggio Missione" variante="pergamena">
@@ -64,12 +65,12 @@ export function Risultato(props: RisultatoProps) {
               nota={formatScarto(metrics.durationMs, par.seconds)}
               notaColore={metrics.durationMs <= par.seconds * 1000 ? PALETTE.smeraldo : PALETTE.corallo}
             />
-            <Metrica etichetta="Tasti" valore={`${formatIntero(metrics.keystrokes)}`} nota={`efficienza ${(metrics.keystrokeEfficiency * 100).toFixed(0)}%`} />
-            <Metrica etichetta="Mouse" valore={formatIntero(metrics.mouseClicks)} nota={metrics.mouseBlocked > 0 ? `${metrics.mouseBlocked} bloccati` : undefined} />
+            <Metrica etichetta="Tasti" valore={`${formatIntero(metrics.keystrokes)}`} nota={tr('Risultato.3', { p0: (metrics.keystrokeEfficiency * 100).toFixed(0) })} />
+            <Metrica etichetta="Mouse" valore={formatIntero(metrics.mouseClicks)} nota={metrics.mouseBlocked > 0 ? tr('Risultato.4', { p0: metrics.mouseBlocked }) : undefined} />
           </div>
         </Pannello>
 
-        <Pannello titolo={`Bottino & Esperienza: +${formatIntero(xp.total)} XP`} variante="pergamena">
+        <Pannello titolo={tr('Risultato.5', { p0: formatIntero(xp.total) })} variante="pergamena">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
             {xp.breakdown.map((v) => (
               <div key={v.label} style={vociXpStyle}>
@@ -89,7 +90,7 @@ export function Risultato(props: RisultatoProps) {
           />
           {xpTotaleDopo !== xpTotalePrima && (
             <p style={{ color: PALETTE.ardesia, fontSize: 16, marginTop: 6 }}>
-              {formatIntero(xpTotalePrima)} → {formatIntero(xpTotaleDopo)} XP totali
+              {formatIntero(xpTotalePrima)} → {formatIntero(xpTotaleDopo)}{' '}{tr('Risultato.6')}
             </p>
           )}
         </Pannello>
@@ -112,17 +113,17 @@ export function Risultato(props: RisultatoProps) {
 
         <div style={pulsantiStyle}>
           <Pulsante variante="secondario" onClick={onRiprovaStessoSeed} scorciatoia="R">
-            Riprova stesso seed
+            {tr('Risultato.7')}
           </Pulsante>
           <Pulsante variante="primario" onClick={onNuovoSeed} scorciatoia="N">
-            Nuovo seed
+            {tr('Risultato.8')}
           </Pulsante>
           <Pulsante variante="secondario" onClick={onEsportaXlsx}>
-            Esporta in Excel
+            {tr('Risultato.9')}
           </Pulsante>
           {onEsci && (
             <Pulsante variante="fantasma" onClick={onEsci}>
-              Ai livelli
+              {tr('Risultato.10')}
             </Pulsante>
           )}
         </div>

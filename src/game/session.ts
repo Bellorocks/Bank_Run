@@ -78,6 +78,7 @@ import { MODEL_COLORS } from '../styles/palette';
 import { applyPercentEntry, normalizeTypedInput, type NumberLocale } from '../engine/typedInput';
 import { numberLocale } from '../i18n/language';
 
+import { tr } from '../i18n/ui';
 export interface SessionOptions {
   /** Mouse-free: i click sulla griglia vengono ignorati e contati (§3.3). */
   readonly mouseFree?: boolean;
@@ -305,7 +306,7 @@ export class GridSession {
       }
       if (res.state === 'invalid') {
         this.altActive = false;
-        this.say('Sequenza sconosciuta.');
+        this.say(tr('session.1'));
       } else if (res.state === 'idle') {
         this.altActive = false;
       }
@@ -427,7 +428,7 @@ export class GridSession {
 
       case 'nav.toggleExtendMode':
         this.selection = { ...this.selection, extendMode: !this.selection.extendMode };
-        this.say(this.selection.extendMode ? 'Estendi selezione' : '');
+        this.say(this.selection.extendMode ? tr('session.2') : '');
         return false;
 
       case 'edit.selectAll':
@@ -504,12 +505,12 @@ export class GridSession {
       case 'clipboard.pasteMultiply': return this.paste({ ...DEFAULT_PASTE_OPTIONS, operation: 'multiply' }), true;
       case 'clipboard.pasteSpecialDialog':
         if (!this.clipboard) {
-          this.say('Appunti vuoti.');
+          this.say(tr('session.3'));
           return false;
         }
         this.pasteSpecialOpen = true;
         this.pasteOptions = { ...DEFAULT_PASTE_OPTIONS };
-        this.say('Incolla speciale: V valori · F formule · T formati · E trasponi · Invio conferma');
+        this.say(tr('session.4'));
         return false;
       case 'clipboard.clearMarquee':
         // Esc da Pronto in Excel smonta tre cose insieme: il bordo tratteggiato
@@ -562,11 +563,11 @@ export class GridSession {
         return false;
       case 'ui.toggleMouseFree':
         if (this.mouseFreeLocked) {
-          this.say('Speed Run: il mouse resta disabilitato per tutto il livello.');
+          this.say(tr('session.5'));
           return false;
         }
         this.mouseFree = !this.mouseFree;
-        this.say(this.mouseFree ? 'Mouse disabilitato' : 'Mouse abilitato');
+        this.say(this.mouseFree ? tr('session.6') : tr('session.7'));
         return false;
       case 'altMenu.open':
         this.altActive = true;
@@ -582,7 +583,7 @@ export class GridSession {
         // Comando riconosciuto dalla keymap ma non ancora eseguibile: lo si dice,
         // invece di ingoiarlo. Un tasto che "non fa niente" senza spiegazione e'
         // peggio di un tasto non associato.
-        this.say(`"${command}" non e' ancora implementato.`);
+        this.say(tr('session.8', { command }));
         return false;
     }
   }
@@ -655,7 +656,7 @@ export class GridSession {
         : this.workbook.dependents(this.sheet, this.activeCell);
     const stesso = rel.filter((r) => r.sheet === this.sheet);
     if (stesso.length === 0) {
-      this.say(kind === 'precedents' ? 'Nessun precedente.' : 'Nessun dipendente.');
+      this.say(kind === 'precedents' ? tr('session.9') : tr('session.10'));
       return;
     }
     let sel = moveTo(
@@ -675,7 +676,7 @@ export class GridSession {
 
   private lockedHere(): boolean {
     if (!this.workbook.isLocked(this.sheet, this.activeCell)) return false;
-    this.say(`${coordToA1(this.activeCell)} e' bloccata in questo livello.`);
+    this.say(tr('session.11', { p0: coordToA1(this.activeCell) }));
     return true;
   }
 
@@ -818,7 +819,7 @@ export class GridSession {
         }
       }
       if (bloccate > 0) {
-        this.say(`${bloccate} cell${bloccate === 1 ? 'a bloccata' : 'e bloccate'}: non ${bloccate === 1 ? 'e\' stata svuotata' : 'sono state svuotate'}.`);
+        this.say(tr('session.14', { bloccate, p1: bloccate === 1 ? 'a bloccata' : 'e bloccate', p2: bloccate === 1 ? tr('session.12') : tr('session.13') }));
       }
     });
   }
@@ -840,7 +841,7 @@ export class GridSession {
 
   private repeatLast(): void {
     if (!this.lastAction) {
-      this.say('Niente da ripetere.');
+      this.say(tr('session.15'));
       return;
     }
     this.applyCommand(this.lastAction.command);
@@ -855,7 +856,7 @@ export class GridSession {
     }
     const frammento = selectFragment(this.edit.text, this.edit.selectionStart, this.edit.selectionEnd);
     if (!frammento) {
-      this.say('Seleziona una sotto-espressione completa.');
+      this.say(tr('session.16'));
       return;
     }
     const valore = this.workbook.evaluateFragment(this.sheet, frammento.expression);
@@ -885,7 +886,7 @@ export class GridSession {
         }
       }
     });
-    this.say(dir === 'down' ? 'Riempito in basso' : 'Riempito a destra');
+    this.say(dir === 'down' ? tr('session.17') : tr('session.18'));
   }
 
   private copyCellInto(from: CellCoord, to: CellCoord): void {
@@ -906,7 +907,7 @@ export class GridSession {
     const origine = this.edit.cell ?? this.activeCell;
     if (this.edit.mode !== 'ready') this.edit = READY_EDIT_STATE;
 
-    this.workbook.batch('compila selezione', () => {
+    this.workbook.batch(tr('session.19'), () => {
       for (const area of this.selection.areas) {
         const r = normalizeRange(area.range);
         for (let row = r.top; row <= r.bottom; row++) {
@@ -915,7 +916,7 @@ export class GridSession {
             const contenuto: CellRaw = testo.startsWith('=')
               ? shiftFormula(testo, row - origine.row, col - origine.col)
               : (testo as CellRaw);
-            this.workbook.setContents(this.sheet, { row, col }, contenuto === '' ? null : contenuto, 'compila selezione');
+            this.workbook.setContents(this.sheet, { row, col }, contenuto === '' ? null : contenuto, tr('session.20'));
           }
         }
       }
@@ -929,7 +930,7 @@ export class GridSession {
     const contenuto = asFormula
       ? (this.workbook.getFormula(this.sheet, sopra) ?? this.workbook.getRaw(this.sheet, sopra))
       : (this.workbook.getValue(this.sheet, sopra) as CellRaw);
-    this.workbook.setContents(this.sheet, this.activeCell, contenuto ?? null, 'copia da sopra');
+    this.workbook.setContents(this.sheet, this.activeCell, contenuto ?? null, tr('session.21'));
   }
 
   // -------------------------------------------------------------------------
@@ -955,7 +956,7 @@ export class GridSession {
 
   private paste(opts: PasteOptions): void {
     if (!this.clipboard) {
-      this.say('Appunti vuoti.');
+      this.say(tr('session.22'));
       return;
     }
     const bersaglio = normalizeRange(this.activeArea());
@@ -1027,7 +1028,7 @@ export class GridSession {
       ...(res.transpose ? { transpose: !prima.transpose } : {}),
       ...(res.skipBlanks ? { skipBlanks: !prima.skipBlanks } : {}),
     };
-    this.say(`Incolla speciale: ${describePasteOptions(this.pasteOptions)} · Invio conferma, Esc annulla`);
+    this.say(tr('session.23', { p0: describePasteOptions(this.pasteOptions) }));
     this.emit();
     return true;
   }
@@ -1052,7 +1053,7 @@ export class GridSession {
   private insertRowsOrCols(): void {
     const sel = this.wholeAxis();
     if (!sel) {
-      this.say('Seleziona prima righe intere (Maiusc+Spazio) o colonne intere (Ctrl+Spazio).');
+      this.say(tr('session.24'));
       return;
     }
     const { area, axis } = sel;
@@ -1063,7 +1064,7 @@ export class GridSession {
   private deleteRowsOrCols(): void {
     const sel = this.wholeAxis();
     if (!sel) {
-      this.say('Seleziona prima righe intere (Maiusc+Spazio) o colonne intere (Ctrl+Spazio).');
+      this.say(tr('session.25'));
       return;
     }
     const { area, axis } = sel;
@@ -1088,11 +1089,11 @@ export class GridSession {
     if (layout.frozenRows > 0 || layout.frozenCols > 0) {
       layout.frozenRows = 0;
       layout.frozenCols = 0;
-      this.say('Riquadri sbloccati');
+      this.say(tr('session.26'));
     } else {
       layout.frozenRows = this.activeCell.row;
       layout.frozenCols = this.activeCell.col;
-      this.say('Riquadri bloccati');
+      this.say(tr('session.27'));
     }
   }
 
@@ -1178,8 +1179,8 @@ const PASTE_MODE_LABEL: Record<PasteOptions['mode'], string> = {
   values: 'valori',
   formats: 'formati',
   comments: 'commenti',
-  valuesAndNumberFormats: 'valori e formati numeri',
-  columnWidths: 'larghezza colonne',
+  valuesAndNumberFormats: tr('session.28'),
+  columnWidths: tr('session.29'),
 };
 
 const PASTE_OP_LABEL: Record<PasteOptions['operation'], string> = {
@@ -1195,7 +1196,7 @@ function describePasteOptions(o: PasteOptions): string {
     PASTE_MODE_LABEL[o.mode],
     PASTE_OP_LABEL[o.operation],
     o.transpose ? 'trasponi' : '',
-    o.skipBlanks ? 'salta celle vuote' : '',
+    o.skipBlanks ? tr('session.30') : '',
   ]
     .filter(Boolean)
     .join(' + ');

@@ -949,7 +949,10 @@ export function formatNumber(
   if (value === null) return { text: '', align: 'left' };
 
   // I booleani ignorano il formato numerico e stanno al centro, come in Excel.
-  if (typeof value === 'boolean') return { text: value ? 'VERO' : 'FALSO', align: 'center' };
+  if (typeof value === 'boolean') {
+    const [vero, falso] = opts?.locale === 'en-US' ? ['TRUE', 'FALSE'] : ['VERO', 'FALSO'];
+    return { text: value ? vero : falso, align: 'center' };
+  }
 
   const effective = format.trim() === '' ? 'General' : format;
   const parsed = parseNumberFormat(effective);

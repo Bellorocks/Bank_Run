@@ -10,6 +10,7 @@ import type { CSSProperties } from 'react';
 import { Pulsante, Badge, formatDurata, formatIntero } from './primitives';
 import { UI, PALETTE } from '../styles/palette';
 
+import { tr } from '../i18n/ui';
 export interface HudProps {
   readonly durataMs: number;
   readonly parSecondi: number;
@@ -59,13 +60,13 @@ export function Hud(props: HudProps) {
       {/* Il contatore compare solo quando c'e' qualcosa da dire: un "MOUSE: 0"
           permanente diventa invisibile dopo due sere. */}
       {mouseFree && mouseBloccati > 0 && (
-        <Badge colore={UI.errore} pieno title="Click ignorati: in questo livello il mouse e' disabilitato">
-          MOUSE: {mouseBloccati}
+        <Badge colore={UI.errore} pieno title={tr('Hud.1')}>
+          {tr('Hud.2')}{' '}{mouseBloccati}
         </Badge>
       )}
 
       {altPath !== undefined && altPath !== '' && (
-        <Badge colore={UI.accento} pieno title="Sequenza Alt in corso">
+        <Badge colore={UI.accento} pieno title={tr('Hud.3')}>
           {altPath}
         </Badge>
       )}
@@ -78,19 +79,19 @@ export function Hud(props: HudProps) {
         )}
       </div>
 
-      <Pulsante variante="fantasma" onClick={onCheatSheet} title="Scorciatoie (?) — aprirlo costa XP">
+      <Pulsante variante="fantasma" onClick={onCheatSheet} title={tr('Hud.4')}>
         ?
       </Pulsante>
       <Pulsante
         variante={mouseFree ? 'pericolo' : 'secondario'}
         onClick={onMouseFree}
         disabled={mouseFreeLocked}
-        title={mouseFreeLocked ? "Speed Run: mouse disabilitato per tutto il livello" : "Modalita' senza mouse"}
+        title={mouseFreeLocked ? tr('Hud.7') : tr('Hud.8')}
       >
-        {mouseFreeLocked ? 'MOUSE OFF (SPEED RUN)' : mouseFree ? 'MOUSE OFF' : 'MOUSE ON'}
+        {mouseFreeLocked ? tr('Hud.9') : mouseFree ? tr('Hud.10') : tr('Hud.11')}
       </Pulsante>
       <Pulsante variante="primario" onClick={onVerifica}>
-        Verifica
+        {tr('Hud.12')}
       </Pulsante>
     </div>
   );
