@@ -282,8 +282,12 @@ function runCheck(
         : ko(MESSAGES.boolean, `${cell.target.ref} = ${describe(cell.value)}, atteso ${check.expected}`);
 
     case 'noError': {
-      const err = errorText(cell.value);
-      return err ? ko(`${MESSAGES.noError} ${err}.`, `${cell.target.ref} = ${err}`) : ok();
+      // Su un bersaglio a range l'errore puo' nascondersi in qualunque cella, non solo nella prima.
+      for (const coord of cellsOf(cell.target.area)) {
+        const err = errorText(wb.getValue(cell.target.sheetId, coord));
+        if (err) return ko(`${MESSAGES.noError} ${err}.`, `${coordToA1(coord)} = ${err}`);
+      }
+      return ok();
     }
 
     // ------------------------------------------------------------ strutturale
@@ -454,8 +458,12 @@ function checkConsistentRow(
   const senzaFormula: string[] = [];
   const divergenti: string[] = [];
 
+  const vuote: string[] = [];
   for (const coord of celle) {
-    if (wb.isEmpty(sheetId, coord)) continue;
+    if (wb.isEmpty(sheetId, coord)) {
+      vuote.push(coordToA1(coord));
+      continue;
+    }
     const f = wb.getFormula(sheetId, coord);
     if (f === undefined) {
       senzaFormula.push(coordToA1(coord));
@@ -470,6 +478,10 @@ function checkConsistentRow(
   }
 
   if (!base) return ko(MESSAGES.consistentRow, `nessuna formula in ${rangeSpec}`);
+  if (vuote.length > 0) {
+    // Un range lasciato a meta' non e' coerente: la formula deve coprirlo tutto.
+    return ko(MESSAGES.consistentRow, `celle ancora vuote: ${vuote.join(', ')}`);
+  }
   if (senzaFormula.length > 0) {
     return ko(
       MESSAGES.consistentRow,

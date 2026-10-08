@@ -46,6 +46,17 @@ import {
   solveIterative,
   type IterativeConfig,
 } from './iterative';
+import {
+  addBooleanNames,
+  fromEngineFormula,
+  registerEngineExtensions,
+  toEngineFormula,
+} from './engineExtensions';
+
+/** Le stringhe che iniziano con = passano per la traduzione verso il motore. */
+function toEngineRaw<T>(raw: T): T {
+  return (typeof raw === 'string' ? toEngineFormula(raw) : raw) as T;
+}
 
 /**
  * Configurazione del motore. `maxRows`/`maxColumns` sono i limiti veri di Excel
@@ -117,9 +128,14 @@ export class Workbook {
   }
 
   static create(sheets: readonly SheetInit[]): Workbook {
+    registerEngineExtensions();
     const payload: Record<string, RawCellContent[][]> = {};
-    for (const s of sheets) payload[s.name] = s.data ? s.data.map((r) => [...r]) : [[]];
-    return new Workbook(HyperFormula.buildFromSheets(payload, HF_CONFIG));
+    for (const s of sheets) payload[s.name] = s.data ? s.data.map((r) => r.map(toEngineRaw)) : [[]];
+    const hf = HyperFormula.buildFromSheets(payload, HF_CONFIG);
+    addBooleanNames(hf);
+    hf.clearUndoStack();
+    hf.clearRedoStack();
+    return new Workbook(hf);
   }
 
   static empty(sheetName = 'Foglio1'): Workbook {
@@ -180,14 +196,16 @@ export class Workbook {
 
   /** Testo della formula CON il segno `=`, oppure `undefined` se la cella non e' una formula. */
   getFormula(sheet: number, c: CellCoord): string | undefined {
-    return this.hf.getCellFormula({ sheet, row: c.row, col: c.col });
+    const f = this.hf.getCellFormula({ sheet, row: c.row, col: c.col });
+    return f === undefined ? undefined : fromEngineFormula(f);
   }
 
   /** Contenuto grezzo cosi' come l'utente lo ha digitato: e' cio' che va in edit mode. */
   getRaw(sheet: number, c: CellCoord): CellRaw {
     const v = this.hf.getCellSerialized({ sheet, row: c.row, col: c.col });
     if (v === null || v === undefined) return null;
-    if (typeof v === 'number' || typeof v === 'string' || typeof v === 'boolean') return v;
+    if (typeof v === 'string') return fromEngineFormula(v);
+    if (typeof v === 'number' || typeof v === 'boolean') return v;
     return String(v);
   }
 
@@ -204,6 +222,11 @@ export class Workbook {
       if (solved !== undefined) return solved;
     }
     return this.hf.getCellValue({ sheet, row: c.row, col: c.col });
+  }
+
+  /** Sintassi accettata dal motore (non dice nulla sul risultato: #NAME? e' sintatticamente valido). */
+  isValidFormula(text: string): boolean {
+    return this.hf.validateFormula(toEngineFormula(text));
   }
 
   isFormula(sheet: number, c: CellCoord): boolean {
@@ -266,7 +289,7 @@ export class Workbook {
 
   setContents(sheet: number, c: CellCoord, raw: CellRaw, label = 'digitazione'): ChangeSummary {
     return this.transaction(label, () => {
-      const changes = this.hf.setCellContents({ sheet, row: c.row, col: c.col }, raw);
+      const changes = this.hf.setCellContents({ sheet, row: c.row, col: c.col }, toEngineRaw(raw));
       this.record({ kind: 'hf' });
       return this.summarize(changes);
     });
@@ -280,7 +303,7 @@ export class Workbook {
     label = 'incolla',
   ): ChangeSummary {
     return this.transaction(label, () => {
-      const payload = block.map((r) => [...r]) as RawCellContent[][];
+      const payload = block.map((r) => r.map(toEngineRaw)) as RawCellContent[][];
       const changes = this.hf.setCellContents({ sheet, row: topLeft.row, col: topLeft.col }, payload);
       this.record({ kind: 'hf' });
       return this.summarize(changes);

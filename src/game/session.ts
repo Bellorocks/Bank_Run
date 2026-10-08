@@ -75,6 +75,8 @@ import { createAltMachine, EXCEL_ALT_TREE, type AltMachine } from '../keymap/alt
 import type { Command } from '../keymap/commands';
 import { InputRecorder } from '../input/InputRecorder';
 import { MODEL_COLORS } from '../styles/palette';
+import { normalizeTypedInput, type NumberLocale } from '../engine/typedInput';
+import { numberLocale } from '../i18n/language';
 
 export interface SessionOptions {
   /** Mouse-free: i click sulla griglia vengono ignorati e contati (§3.3). */
@@ -98,6 +100,11 @@ export interface SessionOptions {
    * calcolo non deve sapere che esiste un punteggio.
    */
   readonly onGameCommand?: (command: Command) => boolean;
+  /**
+   * Convenzione numerica con cui interpretare cio' che si digita (decimale con
+   * virgola o punto). Default: quella della lingua dell'interfaccia.
+   */
+  readonly inputLocale?: () => NumberLocale;
 }
 
 export interface SessionSnapshot {
@@ -148,6 +155,7 @@ export class GridSession {
   private lastAction: { command: Command } | null = null;
 
   private readonly onGameCommand?: (command: Command) => boolean;
+  private readonly inputLocale: () => NumberLocale;
 
   private listeners = new Set<Listener>();
 
@@ -163,6 +171,7 @@ export class GridSession {
     this.visibleCols = opts.visibleCols ?? 12;
     this.recorder = opts.recorder ?? new InputRecorder();
     this.onGameCommand = opts.onGameCommand;
+    this.inputLocale = opts.inputLocale ?? (() => numberLocale());
   }
 
   // -------------------------------------------------------------------------
@@ -742,7 +751,11 @@ export class GridSession {
     const cell = this.edit.cell ?? this.activeCell;
     const text = this.edit.text;
     this.edit = READY_EDIT_STATE;
-    this.workbook.setContents(this.sheet, cell, text === '' ? null : (text as CellRaw), 'digitazione');
+    const raw =
+      text === ''
+        ? null
+        : normalizeTypedInput(text, this.inputLocale(), (f) => this.workbook.isValidFormula(f));
+    this.workbook.setContents(this.sheet, cell, raw as CellRaw, 'digitazione');
     if (move) this.enterAfterCommit(move);
   }
 

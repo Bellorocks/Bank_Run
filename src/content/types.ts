@@ -31,14 +31,16 @@ export type Rank = 1 | 2 | 3 | 4 | 5;
  *  - `absolute`: |a-b| <= tolerance
  *  - `hybrid`  : relativa, ma con un pavimento assoluto per gli `expected` vicini a zero.
  *
- * Il default e' `hybrid` con tolleranza 0,001 (0,1%) e pavimento 0,01: e' il
- * compromesso indicato in §14. I task di quadratura sovrascrivono con `absolute`
- * e tolleranza quasi nulla.
+ * Il default e' `hybrid` con tolleranza 0,001 (0,1%) e un pavimento assoluto
+ * minimo (1e-6), che serve solo per gli attesi pari a zero. Il pavimento era 0,01:
+ * su una percentuale (IRR, margine, WACC) voleva dire accettare qualunque risposta
+ * entro un punto percentuale, cioe' risposte finanziariamente sbagliate. I task di
+ * quadratura sovrascrivono con `absolute`.
  */
 export type ToleranceMode = 'relative' | 'absolute' | 'hybrid';
 
 export const DEFAULT_TOLERANCE = 0.001;
-export const DEFAULT_ABSOLUTE_FLOOR = 0.01;
+export const DEFAULT_ABSOLUTE_FLOOR = 1e-6;
 
 interface CheckBase {
   /**

@@ -94,10 +94,22 @@ describe('check numerico', () => {
     const wb = foglioBase();
     // Con atteso 0 la tolleranza relativa sarebbe 0: senza pavimento nessun
     // balance check passerebbe mai per un errore di virgola mobile.
-    scrivi(wb, B4, '=0.001');
+    scrivi(wb, B4, '=0.1+0.2-0.3');
     expect(gradeTask(wb, task('t', 'Model!B4', [{ kind: 'value', expected: 0 }])).passed).toBe(true);
+    // Ma il pavimento non e' piu' un punto percentuale: 0,001 su un atteso di 0 e' un errore vero.
+    scrivi(wb, B4, '=0.001');
+    expect(gradeTask(wb, task('t', 'Model!B4', [{ kind: 'value', expected: 0 }])).passed).toBe(false);
     scrivi(wb, B4, '=5');
     expect(gradeTask(wb, task('t', 'Model!B4', [{ kind: 'value', expected: 0 }])).passed).toBe(false);
+    wb.destroy();
+  });
+
+  it('una percentuale sbagliata di quasi un punto non passa piu\'', () => {
+    const wb = foglioBase();
+    scrivi(wb, B4, '=0.226');
+    expect(gradeTask(wb, task('t', 'Model!B4', [{ kind: 'value', expected: 0.234 }])).passed).toBe(false);
+    scrivi(wb, B4, '=0.2340001');
+    expect(gradeTask(wb, task('t', 'Model!B4', [{ kind: 'value', expected: 0.234 }])).passed).toBe(true);
     wb.destroy();
   });
 
