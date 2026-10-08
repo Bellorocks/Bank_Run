@@ -10,6 +10,8 @@
 import { a1ToCoord, colToLetters } from '../engine/address';
 import { Workbook, type SheetInit } from '../engine/workbook';
 import { DEFAULT_COL_WIDTH, DEFAULT_ROW_HEIGHT, WRAP_LINE_PX, type CellRaw } from '../engine/types';
+import { formatNumber } from '../engine/numberFormat';
+import { displayLocale } from '../i18n/language';
 import type { LevelInstance, SheetSpec } from '../content/types';
 
 export interface LoadedLevel {
@@ -44,6 +46,11 @@ export function loadInstance(instance: LevelInstance): LoadedLevel {
       }
     }
     for (const [col, px] of autoFitWidths(spec)) if (!layout.colWidths.has(col)) layout.colWidths.set(col, px);
+    // I numeri non si mandano a capo: se la cifra formattata non entra, Excel mostra
+    // ####. Qui la colonna si allarga quanto basta, anche oltre la larghezza del template.
+    for (const [col, px] of numberWidths(workbook, sheetId, spec)) {
+      if (px > (layout.colWidths.get(col) ?? DEFAULT_COL_WIDTH)) layout.colWidths.set(col, px);
+    }
     // Un testo che non entra nemmeno nella colonna adattata, con la cella a destra
     // piena, va a capo come "Testo a capo" di Excel e la riga si alza.
     for (const { coord, righe } of textToWrap(spec, (col) => layout.colWidths.get(col) ?? DEFAULT_COL_WIDTH)) {
@@ -90,6 +97,22 @@ function autoFitWidths(spec: SheetSpec): Map<number, number> {
     if (!piene.has(`${colToLetters(coord.col + 1)}${coord.row + 1}`)) continue;
     const px = Math.min(MAX_AUTO_WIDTH, Math.ceil(cell.content.length * CHAR_PX + 14));
     if (px > DEFAULT_COL_WIDTH && px > (out.get(coord.col) ?? 0)) out.set(coord.col, px);
+  }
+  return out;
+}
+
+/** Larghezza minima per colonna perche' ogni numero di partenza si legga per intero. */
+function numberWidths(workbook: Workbook, sheetId: number, spec: SheetSpec): Map<number, number> {
+  const out = new Map<number, number>();
+  for (const cell of spec.cells) {
+    const coord = a1ToCoord(cell.ref);
+    if (!coord) continue;
+    const v = workbook.getValue(sheetId, coord);
+    if (typeof v !== 'number' || !Number.isFinite(v)) continue;
+    const fmt = workbook.getStyle(sheetId, coord).numFmt ?? 'General';
+    const testo = formatNumber(v, fmt, { locale: displayLocale() }).text;
+    const px = Math.min(MAX_AUTO_WIDTH, Math.ceil(testo.length * CHAR_PX + 14));
+    if (px > (out.get(coord.col) ?? 0)) out.set(coord.col, px);
   }
   return out;
 }

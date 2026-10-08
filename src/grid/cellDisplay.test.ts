@@ -89,6 +89,17 @@ describe('####', () => {
     expect(displayCell({ ...base, value: 42, widthPx: 84 }).overflow).toBe(false);
   });
 
+  it('nel formato Generale si tolgono decimali prima di arrendersi, come in Excel', () => {
+    const d = displayCell({ ...base, value: 1.2345678912, widthPx: 60 });
+    expect(d.overflow).toBe(false);
+    expect(d.text).toMatch(/^1[.,]23\d*$/);
+    expect(d.text.length * 7.6).toBeLessThanOrEqual(54);
+  });
+
+  it('nel Generale i #### restano se non entra nemmeno la parte intera', () => {
+    expect(displayCell({ ...base, value: 123456789, widthPx: 40 }).overflow).toBe(true);
+  });
+
   it('non compare se la larghezza non e\' nota', () => {
     expect(displayCell({ ...base, value: 123456789012 }).overflow).toBe(false);
   });

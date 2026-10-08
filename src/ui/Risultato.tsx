@@ -217,6 +217,9 @@ const erroreRigaStyle: CSSProperties = {
 
 const pulsantiStyle: CSSProperties = {
   display: 'flex',
+  // Piu' larga della scheda: le quattro azioni stanno su una riga anche in italiano.
+  width: 'min(780px, calc(100vw - 32px))',
+  alignSelf: 'center',
   gap: 10,
   flexWrap: 'wrap',
   justifyContent: 'center',

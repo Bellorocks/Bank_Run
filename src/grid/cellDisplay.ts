@@ -63,12 +63,22 @@ export function displayCell(input: DisplayInput): CellDisplay {
   const colore = base.color ?? style.fontColor;
   const align = style.halign && style.halign !== 'general' ? style.halign : base.align;
 
+  const charPx = input.charPx ?? DEFAULT_CHAR_PX;
+  const entra = (t: string) => input.widthPx === undefined || t.length * charPx <= input.widthPx - 6;
+
+  // Formato Generale: come Excel, se la cifra non entra si tolgono decimali
+  // (arrotondando) prima di arrendersi ai ####. 1,2345678912 in una colonna
+  // stretta diventa 1,2346, non un muro di cancelletti.
+  if (typeof value === 'number' && formato.toLowerCase() === 'general' && !entra(base.text) && Number.isFinite(value)) {
+    for (let decimali = 9; decimali >= 0; decimali--) {
+      const arrotondato = formatNumber(Number(value.toFixed(decimali)), formato, { locale: displayLocale() }).text;
+      if (entra(arrotondato)) return { text: arrotondato, align, ...(colore !== undefined ? { color: colore } : {}), isError: false, overflow: false };
+    }
+  }
+
   // I #### valgono solo per i numeri: un testo troppo lungo in Excel deborda
   // sulla cella vicina se e' vuota, non viene mascherato.
-  const overflow =
-    typeof value === 'number' &&
-    input.widthPx !== undefined &&
-    base.text.length * (input.charPx ?? DEFAULT_CHAR_PX) > input.widthPx - 6;
+  const overflow = typeof value === 'number' && !entra(base.text);
 
   return {
     text: overflow ? '#'.repeat(Math.max(3, Math.floor((input.widthPx ?? 40) / (input.charPx ?? DEFAULT_CHAR_PX)))) : base.text,
