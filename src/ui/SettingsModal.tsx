@@ -9,6 +9,7 @@ import { isFreePlay, setFreePlay } from '../persistence/progress';
 
 import { tr } from '../i18n/ui';
 import { LanguageSwitch } from './LanguageSwitch';
+import { consenso, impostaConsenso, statisticheDisponibili, track } from '../analytics/analytics';
 export interface SettingsModalProps {
   readonly onClose: () => void;
 }
@@ -19,9 +20,18 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const [sfxVol, setSfxVol] = useState(Math.round(sound.getSfxVolume() * 100));
   const [freePlay, setFreePlayState] = useState(isFreePlay());
 
+  const [statistiche, setStatistiche] = useState(consenso() === 'si');
+  const handleToggleStatistiche = () => {
+    const on = !statistiche;
+    impostaConsenso(on);
+    setStatistiche(on);
+    sound.playSelect();
+  };
+
   const handleToggleFreePlay = () => {
     const on = !freePlay;
     setFreePlay(on);
+    track('free_play_toggle', { on });
     setFreePlayState(on);
     sound.playSelect();
   };
@@ -115,6 +125,18 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               {freePlay ? 'ON' : tr('SettingsModal.11')}
             </button>
           </div>
+
+          {statisticheDisponibili() && (
+            <div style={settingRowStyle}>
+              <div>
+                <div style={labelStyle}>{tr('Consenso.impostazione')}</div>
+                <div style={subLabelStyle}>{tr('Consenso.impostazioneNota')}</div>
+              </div>
+              <button type="button" onClick={handleToggleStatistiche} style={pillButtonStyle(statistiche)}>
+                {statistiche ? 'ON' : 'OFF'}
+              </button>
+            </div>
+          )}
 
           <div style={hintBoxStyle}>
             <div style={hintTitleStyle}>{tr('SettingsModal.12')}</div>

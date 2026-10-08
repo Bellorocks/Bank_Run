@@ -2,7 +2,10 @@
  * Shell dell'applicazione DEAL DESK.
  */
 
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { track } from './analytics/analytics';
+import { ConsentBanner } from './ui/ConsentBanner';
+import { TouchNotice } from './ui/TouchNotice';
 import { WorldMap } from './ui/WorldMap';
 import { TitleScreen } from './ui/TitleScreen';
 import { PALETTE } from './styles/palette';
@@ -44,6 +47,10 @@ function nuovoSeed(): number {
 export default function App() {
   const [screen, setScreen] = useState<ScreenMode>(screenDaUrl);
   const [scelta, setScelta] = useState<Scelta | null>(sceltaDaUrl);
+  const schermata = scelta ? 'level' : screen;
+  useEffect(() => {
+    track('screen_view', { screen: schermata });
+  }, [schermata]);
 
   if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('spritedebug')) {
     return <SpriteDebug />;
@@ -94,14 +101,23 @@ export default function App() {
   }
 
   if (screen === 'title') {
-    return <TitleScreen onStartGame={() => setScreen('map')} />;
+    return (
+      <>
+        <TitleScreen onStartGame={() => setScreen('map')} />
+        <TouchNotice />
+        <ConsentBanner />
+      </>
+    );
   }
 
   return (
-    <WorldMap
-      onSelectLevel={(templateId) => setScelta({ id: templateId, seed: nuovoSeed(), run: 0 })}
-      onBackToTitle={() => setScreen('title')}
-    />
+    <>
+      <WorldMap
+        onSelectLevel={(templateId) => setScelta({ id: templateId, seed: nuovoSeed(), run: 0 })}
+        onBackToTitle={() => setScreen('title')}
+      />
+      <ConsentBanner />
+    </>
   );
 }
 

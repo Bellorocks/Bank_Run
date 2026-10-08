@@ -61,6 +61,8 @@ export const EMPTY_STYLE: CellStyle = Object.freeze({});
 
 export const DEFAULT_COL_WIDTH = 84;
 export const DEFAULT_ROW_HEIGHT = 21;
+/** Interlinea del testo a capo nella griglia. */
+export const WRAP_LINE_PX = 16;
 export const HEADER_ROW_HEIGHT = 21;
 export const HEADER_COL_WIDTH = 46;
 

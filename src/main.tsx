@@ -4,6 +4,7 @@ import './styles/global.css';
 import { tr } from './i18n/ui';
 import { loadContent } from './i18n/content';
 import { getLanguage } from './i18n/language';
+import { avviaStatistiche } from './analytics/analytics';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('#root mancante in index.html');
@@ -16,6 +17,7 @@ if (!root) throw new Error('#root mancante in index.html');
 window.addEventListener('contextmenu', (e) => e.preventDefault());
 
 document.title = tr('app.documentTitle');
+avviaStatistiche();
 
 // I testi dei livelli arrivano prima dell'app: i template li leggono mentre generano.
 void Promise.all([loadContent(getLanguage()), import('./App')]).then(([, { default: App }]) => {

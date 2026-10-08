@@ -33,8 +33,8 @@
   --c-ardesia: #566c86;
   --c-grafite: #333c57;
 
-  --font-titolo: 'Jersey 25', 'Trebuchet MS', sans-serif;
-  --font-testo: 'DotGothic16', 'Trebuchet MS', sans-serif;
+  --font-titolo: 'Jersey 25', 'DotGothic16', 'Tiny5', 'Trebuchet MS', sans-serif;
+  --font-testo: 'DotGothic16', 'Tiny5', 'Trebuchet MS', sans-serif;
   --font-griglia: 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;
 
   --riga-h: 22px;

@@ -31,6 +31,7 @@ import { rankForXp, xpWithinRank, XP_PER_RANK } from '../persistence/progression
 import type { Command } from '../keymap/commands';
 
 import { tr } from '../i18n/ui';
+import { track } from '../analytics/analytics';
 export interface PlayScreenProps {
   readonly templateId: string;
   readonly seed: number;
@@ -51,6 +52,7 @@ export function PlayScreen({ templateId, seed, onRiprovaStessoSeed, onNuovoSeed,
 
   const [report, setReport] = useState<GradeReport | null>(null);
   const [tentativo, setTentativo] = useState(1);
+  const verificheRef = useRef(0);
   const [durataMs, setDurataMs] = useState(0);
   const [esito, setEsito] = useState<{ metrics: RunMetrics; xp: XpResult; xpTotalePrima: number; xpTotaleDopo: number } | null>(null);
   const [splitRatio, setSplitRatio] = useState(0.48);
@@ -61,10 +63,12 @@ export function PlayScreen({ templateId, seed, onRiprovaStessoSeed, onNuovoSeed,
   const registrataRef = useRef(false);
   /** Il livello era gia' stato superato in passato: le ripetizioni valgono meno XP. */
   const giaSuperatoRef = useRef(false);
+  const migliorTaskRef = useRef(0);
   useEffect(() => {
     let vivo = true;
     void loadProgress().then((p) => {
       if (vivo) giaSuperatoRef.current = p.levels[templateId] !== undefined;
+      if (vivo) track('level_start', { ...livelloInfo(templateId), seed, replay: giaSuperatoRef.current });
     });
     return () => {
       vivo = false;
@@ -144,6 +148,25 @@ export function PlayScreen({ templateId, seed, onRiprovaStessoSeed, onNuovoSeed,
     };
   }, [session]);
 
+  // Uscita senza averlo superato: e' qui che si vede dove i giocatori si arrendono.
+  useEffect(() => {
+    return () => {
+      if (registrataRef.current) return;
+      track('level_exit', {
+        ...livelloInfo(templateId),
+        seconds: Math.round(session.recorder.elapsedMs() / 1000),
+        checks: verificheRef.current,
+        best_tasks_correct: migliorTaskRef.current,
+        tasks_total: caricato.instance.tasks.length,
+      });
+    };
+  }, [session, templateId, caricato]);
+
+  const cheatSheetAperto = snap.cheatSheetOpen;
+  useEffect(() => {
+    if (cheatSheetAperto) track('cheatsheet_open', livelloInfo(templateId));
+  }, [cheatSheetAperto, templateId]);
+
   const verifica = useCallback((): void => {
     if (esito !== null) return; // livello gia' chiuso: Verifica non fa piu' nulla
     const wb = caricato.workbook;
@@ -159,6 +182,18 @@ export function PlayScreen({ templateId, seed, onRiprovaStessoSeed, onNuovoSeed,
     });
     reportRef.current = r;
     setReport(r);
+    migliorTaskRef.current = Math.max(migliorTaskRef.current, r.tasksCorrect);
+    verificheRef.current += 1;
+    track('level_check', {
+      ...livelloInfo(templateId),
+      attempt: tentativoCorrente,
+      passed: r.passed,
+      tasks_correct: r.tasksCorrect,
+      tasks_total: r.tasksTotal,
+      failed_tasks: r.tasks.filter((t) => !t.passed).map((t) => t.taskId),
+      failed_families: [...new Set(r.tasks.flatMap((t) => t.failedFamilies.map((f) => FAMIGLIA_EVENTO[f])))],
+      seconds: Math.round(session.recorder.elapsedMs() / 1000),
+    });
 
     if (!r.passed) {
       setTentativo((n) => n + 1);
@@ -221,6 +256,7 @@ export function PlayScreen({ templateId, seed, onRiprovaStessoSeed, onNuovoSeed,
         return;
       }
       session.recorder.record({ kind: 'hint', hintId: scelto.id });
+      track('hint_used', { ...livelloInfo(templateId), hint: scelto.id, task: scelto.taskId ?? null });
       setHintsRevealed((prev) => [...prev, scelto.id]);
     },
     [esito, tuttiGliHint, hintsRevealed, caricato, session],
@@ -262,11 +298,27 @@ export function PlayScreen({ templateId, seed, onRiprovaStessoSeed, onNuovoSeed,
       // eslint-disable-next-line no-console -- diagnostica di sviluppo, non un errore per l'utente
       console.warn('Salvataggio dei progressi non riuscito:', err);
     }
+    track('level_complete', {
+      ...livelloInfo(templateId),
+      attempts: tentativo,
+      seconds: Math.round(metrics.durationMs / 1000),
+      active_seconds: Math.round(metrics.activeMs / 1000),
+      par_seconds: caricato.instance.parScore.seconds,
+      under_par: metrics.durationMs <= caricato.instance.parScore.seconds * 1000,
+      keystrokes: metrics.keystrokes,
+      keystroke_efficiency: Math.round(metrics.keystrokeEfficiency * 100) / 100,
+      mouse_clicks: metrics.mouseClicks,
+      hints: hintsUsed,
+      cheatsheet_opens: metrics.cheatSheetOpens,
+      xp: xp.total,
+      replay: giaSuperatoRef.current,
+    });
     setEsito({ metrics, xp, xpTotalePrima, xpTotaleDopo });
   };
 
   const esportaXlsx = useCallback(async (): Promise<void> => {
     // SheetJS pesa: si carica solo quando qualcuno esporta davvero.
+    track('export_xlsx', livelloInfo(templateId));
     const { exportToXlsx } = await import('../export/toXlsx');
     const buf = exportToXlsx(workbookToExport(caricato.workbook, template?.title));
     const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -427,3 +479,12 @@ const colonnaDestraStyle: React.CSSProperties = {
 };
 
 export default PlayScreen;
+
+/** Nomi stabili (in inglese) delle famiglie di errore negli eventi delle statistiche. */
+const FAMIGLIA_EVENTO = { numerico: 'value', strutturale: 'structure', stilistico: 'style' } as const;
+
+/** Proprieta' comuni agli eventi di un livello. */
+function livelloInfo(templateId: string): { level: string; module: string; rank: number; mode: string } {
+  const t = getTemplate(templateId);
+  return { level: templateId, module: t?.module ?? '?', rank: t?.rank ?? 0, mode: t?.mode ?? '?' };
+}

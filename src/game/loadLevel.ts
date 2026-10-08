@@ -9,7 +9,7 @@
 
 import { a1ToCoord, colToLetters } from '../engine/address';
 import { Workbook, type SheetInit } from '../engine/workbook';
-import { DEFAULT_COL_WIDTH, type CellRaw } from '../engine/types';
+import { DEFAULT_COL_WIDTH, DEFAULT_ROW_HEIGHT, WRAP_LINE_PX, type CellRaw } from '../engine/types';
 import type { LevelInstance, SheetSpec } from '../content/types';
 
 export interface LoadedLevel {
@@ -44,6 +44,13 @@ export function loadInstance(instance: LevelInstance): LoadedLevel {
       }
     }
     for (const [col, px] of autoFitWidths(spec)) if (!layout.colWidths.has(col)) layout.colWidths.set(col, px);
+    // Un testo che non entra nemmeno nella colonna adattata, con la cella a destra
+    // piena, va a capo come "Testo a capo" di Excel e la riga si alza.
+    for (const { coord, righe } of textToWrap(spec, (col) => layout.colWidths.get(col) ?? DEFAULT_COL_WIDTH)) {
+      workbook.setStyle(sheetId, coord, { wrap: true }, 'setup');
+      const altezza = righe * WRAP_LINE_PX + 6;
+      if (altezza > (layout.rowHeights.get(coord.row) ?? DEFAULT_ROW_HEIGHT)) layout.rowHeights.set(coord.row, altezza);
+    }
     layout.frozenRows = spec.frozenRows ?? 0;
     layout.frozenCols = spec.frozenCols ?? 0;
   }
@@ -60,8 +67,10 @@ export function loadInstance(instance: LevelInstance): LoadedLevel {
 }
 
 // Larghezza stimata di un carattere nella griglia e tetto per una colonna adattata.
-const CHAR_PX = 7.6;
+const CHAR_PX = 7.8;
 const MAX_AUTO_WIDTH = 380;
+/** Oltre questo sbordo un testo va a capo invece di proseguire fuori schermo. */
+const MAX_SPILL_PX = 600;
 
 /**
  * Larghezze per le colonne che il template non fissa: abbastanza per le etichette
@@ -81,6 +90,41 @@ function autoFitWidths(spec: SheetSpec): Map<number, number> {
     if (!piene.has(`${colToLetters(coord.col + 1)}${coord.row + 1}`)) continue;
     const px = Math.min(MAX_AUTO_WIDTH, Math.ceil(cell.content.length * CHAR_PX + 14));
     if (px > DEFAULT_COL_WIDTH && px > (out.get(coord.col) ?? 0)) out.set(coord.col, px);
+  }
+  return out;
+}
+
+/** Celle di testo da mandare a capo: troppo lunghe per la colonna e con la cella a destra piena. */
+function textToWrap(spec: SheetSpec, larghezza: (col: number) => number): { coord: { row: number; col: number }; righe: number }[] {
+  const piene = new Set<string>();
+  for (const cell of spec.cells) {
+    if (cell.content !== null && cell.content !== undefined && cell.content !== '') piene.add(cell.ref.toUpperCase());
+  }
+  const out: { coord: { row: number; col: number }; righe: number }[] = [];
+  for (const cell of spec.cells) {
+    if (typeof cell.content !== 'string' || cell.content === '' || cell.content.startsWith('=')) continue;
+    const coord = a1ToCoord(cell.ref);
+    if (!coord) continue;
+    // Spazio su cui il testo potrebbe debordare: le celle vuote a destra, fino alla
+    // prima piena. Se la riga finisce senza celle piene, deborda e basta.
+    let spazio = larghezza(coord.col);
+    let fermato = false;
+    for (let k = coord.col + 1; k <= coord.col + 15; k++) {
+      if (piene.has(`${colToLetters(k)}${coord.row + 1}`)) {
+        fermato = true;
+        break;
+      }
+      spazio += larghezza(k);
+    }
+    const testoPx = cell.content.length * CHAR_PX + 8;
+    // Va a capo se urta una cella piena, o se debordando uscirebbe dallo schermo.
+    const troppoLungo = testoPx > larghezza(coord.col) + MAX_SPILL_PX;
+    if (!troppoLungo && (!fermato || testoPx <= spazio)) continue;
+    const utile = larghezza(coord.col) - 8;
+    // Margine del 15%: andando a capo sulle parole si perde spazio a fine riga.
+    const px = cell.content.length * CHAR_PX * 1.15;
+    if (px <= utile + 6) continue;
+    out.push({ coord, righe: Math.min(6, Math.ceil(px / utile)) });
   }
   return out;
 }

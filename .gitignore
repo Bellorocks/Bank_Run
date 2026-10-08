@@ -7,3 +7,7 @@ src-tauri/target/
 src-tauri/gen/schemas/
 .DS_Store
 *.log
+
+# Configurazione locale (la chiave di produzione va in .env.production)
+.env.local
+.env.*.local

@@ -681,5 +681,14 @@
   "grade.atteso": "{ref} = {v}, atteso {e}",
   "grade.attesoScarto": "{ref} = {v}, atteso {e} (scarto {d})",
   "grade.attesoTesto": "{ref} = \"{v}\", atteso \"{e}\"",
-  "grade.niente": "niente"
+  "grade.niente": "niente",
+  "Consenso.titolo": "Ci aiuti a migliorare il gioco?",
+  "Consenso.testo": "Se acconsenti, inviamo statistiche anonime su come si gioca: livelli iniziati e completati, tempi, tentativi, suggerimenti usati ed eventuali errori del programma. Nessun dato personale, nessun cookie; puoi cambiare idea dalle Impostazioni.",
+  "Consenso.si": "Sì, va bene",
+  "Consenso.no": "No, grazie",
+  "Consenso.impostazione": "Statistiche anonime",
+  "Consenso.impostazioneNota": "Livelli, tempi e tentativi, senza dati personali",
+  "Touch.titolo": "Serve una tastiera",
+  "Touch.testo": "Deal Desk si gioca solo con la tastiera, come Excel per chi lo usa sul serio. Su telefono o tablet senza tastiera non è giocabile: aprilo da un computer.",
+  "Touch.ok": "Ho capito"
 }

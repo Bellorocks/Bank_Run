@@ -1,10 +1,15 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath, URL } from 'node:url';
+import { readFileSync } from 'node:fs';
+
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8')) as { version: string };
 
 // Tauri espone TAURI_* in dev; il server deve essere fisso e senza HMR overlay invadente.
 export default defineConfig({
   plugins: [react()],
+  // La versione accompagna ogni evento delle statistiche: serve a confrontare le release.
+  define: { 'import.meta.env.VITE_APP_VERSION': JSON.stringify(pkg.version) },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

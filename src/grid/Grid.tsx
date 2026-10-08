@@ -27,6 +27,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { colToLetters, LAST_COL, LAST_ROW, rangeContains, type CellCoord } from '../engine/address';
 import {
   DEFAULT_COL_WIDTH,
+  WRAP_LINE_PX,
   DEFAULT_ROW_HEIGHT,
   HEADER_COL_WIDTH,
   HEADER_ROW_HEIGHT,
@@ -34,7 +35,7 @@ import {
 import { PALETTE, UI } from '../styles/palette';
 import type { GridSession, SessionSnapshot } from '../game/session';
 import { Axis, indicesInViewport } from './geometry';
-import { DEFAULT_CHAR_PX as CHAR_PX, displayCell } from './cellDisplay';
+import { displayCell } from './cellDisplay';
 
 import { tr } from '../i18n/ui';
 /**
@@ -225,9 +226,9 @@ export function Grid({ session, snap }: GridProps): JSX.Element {
     // vuote alla sua destra e si ferma alla prima piena. Senza questo, le etichette
     // di una colonna stretta si leggono a meta' ("Interessi passi").
     let larghezzaTesto = w;
-    if (!inEditing && !d.isError && d.align === 'left' && typeof wb.getValue(sheet, coord) === 'string' && d.text.length * CHAR_PX > w - 8) {
+    if (!inEditing && !style.wrap && !d.isError && d.align === 'left' && typeof wb.getValue(sheet, coord) === 'string' && d.text !== '') {
       for (let k = col + 1; k <= col + 15; k++) {
-        if (!wb.isEmpty(sheet, { row, col: k }) || (snap.edit.mode !== 'ready' && snap.edit.cell?.row === row && snap.edit.cell?.col === k)) break;
+        if (!(wb.isEmpty(sheet, { row, col: k }) || wb.getValue(sheet, { row, col: k }) === '') || (snap.edit.mode !== 'ready' && snap.edit.cell?.row === row && snap.edit.cell?.col === k)) break;
         larghezzaTesto += colAxis.size(k);
       }
     }
@@ -262,7 +263,9 @@ export function Grid({ session, snap }: GridProps): JSX.Element {
           outline: attiva ? `2px solid ${PALETTE.smeraldo}` : undefined,
           outlineOffset: -2,
           overflow: deborda ? 'visible' : 'hidden',
-          whiteSpace: 'pre',
+          whiteSpace: style.wrap && !inEditing ? 'pre-wrap' : 'pre',
+          lineHeight: style.wrap && !inEditing ? `${WRAP_LINE_PX}px` : undefined,
+          overflowWrap: style.wrap ? 'anywhere' : undefined,
           zIndex: attiva ? 3 : deborda ? 1 : undefined,
         }}
       >
