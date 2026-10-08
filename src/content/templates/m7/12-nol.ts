@@ -160,13 +160,9 @@ export default defineTemplate({
           "imponibile dell'anno (non serve azzerarlo oltre lo zero, il NOL non genera un rimborso). Il NOL " +
           "utilizzato e' il PIU' PICCOLO fra i due tetti.",
         '',
-        nolMaggioreDelReddito
-          ? `Quest'anno il NOL residuo (${eur(nolResiduo)}) e' MAGGIORE del reddito imponibile ante-NOL ` +
-            `(${eur(redditoImponibile)}): l'azienda azzera completamente l'imponibile di quest'anno, e una ` +
-            "parte del NOL resta disponibile per gli anni futuri — vince il tetto del reddito imponibile."
-          : `Quest'anno il NOL residuo (${eur(nolResiduo)}) e' MINORE del reddito imponibile ante-NOL ` +
-            `(${eur(redditoImponibile)}): il NOL si esaurisce completamente, e sulla parte di reddito che ` +
-            "resta scoperta l'azienda paga le imposte piene — vince il tetto del NOL residuo.",
+        "**Semplificazione dichiarata**: in Italia (art. 84 TUIR) le perdite riportate compensano al massimo " +
+          "l'80% del reddito di ogni anno, salvo quelle dei primi tre esercizi. Qui si usa la regola senza " +
+          'limite, quella di molti modelli internazionali.',
         '',
         `Dati dell'anno: NOL residuo a inizio anno ${eur(nolResiduo)}, reddito imponibile ante-NOL ` +
           `${eur(redditoImponibile)}, aliquota IRES ${pct(ALIQUOTA_FISCALE)}. Senza NOL, l'azienda avrebbe ` +

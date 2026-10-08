@@ -77,7 +77,7 @@ import {
 
 // --- Geometria fissa del foglio: nessuna posizione dipende dal seed. --------
 const B_UAI = 'B4'; // Utile ante imposte
-const B_VAR = 'B5'; // Variazione in aumento (costi non deducibili quest'anno)
+const B_VAR = 'B5'; // Variazione in aumento permanente (costi mai deducibili)
 const B_DTD = 'B6'; // Differenza temporanea deducibile in futuro (es. accantonamento)
 const B_ALIQ = 'B7'; // Aliquota IRES
 
@@ -113,8 +113,8 @@ export default defineTemplate({
       id: 'T1',
       prompt:
         `In ${B_IMPCORR} calcola le IMPOSTE CORRENTI dell'anno: parti dall'utile ante imposte (${B_UAI}), ` +
-        `aggiungi la variazione in aumento (${B_VAR} — un costo gia' spesato in bilancio ma non ancora ` +
-        `deducibile per il fisco quest'anno) e la differenza temporanea deducibile in futuro (${B_DTD} — ` +
+        `aggiungi la variazione in aumento permanente (${B_VAR} — un costo gia' spesato in bilancio che il ` +
+        `fisco non riconoscera' mai) e la differenza temporanea deducibile in futuro (${B_DTD} — ` +
         "es. un accantonamento a fondo rischi, che il fisco tassa oggi e lascera' dedurre solo quando il " +
         `fondo verra' utilizzato). Ottieni cosi' la base imponibile fiscale: moltiplicala per l'aliquota ` +
         `IRES (${B_ALIQ}).`,
@@ -173,8 +173,9 @@ export default defineTemplate({
         "L'utile ante imposte che il bilancio riporta non e' quasi mai la cifra su cui il fisco calcola " +
           "le imposte. Quest'anno ci sono due scostamenti fra i due mondi:",
         '',
-        `- una **variazione in aumento** di ${eur(variazioneInAumento)}: un costo gia' spesato in ` +
-          "bilancio, che il fisco non riconosce come deducibile quest'anno;",
+        `- una **variazione in aumento permanente** di ${eur(variazioneInAumento)}: un costo gia' spesato in ` +
+          "bilancio che il fisco non riconoscera' mai (per esempio una quota di spese di rappresentanza " +
+          "indeducibile). Essendo permanente, non genera imposte anticipate;",
         `- una **differenza temporanea deducibile in futuro** di ${eur(differenzaTemporaneaDeducibile)}: ` +
           "l'esempio classico e' un accantonamento a fondo rischi, gia' dentro l'utile di bilancio, che " +
           "il fisco tassa oggi ma lascera' dedurre solo nell'anno in cui il fondo verra' effettivamente " +
@@ -203,7 +204,7 @@ export default defineTemplate({
               'A4',
               [
                 'Utile ante imposte, €',
-                'Variazione in aumento (costi non deducibili quest\'anno), €',
+                'Variazione in aumento permanente (costi mai deducibili), €',
                 "Differenza temporanea deducibile in futuro (accantonamento fondo rischi), €",
                 'Aliquota IRES',
               ],

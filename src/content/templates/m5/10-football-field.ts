@@ -135,6 +135,9 @@ export default defineTemplate({
   generate: (rng) => {
     const rPeer = rng.fork('peer');
     const rTarget = rng.fork('target');
+    // Un solo settore per target e comp set: un peer di un altro settore non
+    // e' un comparabile (la lezione di M5-01).
+    const settore = rng.fork('settore').pick(SECTORS);
 
     // --- Il comp set: 8 comparable, ciascuna con un profilo settoriale
     // proprio (stesso meccanismo generativo di rng/finance.ts gia' usato
@@ -149,21 +152,21 @@ export default defineTemplate({
     }
 
     const peers: Peer[] = Array.from({ length: N_PEER }, (_, i) => {
-      const sector = rPeer.pick(SECTORS);
+      const sector = settore;
       const ricavi = revenue(rPeer);
       const margin = ebitdaMargin(rPeer, sector);
       const ebitda = roundTo(ricavi * margin, 1000);
       const growth = growthRate(rPeer, sector);
       const evEbitda = evEbitdaMultiple(rPeer, sector, growth, margin);
       const ev = roundTo(ebitda * evEbitda, 1000);
-      return { label: `Peer ${i + 1} (${sector})`, ev, ebitda };
+      return { label: `Peer ${i + 1}`, ev, ebitda };
     });
 
     // --- EBITDA del target: stesso meccanismo generativo dei peer (cosi'
     // resta su una scala plausibile e comparabile), ma da un fork
     // indipendente — non e' un peer del comp set, e' il DATO bloccato che
     // il comp set serve a valutare. ----------------------------------------
-    const sectorTarget = rTarget.pick(SECTORS);
+    const sectorTarget = settore;
     const ricaviTarget = revenue(rTarget);
     const marginTarget = ebitdaMargin(rTarget, sectorTarget);
     const ebitdaTarget = roundTo(ricaviTarget * marginTarget, 1000);

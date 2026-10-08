@@ -12,12 +12,11 @@
  * dell'EBITDA LTM (la stessa azienda, un anno dopo, vale di piu' se cresce).
  * Con lo STESSO EV al numeratore, un denominatore piu' alto produce un
  * multiplo NTM sistematicamente PIU' BASSO del multiplo LTM. Questo non e'
- * un'anomalia da correggere: e' il motivo per cui, quando si valuta un target
- * in forte crescita, si preferisce ancorarsi a NTM. Il multiplo LTM
- * "sconta" — cioe' applica un moltiplicatore di mercato pensato per un
- * profilo di rischio/crescita — a una base che il mercato ha gia' superato:
- * usarlo per un target che sta crescendo velocemente sottostimerebbe quanto
- * il mercato sia disposto a pagare OGGI per quella traiettoria.
+ * un'anomalia da correggere: il multiplo LTM di un'azienda in crescita
+ * sembra "caro" solo perche' il denominatore e' vecchio. La regola che conta
+ * e' la coerenza: un multiplo NTM si applica a un EBITDA NTM, un LTM a un
+ * LTM. Mescolarli (multiplo LTM dei peer su EBITDA NTM del target, o
+ * viceversa) gonfia o sgonfia la valutazione di tutta la crescita di un anno.
  *
  * Il file NON ricalcola l'LTM come somma FY + H1 - H1 (quello e' l'oggetto di
  * M2-10): qui LTM e NTM sono entrambi DATI bloccati, gia' pronti, perche' il
@@ -117,10 +116,7 @@ export default defineTemplate({
         "non per l'EBITDA LTM. Formula: EV / EBITDA NTM. Il risultato deve uscire PIU' BASSO del " +
         `multiplo LTM che hai appena calcolato in ${B_MULT_LTM}: stesso EV al numeratore, ma un ` +
         "denominatore piu' alto (l'EBITDA che il mercato SI ASPETTA fra un anno, per un business in " +
-        "crescita, e' maggiore di quello gia' osservato) abbassa aritmeticamente il rapporto. E' per " +
-        "questo che, per valutare un target in forte crescita, si preferisce ancorarsi a NTM: il " +
-        "multiplo LTM applicherebbe il prezzo di mercato a una base storica che la crescita ha gia' " +
-        'superato, sottostimando quanto il mercato sia disposto a pagare oggi per quella traiettoria.',
+        "crescita, e' maggiore di quello gia' osservato) abbassa aritmeticamente il rapporto.",
       target: `Model!${B_MULT_NTM}`,
       atteso: multiploNtm,
       referenzia: [B_EV, B_EBITDA_NTM],
@@ -147,11 +143,10 @@ export default defineTemplate({
           "numeratore, un denominatore piu' alto produce un multiplo NTM sistematicamente **PIU' " +
           "BASSO** del multiplo LTM.",
         '',
-        "Non e' un'anomalia da correggere: e' il motivo per cui, quando si valuta un target in forte " +
-          "crescita, si preferisce ancorarsi a NTM. Il multiplo LTM applica il prezzo che il mercato " +
-          "riconosce OGGI a una base storica che la crescita ha gia' superato — usarlo per un business " +
-          "che sta accelerando sottostimerebbe quanto il mercato sia disposto a pagare per quella " +
-          "traiettoria.",
+        "Non e' un'anomalia da correggere. Il multiplo LTM di un'azienda in crescita sembra \"caro\" solo " +
+          "perche' il denominatore e' vecchio; per questo sui business in forte crescita si ragiona di " +
+          "solito su NTM. La regola che conta e' la **coerenza**: un multiplo NTM si applica a un EBITDA " +
+          "NTM, un LTM a un LTM. Mescolarli gonfia o sgonfia la valutazione di un anno intero di crescita.",
         '',
         `**I dati.** Una comparable quotata del settore ${sector} (crescita media di settore attesa ` +
           `${pct(growth)}, margine EBITDA ${pct(margin)}) ha un Enterprise Value di mercato di ` +

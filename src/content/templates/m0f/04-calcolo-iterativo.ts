@@ -237,7 +237,7 @@ export default defineTemplate({
               'A9',
               [
                 'Interessi sul debito medio',
-                'EBT (EBITDA - interessi)',
+                'Utile ante imposte (EBITDA - interessi; niente ammortamenti in questo modello)',
                 'Imposte',
                 'Utile netto',
                 'Cassa disponibile per il rimborso',

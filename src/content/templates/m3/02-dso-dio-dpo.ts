@@ -50,7 +50,6 @@ import {
   STILE_INPUT,
   STILE_TITOLO,
   eur,
-  num,
 } from '../../authoring';
 import { MODEL_COLORS } from '../../../styles/palette';
 import type { CellStyle } from '../../../engine/types';
@@ -215,7 +214,7 @@ export default defineTemplate({
           'ogni rapporto, come indicato in ciascun task.',
         '',
         `Calcola DSO, DIO e DPO uno alla volta (task 1-3), poi combinali nel Cash Conversion Cycle ` +
-          `(task 4). Con questi dati il CCC risulta di circa ${num(ccc, 0)} giorni.`,
+          '(task 4).',
       ].join('\n'),
       sheets: [
         foglio(

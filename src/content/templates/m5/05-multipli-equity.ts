@@ -152,8 +152,9 @@ export default defineTemplate({
         "la linea del debito\" (il prezzo per azione riflette l'equity value, non l'EV; l'utile netto " +
         "e' gia' al netto degli oneri finanziari). Per questo il P/E confronta bene due aziende SOLO se " +
         "hanno una struttura del capitale comparabile: a parita' di business operativo, un'azienda piu' " +
-        "indebitata paga piu' interessi, ha un utile netto piu' basso e quindi un P/E piu' alto per un " +
-        "motivo che non racconta nulla sul valore del business — solo sulla sua leva.",
+        "indebitata ha un utile netto piu' basso (piu' interessi) e un equity value piu' basso (piu' " +
+        "debito da togliere all'EV). Il P/E si muove, in su o in giu', per un motivo che non racconta " +
+        "nulla sul business — solo sulla sua leva.",
       target: `Model!${B_MULT_PE}`,
       atteso: multPE,
       referenzia: [B_PREZZO, B_EPS],

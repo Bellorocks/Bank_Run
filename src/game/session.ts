@@ -1018,10 +1018,16 @@ export class GridSession {
       this.emit();
       return true;
     }
-    this.pasteOptions = { ...this.pasteOptions, ...res };
-    // Excel esegue subito alla lettera dell'opzione principale: replicalo.
-    this.pasteSpecialOpen = false;
-    this.paste(this.pasteOptions);
+    // Come nel dialogo di Excel: la lettera seleziona l'opzione (le caselle
+    // Trasponi e Salta celle vuote si alternano), Invio conferma ed esegue.
+    const prima = this.pasteOptions;
+    this.pasteOptions = {
+      ...prima,
+      ...res,
+      ...(res.transpose ? { transpose: !prima.transpose } : {}),
+      ...(res.skipBlanks ? { skipBlanks: !prima.skipBlanks } : {}),
+    };
+    this.say(`Incolla speciale: ${describePasteOptions(this.pasteOptions)} · Invio conferma, Esc annulla`);
     this.emit();
     return true;
   }
@@ -1164,4 +1170,33 @@ export class GridSession {
     if (this.edit.mode !== 'ready') return this.edit.text;
     return this.rawText(this.activeCell);
   }
+}
+
+const PASTE_MODE_LABEL: Record<PasteOptions['mode'], string> = {
+  all: 'tutto',
+  formulas: 'formule',
+  values: 'valori',
+  formats: 'formati',
+  comments: 'commenti',
+  valuesAndNumberFormats: 'valori e formati numeri',
+  columnWidths: 'larghezza colonne',
+};
+
+const PASTE_OP_LABEL: Record<PasteOptions['operation'], string> = {
+  none: '',
+  add: 'aggiungi',
+  subtract: 'sottrai',
+  multiply: 'moltiplica',
+  divide: 'dividi',
+};
+
+function describePasteOptions(o: PasteOptions): string {
+  return [
+    PASTE_MODE_LABEL[o.mode],
+    PASTE_OP_LABEL[o.operation],
+    o.transpose ? 'trasponi' : '',
+    o.skipBlanks ? 'salta celle vuote' : '',
+  ]
+    .filter(Boolean)
+    .join(' + ');
 }
