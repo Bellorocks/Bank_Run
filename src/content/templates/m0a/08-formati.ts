@@ -1,0 +1,220 @@
+/**
+ * M0-A · 08 — Il vestito del numero: formati di base.
+ *
+ * Punto didattico: il FORMATO non cambia il numero salvato in cella, cambia solo
+ * come Excel lo disegna. E' la stessa idea di `xl.percentages` (0,18 mostrato
+ * come 18%) allargata alle altre due vesti che si incontrano in ogni modello:
+ * la valuta (due decimali, simbolo €) e il numero con separatore delle migliaia.
+ *
+ * Tre righe indipendenti, tre task. Ogni task e' prima di tutto un task di
+ * FORMULA (mustBeFormula + value, come da contratto di rank 2): il check
+ * `numberFormat` viaggia in coda come check EXTRA, silenzioso finche'
+ * l'editor non alza l'asticella con `enforceStyle` dal rank 3 in su.
+ */
+
+import {
+  defineTemplate,
+  blocco,
+  foglio,
+  hint,
+  par,
+  riga,
+  taskFormula,
+  STILE_ETICHETTA,
+  STILE_TITOLO,
+  eur,
+  num,
+  pct,
+} from '../../authoring';
+import { revenue, ebitdaMargin, SECTORS } from '../../../rng/finance';
+import { DEFAULT_FORMATS } from '../../../engine/numberFormat';
+import { MODEL_COLORS } from '../../../styles/palette';
+import type { CellStyle } from '../../../engine/types';
+import type { Task } from '../../types';
+
+// Stili locali: gli input qui hanno decimali (centesimi, chilogrammi con due
+// cifre) che gli stili standard di authoring.ts non prevedono, quindi si
+// costruiscono ad hoc sulla stessa convenzione (blu = input, nero = formula).
+const STILE_INPUT_VALUTA: CellStyle = { fontColor: MODEL_COLORS.input, numFmt: DEFAULT_FORMATS.valuta };
+const STILE_INPUT_NUM2: CellStyle = { fontColor: MODEL_COLORS.input, numFmt: DEFAULT_FORMATS.numero2dec };
+const STILE_LIBERA_VALUTA: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: DEFAULT_FORMATS.valuta };
+const STILE_LIBERA_PCT: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: DEFAULT_FORMATS.percentuale };
+const STILE_LIBERA_NUM2: CellStyle = { fontColor: MODEL_COLORS.formula, numFmt: DEFAULT_FORMATS.numero2dec };
+
+export default defineTemplate({
+  id: 'M0A-08-FORMATI',
+  module: 'M0-A',
+  title: 'Il vestito del numero',
+  rank: 2,
+  mode: 'PRACTICE',
+  estimatedSeconds: 240,
+  skills: ['xl.numfmt', 'xl.percentages'],
+  prerequisites: ['M0A-01-RIFERIMENTI'],
+
+  generate: (rng) => {
+    const r = rng.fork('dati');
+    const sector = r.pick(SECTORS);
+
+    // --- Blocco 1: ricavi, da formattare in valuta -------------------------
+    const ricaviItalia = revenue(r) + r.int(0, 99) / 100;
+    const quotaEstero = 0.15 + r.next() * 0.35;
+    const ricaviEstero = Math.round(ricaviItalia * quotaEstero) + r.int(0, 99) / 100;
+    const ricaviTotali = ricaviItalia + ricaviEstero;
+
+    // --- Blocco 2: margine, da formattare in percentuale --------------------
+    const ricaviMargine = revenue(r);
+    const margineObiettivo = ebitdaMargin(r, sector);
+    const ebitda = Math.round(ricaviMargine * margineObiettivo);
+    const margineAtteso = ebitda / ricaviMargine;
+
+    // --- Blocco 3: quantita', da formattare col separatore delle migliaia --
+    const lottoA = r.int(1200, 8600) + r.int(0, 99) / 100;
+    const lottoB = r.int(600, 5200) + r.int(0, 99) / 100;
+    const quantitaTotale = lottoA + lottoB;
+
+    const t1 = taskFormula({
+      id: 'T1',
+      prompt:
+        'In B5 calcola i ricavi totali: la somma di Ricavi Italia e Ricavi estero. Poi formatta il risultato come valuta, due decimali e simbolo €: la scorciatoia e\' Ctrl+Maiusc+4.',
+      target: 'Model!B5',
+      atteso: ricaviTotali,
+      referenzia: ['B3', 'B4'],
+      senzaLiteral: [],
+      skills: ['xl.numfmt'],
+      minKeystrokes: 8,
+    });
+
+    const t2 = taskFormula({
+      id: 'T2',
+      prompt:
+        'In B9 calcola il margine EBITDA: EBITDA diviso Ricavi. Il risultato che Excel salva e\' una frazione (0,18, non 18): e\' il formato percentuale, non un moltiplicatore per 100, a farla leggere come 18%. Applicalo con Ctrl+Maiusc+5.',
+      target: 'Model!B9',
+      atteso: margineAtteso,
+      referenzia: ['B7', 'B8'],
+      senzaLiteral: [],
+      skills: ['xl.percentages', 'xl.numfmt'],
+      minKeystrokes: 8,
+    });
+
+    const t3 = taskFormula({
+      id: 'T3',
+      prompt:
+        'In B13 somma Lotto A e Lotto B per la quantita\' totale. Su un numero a quattro cifre il separatore delle migliaia si legge a colpo d\'occhio: applicalo con Ctrl+Maiusc+1 (due decimali, raggruppamento sulle migliaia).',
+      target: 'Model!B13',
+      atteso: quantitaTotale,
+      referenzia: ['B11', 'B12'],
+      senzaLiteral: [],
+      skills: ['xl.numfmt'],
+      minKeystrokes: 10,
+    });
+
+    const tasks: Task[] = [
+      {
+        ...t1,
+        check: [
+          ...t1.check,
+          {
+            kind: 'numberFormat' as const,
+            expected: DEFAULT_FORMATS.valuta,
+            message:
+              'Il numero e\' giusto ma manca il vestito: qui serve il formato valuta (Ctrl+Maiusc+4), due decimali e il simbolo €.',
+          },
+        ],
+      },
+      {
+        ...t2,
+        check: [
+          ...t2.check,
+          {
+            kind: 'numberFormat' as const,
+            expected: DEFAULT_FORMATS.percentuale,
+            message:
+              'Il numero e\' giusto ma manca il vestito: qui serve la percentuale (Ctrl+Maiusc+5), non la frazione nuda.',
+          },
+        ],
+      },
+      {
+        ...t3,
+        check: [
+          ...t3.check,
+          {
+            kind: 'numberFormat' as const,
+            expected: DEFAULT_FORMATS.numero2dec,
+            message:
+              'Il numero e\' giusto ma manca il vestito: qui serve il separatore delle migliaia con due decimali (Ctrl+Maiusc+1).',
+          },
+        ],
+      },
+    ];
+
+    return {
+      templateId: 'M0A-08-FORMATI',
+      seed: rng.seed,
+      brief: [
+        '## Il numero non cambia, cambia il vestito',
+        '',
+        'Una cella puo\' contenere davvero il numero `0,18` e mostrare in facciata `18%`, oppure',
+        'contenere `8300000` e mostrare `8.300.000,00 €`. Il valore salvato non si tocca: e\' il',
+        '**formato** — un\'etichetta separata attaccata alla cella — a decidere come lo leggi. Lo',
+        'stesso numero, tre vestiti diversi: e\' il motivo per cui due celle che sembrano diverse',
+        'possono sommarsi senza sorprese, e due celle che sembrano uguali possono nascondere due',
+        'valori diversi.',
+        '',
+        `Qui sotto trovi i ricavi di un'azienda del settore ${sector} spezzati in Italia`,
+        `(${eur(ricaviItalia, 2)}) ed estero (${eur(ricaviEstero, 2)}). Il totale va scritto`,
+        'come valuta.',
+        '',
+        `L'EBITDA (${eur(ebitda)}) diviso i ricavi (${eur(ricaviMargine)}) da\' un margine che Excel`,
+        `salva come ${num(margineAtteso, 4)} e che il formato percentuale mostra come ${pct(margineAtteso, 0)}.`,
+        'Se lo lasci senza formato leggerai uno zero virgola qualcosa, e in una call e\' li\' che si',
+        'perde un secondo di troppo.',
+        '',
+        `Infine due lotti di magazzino, ${num(lottoA, 2)} e ${num(lottoB, 2)} unita\': sommali, e`,
+        'sul totale a quattro cifre il punto delle migliaia fa la differenza fra leggerlo e contarlo.',
+        '',
+        'Tre scorciatoie da imparare adesso, non da cercare ogni volta nel menu Home:',
+        '',
+        '- **Ctrl+Maiusc+1** — numero con due decimali e separatore delle migliaia',
+        '- **Ctrl+Maiusc+4** — valuta',
+        '- **Ctrl+Maiusc+5** — percentuale',
+      ].join('\n'),
+      sheets: [
+        foglio(
+          'Model',
+          [
+            riga('A1', ['Formati numerici'], { style: STILE_TITOLO }),
+            blocco('A3', [['Ricavi Italia (€)'], ['Ricavi estero (€)'], ['Ricavi totali']], {
+              style: STILE_ETICHETTA,
+            }),
+            blocco('B3', [[ricaviItalia], [ricaviEstero]], { style: STILE_INPUT_VALUTA }),
+            blocco('A7', [['EBITDA (€)'], ['Ricavi (€)'], ['Margine EBITDA']], { style: STILE_ETICHETTA }),
+            blocco('B7', [[ebitda], [ricaviMargine]], { style: STILE_INPUT_VALUTA }),
+            blocco('A11', [['Lotto A (unita\')'], ['Lotto B (unita\')'], ['Quantita\' totale']], {
+              style: STILE_ETICHETTA,
+            }),
+            blocco('B11', [[lottoA], [lottoB]], { style: STILE_INPUT_NUM2 }),
+            [
+              { ref: 'B5', content: null, locked: false, style: STILE_LIBERA_VALUTA },
+              { ref: 'B9', content: null, locked: false, style: STILE_LIBERA_PCT },
+              { ref: 'B13', content: null, locked: false, style: STILE_LIBERA_NUM2 },
+            ],
+          ],
+          { colWidths: { A: 220, B: 140 }, frozenRows: 1 },
+        ),
+      ],
+      tasks,
+      hints: [
+        hint('H1', 'Somma B3 e B4. Poi Ctrl+Maiusc+4: due decimali e simbolo € arrivano insieme.', 8, 'T1'),
+        hint(
+          'H2',
+          'B7 diviso B8, senza moltiplicare per 100: e\' il formato percentuale a spostare la virgola sullo schermo, non la formula.',
+          8,
+          'T2',
+        ),
+        hint('H3', 'Somma B11 e B12. Poi Ctrl+Maiusc+1 per il separatore delle migliaia con due decimali.', 8, 'T3'),
+      ],
+      parScore: par(tasks, { letturaSecondi: 55 }),
+      startAt: 'Model!B5',
+    };
+  },
+});

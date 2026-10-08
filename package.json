@@ -1,0 +1,38 @@
+{
+  "name": "deal-desk",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "DEAL DESK — Excel trainer gamificato per Investment Banking & Private Equity",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tanstack/react-virtual": "^3.13.12",
+    "@tauri-apps/api": "^2.9.0",
+    "@tauri-apps/plugin-sql": "^2.3.0",
+    "howler": "^2.2.4",
+    "hyperformula": "^3.4.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "xlsx": "^0.18.5",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4",
+    "@types/howler": "^2.2.12",
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "vitest": "^2.1.8"
+  }
+}

@@ -1,0 +1,137 @@
+/*
+ * Stili globali di DEAL DESK.
+ *
+ * Estetica: 16-bit pulito sulla palette dei 16 colori dello spec (§8) — mai
+ * un colore fuori da quella lista, mai un gradiente sfumato al posto di
+ * bande piatte. Griglia: monospace ad altissima leggibilità per i numeri e
+ * la formula bar — il chrome è pixelato, il contenuto resta sempre leggibile.
+ *
+ * Sui font: i titoli erano in Press Start 2P, che è una griglia 8×8 NES. A 9-13px
+ * (le taglie usate dalla UI) restano ~6px di altezza reale per glifo: bello ma
+ * illeggibile. Le due famiglie di adesso sono dell'era 16-bit — Jersey 25 è un
+ * arcade condensato ad alto x-height, DotGothic16 è disegnato su 16px — e
+ * vogliono taglie più grandi: qualunque nuova `fontSize` per `--font-titolo`
+ * parte da 13, non da 8. Jersey 25 esiste solo in peso 400: niente bold, il
+ * risalto viene da taglia e colore, non dal `font-weight`.
+ */
+
+:root {
+  --c-inchiostro: #1a1c2c;
+  --c-prugna: #5d275d;
+  --c-rubino: #b13e53;
+  --c-corallo: #ef7d57;
+  --c-ambra: #ffcd75;
+  --c-lime: #a7f070;
+  --c-smeraldo: #38b764;
+  --c-petrolio: #257179;
+  --c-notte: #29366f;
+  --c-oltremare: #3b5dc9;
+  --c-azzurro: #41a6f6;
+  --c-ghiaccio: #73eff7;
+  --c-bianco: #f4f4f4;
+  --c-nebbia: #94b0c2;
+  --c-ardesia: #566c86;
+  --c-grafite: #333c57;
+
+  --font-titolo: 'Jersey 25', 'Trebuchet MS', sans-serif;
+  --font-testo: 'DotGothic16', 'Trebuchet MS', sans-serif;
+  --font-griglia: 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;
+
+  --riga-h: 22px;
+  --colonna-w: 88px;
+  --intestazione-w: 48px;
+
+  color-scheme: light dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--c-inchiostro);
+  color: var(--c-bianco);
+  font-family: var(--font-testo);
+  font-size: 17px;
+  line-height: 1.5;
+  overflow: hidden;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Griglia spreadsheet professionale ad altissima leggibilità */
+.dd-grid,
+.dd-grid * {
+  font-family: var(--font-griglia);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  image-rendering: auto;
+}
+
+h1,
+h2,
+h3,
+.dd-titolo {
+  font-family: var(--font-titolo);
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  line-height: 1.3;
+}
+
+input,
+textarea,
+.dd-selezionabile {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--c-grafite);
+  border: 1px solid var(--c-inchiostro);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--c-ardesia);
+  border: 2px solid var(--c-inchiostro);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--c-ambra);
+}
+
+:focus-visible {
+  outline: 3px solid var(--c-ambra);
+  outline-offset: 1px;
+}
+
+/* Cursore lampeggiante Formula */
+@keyframes dd-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.dd-caret {
+  animation: dd-blink 1s steps(2, start) infinite;
+}
