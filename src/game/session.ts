@@ -486,11 +486,11 @@ export class GridSession {
 
       case 'edit.undo':
         this.workbook.undo();
-        this.say('Annullato');
+        this.say(tr('session.annullato'));
         return false;
       case 'edit.redo':
         this.workbook.redo();
-        this.say('Ripristinato');
+        this.say(tr('session.ripristinato'));
         return false;
 
       // --------------------------------------------------------------- appunti
@@ -551,7 +551,7 @@ export class GridSession {
       case 'formula.recalculateSheet':
       case 'formula.recalculateFull':
         this.workbook.recalcIterative();
-        this.say('Ricalcolato');
+        this.say(tr('session.ricalcolato'));
         return false;
       case 'formula.tracePrecedents': return this.selectRelated('precedents'), false;
       case 'formula.traceDependents': return this.selectRelated('dependents'), false;
@@ -667,7 +667,7 @@ export class GridSession {
     sel = { ...sel, areas: [{ range: stesso[0].range, anchor: sel.active }] };
     for (const r of stesso.slice(1)) sel = addArea(sel, r.range);
     this.selection = sel;
-    this.say(`${stesso.length} ${kind === 'precedents' ? 'precedenti' : 'dipendenti'}`);
+    this.say(tr(kind === 'precedents' ? 'session.precedenti' : 'session.dipendenti', { n: stesso.length }));
   }
 
   // -------------------------------------------------------------------------
@@ -851,7 +851,7 @@ export class GridSession {
   private evaluateFragment(): void {
     if (this.edit.mode === 'ready') {
       this.workbook.recalcIterative();
-      this.say('Ricalcolato');
+      this.say(tr('session.ricalcolato'));
       return;
     }
     const frammento = selectFragment(this.edit.text, this.edit.selectionStart, this.edit.selectionEnd);
@@ -951,7 +951,7 @@ export class GridSession {
         value: typeof valore === 'object' && valore !== null ? String((valore as { value: string }).value) : (valore as ClipCell['value']),
       };
     });
-    this.say(`${kind === 'cut' ? 'Tagliato' : 'Copiato'} ${rangeToA1(area)}`);
+    this.say(tr(kind === 'cut' ? 'session.tagliato' : 'session.copiato', { area: rangeToA1(area) }));
   }
 
   private paste(opts: PasteOptions): void {
@@ -1001,7 +1001,7 @@ export class GridSession {
         if (px !== undefined) layout.colWidths.set(c.to, px);
       }
     }
-    this.say('Incollato');
+    this.say(tr('session.incollato'));
   }
 
   private feedPasteSpecial(key: string): boolean {

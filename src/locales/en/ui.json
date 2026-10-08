@@ -664,5 +664,22 @@
   "clipboard.riga": "{n} row",
   "clipboard.righe": "{n} rows",
   "clipboard.colonna": "{n} column",
-  "clipboard.colonne": "{n} columns"
+  "clipboard.colonne": "{n} columns",
+  "Hud.tempo": "Time",
+  "Hud.tasti": "Keys",
+  "Risultato.punteggio": "Mission Score",
+  "Risultato.progresso": "Progress towards the next Guild rank",
+  "Risultato.revisione": "Guild Error Review",
+  "session.annullato": "Undone",
+  "session.ripristinato": "Redone",
+  "session.ricalcolato": "Recalculated",
+  "session.precedenti": "{n} precedents",
+  "session.dipendenti": "{n} dependents",
+  "session.tagliato": "Cut {area}",
+  "session.copiato": "Copied {area}",
+  "session.incollato": "Pasted",
+  "grade.atteso": "{ref} = {v}, expected {e}",
+  "grade.attesoScarto": "{ref} = {v}, expected {e} (off by {d})",
+  "grade.attesoTesto": "{ref} = \"{v}\", expected \"{e}\"",
+  "grade.niente": "nothing"
 }

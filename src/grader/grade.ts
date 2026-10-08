@@ -268,12 +268,12 @@ function runCheck(
       // Segno invertito: e' un errore diverso da "numero sbagliato", e merita un
       // messaggio diverso — nei modelli e' quasi sempre una convenzione incoerente.
       if (Math.abs(cell.value + check.expected) <= limit && check.expected !== 0) {
-        return ko(MESSAGES.valueSignFlipped, `${cell.target.ref} = ${fmt(cell.value)}, atteso ${fmt(check.expected)}`);
+        return ko(MESSAGES.valueSignFlipped, tr('grade.atteso', { ref: cell.target.ref, v: fmt(cell.value), e: fmt(check.expected) }));
       }
       const near = diff <= limit * 20;
       return ko(
         near ? MESSAGES.valueClose : MESSAGES.value,
-        `${cell.target.ref} = ${fmt(cell.value)}, atteso ${fmt(check.expected)} (scarto ${fmt(diff)})`,
+        tr('grade.attesoScarto', { ref: cell.target.ref, v: fmt(cell.value), e: fmt(check.expected), d: fmt(diff) }),
       );
     }
 
@@ -289,13 +289,13 @@ function runCheck(
       };
       return norm(actual) === norm(check.expected)
         ? ok()
-        : ko(MESSAGES.text, `${cell.target.ref} = "${actual}", atteso "${check.expected}"`);
+        : ko(MESSAGES.text, tr('grade.attesoTesto', { ref: cell.target.ref, v: actual, e: check.expected }));
     }
 
     case 'boolean':
       return cell.value === check.expected
         ? ok()
-        : ko(MESSAGES.boolean, `${cell.target.ref} = ${describe(cell.value)}, atteso ${check.expected}`);
+        : ko(MESSAGES.boolean, tr('grade.atteso', { ref: cell.target.ref, v: describe(cell.value), e: String(check.expected) }));
 
     case 'noError': {
       // Su un bersaglio a range l'errore puo' nascondersi in qualunque cella, non solo nella prima.
@@ -526,7 +526,7 @@ function fmt(n: number): string {
 }
 
 function describe(v: unknown): string {
-  if (v === null || v === undefined) return 'niente';
+  if (v === null || v === undefined) return tr('grade.niente');
   if (isCellError(v)) return String(v.value);
   if (typeof v === 'string') return tr('grade.37', { v });
   if (typeof v === 'boolean') return String(v);

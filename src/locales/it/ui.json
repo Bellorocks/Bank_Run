@@ -664,5 +664,22 @@
   "clipboard.riga": "{n} riga",
   "clipboard.righe": "{n} righe",
   "clipboard.colonna": "{n} colonna",
-  "clipboard.colonne": "{n} colonne"
+  "clipboard.colonne": "{n} colonne",
+  "Hud.tempo": "Tempo",
+  "Hud.tasti": "Tasti",
+  "Risultato.punteggio": "Punteggio Missione",
+  "Risultato.progresso": "Progresso verso il prossimo grado di Gilda",
+  "Risultato.revisione": "Revisione Errori di Gilda",
+  "session.annullato": "Annullato",
+  "session.ripristinato": "Ripristinato",
+  "session.ricalcolato": "Ricalcolato",
+  "session.precedenti": "{n} precedenti",
+  "session.dipendenti": "{n} dipendenti",
+  "session.tagliato": "Tagliato {area}",
+  "session.copiato": "Copiato {area}",
+  "session.incollato": "Incollato",
+  "grade.atteso": "{ref} = {v}, atteso {e}",
+  "grade.attesoScarto": "{ref} = {v}, atteso {e} (scarto {d})",
+  "grade.attesoTesto": "{ref} = \"{v}\", atteso \"{e}\"",
+  "grade.niente": "niente"
 }

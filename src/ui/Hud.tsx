@@ -47,12 +47,12 @@ export function Hud(props: HudProps) {
 
   return (
     <div style={barraStyle}>
-      <Voce etichetta="Tempo">
+      <Voce etichetta={tr('Hud.tempo')}>
         <span style={{ color: sopraPar ? UI.attenzione : UI.successo }}>{formatDurata(durataMs)}</span>
         <span style={{ color: UI.testoTenue }}> / {formatDurata(parSecondi * 1000)}</span>
       </Voce>
 
-      <Voce etichetta="Tasti">
+      <Voce etichetta={tr('Hud.tasti')}>
         <span>{formatIntero(keystrokes)}</span>
         <span style={{ color: UI.testoTenue }}> / {formatIntero(parKeystrokes)}</span>
       </Voce>

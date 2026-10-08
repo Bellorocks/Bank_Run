@@ -6,6 +6,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { getTemplate, isUnlocked, TEMPLATES } from '../content/registry';
+import { SKILLS_BY_ID } from '../content/skills';
 import type { LevelTemplate, ModuleId } from '../content/types';
 import { isFreePlay, loadProgress, subscribeProgress, type ProgressSnapshot } from '../persistence/progress';
 import { rankForXp } from '../persistence/progression';
@@ -332,7 +333,7 @@ export function WorldMap({ onSelectLevel, onBackToTitle }: WorldMapProps) {
                       {tr('WorldMap.28')}{' '}{t.rank} · ~{Math.round(t.estimatedSeconds / 60)}{' '}{tr('WorldMap.29')}
                       {record
                         ? tr('WorldMap.30', { p0: record.bestXp, p1: record.bestTimeMs != null ? ` in ${formatTime(record.bestTimeMs)}` : '' })
-                        : ` · ${t.skills.slice(0, 2).join(', ')}`}
+                        : ` · ${t.skills.slice(0, 2).map((k) => SKILLS_BY_ID.get(k)?.label ?? k).join(', ')}`}
                     </div>
                     {!aperto && (
                       <div style={levelLockStyle}>

@@ -56,16 +56,16 @@ export function Risultato(props: RisultatoProps) {
           {superato ? tr('Risultato.1') : tr('Risultato.2')}
         </h1>
 
-        <Pannello titolo="Punteggio Missione" variante="pergamena">
+        <Pannello titolo={tr('Risultato.punteggio')} variante="pergamena">
           <div style={rigaMetricheStyle}>
             <Metrica etichetta="Task" valore={`${report.tasksCorrect}/${report.tasksTotal}`} />
             <Metrica
-              etichetta="Tempo"
+              etichetta={tr('Hud.tempo')}
               valore={formatDurata(metrics.durationMs)}
               nota={formatScarto(metrics.durationMs, par.seconds)}
               notaColore={metrics.durationMs <= par.seconds * 1000 ? PALETTE.smeraldo : PALETTE.corallo}
             />
-            <Metrica etichetta="Tasti" valore={`${formatIntero(metrics.keystrokes)}`} nota={tr('Risultato.3', { p0: (metrics.keystrokeEfficiency * 100).toFixed(0) })} />
+            <Metrica etichetta={tr('Hud.tasti')} valore={`${formatIntero(metrics.keystrokes)}`} nota={tr('Risultato.3', { p0: (metrics.keystrokeEfficiency * 100).toFixed(0) })} />
             <Metrica etichetta="Mouse" valore={formatIntero(metrics.mouseClicks)} nota={metrics.mouseBlocked > 0 ? tr('Risultato.4', { p0: metrics.mouseBlocked }) : undefined} />
           </div>
         </Pannello>
@@ -85,7 +85,7 @@ export function Risultato(props: RisultatoProps) {
           <BarraXp
             valore={xpNelRank}
             massimo={xpPerRank}
-            etichetta="Progresso verso il prossimo grado di Gilda"
+            etichetta={tr('Risultato.progresso')}
             colore={PALETTE.ambra}
           />
           {xpTotaleDopo !== xpTotalePrima && (
@@ -96,7 +96,7 @@ export function Risultato(props: RisultatoProps) {
         </Pannello>
 
         {erroriPerTipo.length > 0 && (
-          <Pannello titolo="Revisione Errori di Gilda" variante="pergamena">
+          <Pannello titolo={tr('Risultato.revisione')} variante="pergamena">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {erroriPerTipo.map((e) => (
                 <div key={e.tipo} style={erroreRigaStyle}>
