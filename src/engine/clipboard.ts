@@ -179,12 +179,10 @@ export type ResolveTargetResult =
   | { readonly ok: true; readonly area: RangeCoords }
   | { readonly ok: false; readonly reason: string };
 
-function plural(n: number, one: string, many: string): string {
-  return `${n} ${n === 1 ? one : many}`;
-}
-
 function describeShape(rows: number, cols: number): string {
-  return `${plural(rows, 'riga', 'righe')} x ${plural(cols, 'colonna', 'colonne')}`;
+  const r = tr(rows === 1 ? 'clipboard.riga' : 'clipboard.righe', { n: rows });
+  const c = tr(cols === 1 ? 'clipboard.colonna' : 'clipboard.colonne', { n: cols });
+  return `${r} x ${c}`;
 }
 
 /**

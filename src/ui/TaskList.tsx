@@ -35,7 +35,7 @@ export function TaskList({ tasks, report, attempt, onHint, revealedHints = [], h
 
   return (
     <Pannello
-      titolo="Obiettivi della Missione"
+      titolo={tr('TaskList.titolo')}
       variante="legno"
       scorrevole
       azione={

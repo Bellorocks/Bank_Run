@@ -819,7 +819,7 @@ export class GridSession {
         }
       }
       if (bloccate > 0) {
-        this.say(tr('session.14', { bloccate, p1: bloccate === 1 ? 'a bloccata' : 'e bloccate', p2: bloccate === 1 ? tr('session.12') : tr('session.13') }));
+        this.say(tr(bloccate === 1 ? 'session.bloccataUna' : 'session.bloccateMolte', { bloccate }));
       }
     });
   }

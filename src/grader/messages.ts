@@ -16,9 +16,9 @@ import type { CheckFamily } from '../content/types';
 
 import { tr } from '../i18n/ui';
 export const FAMILY_LABEL: Record<CheckFamily, string> = {
-  numerico: 'valore',
-  strutturale: 'struttura',
-  stilistico: 'stile',
+  numerico: tr('messages.famNumerico'),
+  strutturale: tr('messages.famStrutturale'),
+  stilistico: tr('messages.famStilistico'),
 };
 
 export const MESSAGES = {

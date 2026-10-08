@@ -15,7 +15,6 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { PALETTE, UI } from '../styles/palette';
 
-import { tr } from '../i18n/ui';
 import { displayLocale } from '../i18n/language';
 // ---------------------------------------------------------------------------
 // Stili condivisi
@@ -88,7 +87,7 @@ export function Pannello({
 
   return (
     <section
-      className={crt === true ? tr('primitives.1') : tr('primitives.2')}
+      className={crt === true ? 'dd-crt dd-pannello' : 'dd-pannello'}
       style={{
         position: 'relative',
         display: 'flex',
