@@ -27,7 +27,8 @@ export default defineConfig({
   envPrefix: ['VITE_', 'TAURI_'],
   build: {
     target: 'esnext',
-    sourcemap: true,
+    // Nessuna mappa del codice nel sito pubblicato: meno peso e codice non in chiaro.
+    sourcemap: false,
     chunkSizeWarningLimit: 1000,
   },
 });

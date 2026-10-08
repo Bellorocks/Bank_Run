@@ -10,9 +10,11 @@ import { useEffect, useState } from 'react';
 import { consenso, impostaConsenso, statisticheDisponibili, suConsenso } from '../analytics/analytics';
 import { tr } from '../i18n/ui';
 import { PALETTE } from '../styles/palette';
+import { PrivacyLink, PrivacyModal } from './PrivacyModal';
 
 export function ConsentBanner() {
   const [stato, setStato] = useState(consenso());
+  const [privacy, setPrivacy] = useState(false);
   useEffect(() => suConsenso(() => setStato(consenso())), []);
 
   if (!statisticheDisponibili() || stato !== null) return null;
@@ -21,7 +23,10 @@ export function ConsentBanner() {
     <div role="dialog" aria-label={tr('Consenso.titolo')} style={bannerStyle}>
       <div style={{ flex: 1, minWidth: 220 }}>
         <div style={{ fontFamily: 'var(--font-titolo)', fontSize: 16, color: PALETTE.ambra }}>{tr('Consenso.titolo')}</div>
-        <div style={{ fontSize: 13, lineHeight: 1.45, marginTop: 4 }}>{tr('Consenso.testo')}</div>
+        <div style={{ fontSize: 13, lineHeight: 1.45, marginTop: 4 }}>
+          {tr('Consenso.testo')} <PrivacyLink onOpen={() => setPrivacy(true)} colore={PALETTE.ambra} />
+        </div>
+        {privacy && <PrivacyModal onClose={() => setPrivacy(false)} />}
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="button" onClick={() => impostaConsenso(true)} style={bottone(true)}>

@@ -73,6 +73,11 @@ function attivo(): boolean {
   return statisticheDisponibili() && consenso() === 'si';
 }
 
+/** L'identificativo casuale di questo browser, se esiste (lo mostra l'informativa privacy). */
+export function idAnonimoAttuale(): string | null {
+  return leggi(K_ID);
+}
+
 function idAnonimo(): string {
   let id = leggi(K_ID);
   if (!id) {

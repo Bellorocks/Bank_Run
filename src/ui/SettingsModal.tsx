@@ -9,6 +9,7 @@ import { isFreePlay, setFreePlay } from '../persistence/progress';
 
 import { tr } from '../i18n/ui';
 import { LanguageSwitch } from './LanguageSwitch';
+import { PrivacyLink, PrivacyModal } from './PrivacyModal';
 import { consenso, impostaConsenso, statisticheDisponibili, track } from '../analytics/analytics';
 export interface SettingsModalProps {
   readonly onClose: () => void;
@@ -21,6 +22,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const [freePlay, setFreePlayState] = useState(isFreePlay());
 
   const [statistiche, setStatistiche] = useState(consenso() === 'si');
+  const [privacy, setPrivacy] = useState(false);
   const handleToggleStatistiche = () => {
     const on = !statistiche;
     impostaConsenso(on);
@@ -54,6 +56,8 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   };
 
   return (
+    <>
+    {privacy && <PrivacyModal onClose={() => setPrivacy(false)} />}
     <div style={overlayStyle}>
       <div style={modalStyle}>
         <div style={headerRowStyle}>
@@ -130,7 +134,9 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             <div style={settingRowStyle}>
               <div>
                 <div style={labelStyle}>{tr('Consenso.impostazione')}</div>
-                <div style={subLabelStyle}>{tr('Consenso.impostazioneNota')}</div>
+                <div style={subLabelStyle}>
+                  {tr('Consenso.impostazioneNota')} · <PrivacyLink onOpen={() => setPrivacy(true)} colore="inherit" />
+                </div>
               </div>
               <button type="button" onClick={handleToggleStatistiche} style={pillButtonStyle(statistiche)}>
                 {statistiche ? 'ON' : 'OFF'}
@@ -155,6 +161,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
         </div>
       </div>
     </div>
+    </>
   );
 }
 

@@ -151,6 +151,11 @@ const COLORE_MODE: Readonly<Record<LevelMode, string>> = {
   BOSS: PALETTE.prugna,
 };
 
+/** Un testo markdown con lo stesso aspetto del mandato (usato anche dall'informativa privacy). */
+export function MarkdownBlocks({ src }: { readonly src: string }) {
+  return <>{parseMarkdown(src).map(renderBlock)}</>;
+}
+
 export function Brief({ brief, titolo, mode, seed, style }: BriefProps) {
   return (
     <Pannello

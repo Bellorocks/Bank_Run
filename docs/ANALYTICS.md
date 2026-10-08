@@ -100,11 +100,19 @@ controllare una volta a settimana.
 
 ## Privacy
 
+- L'informativa (italiano e inglese) è nel gioco: link "Privacy" nel piè di
+  pagina del titolo, nelle Impostazioni e nella richiesta di consenso; si apre
+  anche direttamente all'indirizzo `/?privacy`. Il testo è in
+  `src/locales/*/ui.json` (chiave `Privacy.testo`); titolare e contatto si
+  impostano in `.env.production` (`VITE_PRIVACY_OWNER`, `VITE_PRIVACY_CONTACT`).
 - Il consenso si chiede una volta (sul titolo o sulla mappa) e si cambia dalle
   Impostazioni; con "No" non parte nulla e l'identificativo viene cancellato.
 - Non si inviano: nome, email, IP (con l'opzione del punto 3), contenuto delle
   celle, formule scritte.
-- Prima della pubblicazione serve una breve **informativa privacy** raggiungibile
-  dal gioco che descriva quanto sopra (chi tratta i dati: tu; fornitore:
-  PostHog Inc., server UE; finalità: migliorare il gioco; conservazione;
-  come revocare il consenso).
+- I font sono serviti dal sito stesso (pacchetti Fontsource), non da Google.
+- L'informativa promette una conservazione massima di **12 mesi**: è il limite
+  del piano gratuito di PostHog; se cambi piano, imposta la conservazione o
+  aggiorna il testo.
+- In PostHog accetta il **DPA** (accordo sul trattamento dei dati), dalle
+  impostazioni dell'organizzazione: è ciò che rende PostHog "responsabile del
+  trattamento" come scritto nell'informativa.

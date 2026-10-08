@@ -17,6 +17,7 @@ import {
   WOOD_PLANK_CAP_R,
 } from './sprites/decorations';
 
+import { PrivacyLink, PrivacyModal } from './PrivacyModal';
 import { tr } from '../i18n/ui';
 import { LanguageSwitch } from './LanguageSwitch';
 export interface TitleScreenProps {
@@ -28,6 +29,8 @@ type MenuSelection = 'start' | 'grimoire' | 'settings';
 export function TitleScreen({ onStartGame }: TitleScreenProps) {
   const [hoveredOption, setHoveredOption] = useState<MenuSelection>('start');
   const [showSettings, setShowSettings] = useState(false);
+  // `/?privacy` apre direttamente l'informativa: e' l'indirizzo da linkare fuori dal gioco.
+  const [showPrivacy, setShowPrivacy] = useState(() => new URLSearchParams(window.location.search).has('privacy'));
   const [showGrimoire, setShowGrimoire] = useState(false);
   const [audioStarted, setAudioStarted] = useState(false);
 
@@ -165,7 +168,9 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
 
         {/* 5. TAVOLA INFERIORE: FOOTER & TOGGLE AUDIO LITTLEROOT TOWN */}
         <div style={footerPlankStyle}>
-          <span style={footerTextStyle}>{tr('TitleScreen.7')}</span>
+          <span style={footerTextStyle}>
+            {tr('TitleScreen.7')} · <PrivacyLink onOpen={() => setShowPrivacy(true)} colore="inherit" />
+          </span>
           <LanguageSwitch compatto />
           <button type="button" onClick={handleToggleAudio} style={woodSmallButtonStyle}>
             {sound.isMuted() ? tr('TitleScreen.8') : tr('TitleScreen.9')}
@@ -174,6 +179,7 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
       </div>
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} />}
       {showGrimoire && <SkillGrimoireModal onClose={() => setShowGrimoire(false)} />}
     </div>
   );
