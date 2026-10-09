@@ -2,9 +2,9 @@
 
 Il gioco è pubblicato su **Cloudflare Pages** (piano gratuito):
 
-- indirizzo: https://deal-desk-3zp.pages.dev
-- informativa privacy: https://deal-desk-3zp.pages.dev/?privacy
-- progetto Cloudflare: `deal-desk` (account di lorenzo.bellorini@gmail.com),
+- indirizzo: https://playbankrun.pages.dev
+- informativa privacy: https://playbankrun.pages.dev/?privacy
+- progetto Cloudflare: `playbankrun` (account di lorenzo.bellorini@gmail.com),
   branch di produzione `master`
 
 ## Ripubblicare dopo una modifica
@@ -13,7 +13,7 @@ Dalla cartella del progetto:
 
 ```bash
 npm run build
-npx wrangler@3.114.17 pages deploy dist --project-name deal-desk --branch master
+npx wrangler@3.114.17 pages deploy dist --project-name playbankrun --branch master
 ```
 
 La prima volta su un computer nuovo serve il login (si apre il browser):
@@ -36,5 +36,5 @@ chiede permessi molto più ampi.
 
 ## Dominio personalizzato (facoltativo)
 
-Dal pannello Cloudflare: *Workers & Pages → deal-desk → Custom domains*. Un
+Dal pannello Cloudflare: *Workers & Pages → playbankrun → Custom domains*. Un
 dominio tuo costa circa 10 €/anno; il sottodominio `pages.dev` è gratuito.
