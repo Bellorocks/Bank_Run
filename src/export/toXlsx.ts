@@ -98,7 +98,7 @@ export function buildWorkbook(input: ExportWorkbook): XLSX.WorkBook {
   }
 
   if (input.title) {
-    wb.Props = { ...wb.Props, Title: input.title, Application: 'DEAL DESK' };
+    wb.Props = { ...wb.Props, Title: input.title, Application: 'BANK RUN' };
   }
 
   return wb;

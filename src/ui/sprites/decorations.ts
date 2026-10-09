@@ -1,6 +1,6 @@
 /**
  * Decorazioni pixel art dettagliate (stile 16-bit su griglia di pixel nativi)
- * ed Easter Egg per DEAL DESK.
+ * ed Easter Egg per BANK RUN.
  *
  * Tutti gli sprite sono rigorosamente definiti sulla palette 16 colori (spec §8).
  */

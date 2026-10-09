@@ -95,7 +95,7 @@ Tutti si fanno da *Product analytics → New insight*, senza scrivere codice.
 - **Dispositivi** — `app_open` con `touch = true`: quanti arrivano da
   telefono/tablet, dove il gioco (solo tastiera) non è giocabile.
 
-Consiglio: metti questi insight in una **Dashboard** ("Deal Desk — KPI") da
+Consiglio: metti questi insight in una **Dashboard** ("Bank Run — KPI") da
 controllare una volta a settimana.
 
 ## Privacy

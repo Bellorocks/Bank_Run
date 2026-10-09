@@ -1,4 +1,4 @@
-# DEAL DESK — stato del lavoro
+# BANK RUN (ex Deal Desk) — stato del lavoro
 
 Aggiornato al 17 agosto 2026 (chiusura curriculum-M7, contenuto M8-M12 arrivato da un'altra sessione).
 Riferimento normativo: `PROMPT_CLAUDE_CODE.md` (il build spec).

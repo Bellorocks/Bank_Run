@@ -132,7 +132,7 @@ export function WorldMap({ onSelectLevel, onBackToTitle }: WorldMapProps) {
     <div style={pageStyle}>
       {/* Intestazione in stile legno con staffe */}
       <header style={headerStyle}>
-        <div style={badgeStyle}>DD</div>
+        <div style={badgeStyle}>BR</div>
         <span style={{ fontFamily: 'var(--font-titolo)', fontSize: 19, color: PALETTE.ambra, textShadow: `2px 2px 0 ${PALETTE.prugna}` }}>
           {tr('WorldMap.21')}
         </span>

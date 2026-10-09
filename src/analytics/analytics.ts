@@ -119,7 +119,7 @@ export function track(evento: string, proprieta: Proprieta = {}): void {
       // Nessun IP, nessun indirizzo completo: solo il percorso dell'app.
       $ip: null,
       $current_url: `${location.origin}${location.pathname}`,
-      $lib: 'deal-desk',
+      $lib: 'bank-run',
       ...proprieta,
     },
   });

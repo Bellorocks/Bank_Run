@@ -1,5 +1,5 @@
 /**
- * Shell dell'applicazione DEAL DESK.
+ * Shell dell'applicazione BANK RUN.
  */
 
 import { lazy, Suspense, useEffect, useState } from 'react';

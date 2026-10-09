@@ -55,7 +55,7 @@ export function SpriteDebug() {
       }}
     >
       <h1 style={{ color: PALETTE.ambra, fontFamily: 'var(--font-titolo)', fontSize: 14, margin: 0 }}>
-        GALLERIA SPRITE DEAL DESK (PALETTE SPEC §8)
+        GALLERIA SPRITE BANK RUN (PALETTE SPEC §8)
       </h1>
 
       <div>

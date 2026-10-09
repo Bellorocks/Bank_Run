@@ -1,9 +1,9 @@
 {
-  "name": "deal-desk",
+  "name": "bank-run",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "DEAL DESK — Excel trainer gamificato per Investment Banking & Private Equity",
+  "description": "BANK RUN — Excel trainer gamificato per Investment Banking & Private Equity",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

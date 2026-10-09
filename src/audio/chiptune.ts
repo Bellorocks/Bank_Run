@@ -191,7 +191,7 @@ class SoundEngine {
   }
 
   // -------------------------------------------------------------------------
-  // MUSICA DI SOTTOFONDO: "Deal Desk Theme", composizione originale
+  // MUSICA DI SOTTOFONDO: "Bank Run Theme", composizione originale
   // -------------------------------------------------------------------------
   //
   // Loop di 16 battute in Re maggiore, otto passi (crome) per battuta.

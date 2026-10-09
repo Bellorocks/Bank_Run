@@ -121,7 +121,7 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
 
         {/* 1. TAVOLA SUPERIORE: Intestazione Titolo & Logo */}
         <div style={headerPlankStyle}>
-          <div style={badgeStyle}>DD</div>
+          <div style={badgeStyle}>BR</div>
           <h1 style={logoStyle}>{tr('TitleScreen.1')}</h1>
           <div style={taglineStyle}>{tr('TitleScreen.2')}</div>
           <div style={statLineStyle}>{tr('TitleScreen.3')}</div>
