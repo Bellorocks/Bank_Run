@@ -44,6 +44,12 @@ scade dopo 30 minuti di inattività).
 | `analytics_opt_in` | consenso dato | — |
 | `app_error` | errore JavaScript (max 5 per visita) | `message`, `source` |
 
+## Dashboard
+
+I KPI qui sotto sono già pronti nella dashboard **"Bank Run — KPI"**:
+https://eu.posthog.com/project/299500/dashboard/1009366
+(progetto PostHog "Bank Run", regione UE, fuso Europe/Rome).
+
 ## KPI consigliati e come costruirli in PostHog
 
 Tutti si fanno da *Product analytics → New insight*, senza scrivere codice.
