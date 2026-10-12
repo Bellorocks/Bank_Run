@@ -117,7 +117,7 @@ controllare una volta a settimana.
   pagina del titolo, nelle Impostazioni e nella richiesta di consenso; si apre
   anche direttamente all'indirizzo `/?privacy`. Il testo è in
   `src/locales/*/ui.json` (chiave `Privacy.testo`); titolare e contatto si
-  impostano in `.env.production` (`VITE_PRIVACY_OWNER`, `VITE_PRIVACY_CONTACT`).
+  impostano in `.env` (`VITE_PRIVACY_OWNER`, `VITE_PRIVACY_CONTACT`), che vale sia in sviluppo sia nella build pubblicata.
 - Il consenso si chiede una volta (sul titolo o sulla mappa) e si cambia dalle
   Impostazioni; con "No" non parte nulla e l'identificativo viene cancellato.
 - Non si inviano: nome, email, IP (con l'opzione del punto 3), contenuto delle

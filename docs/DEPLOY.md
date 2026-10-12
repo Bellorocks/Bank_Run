@@ -27,14 +27,15 @@ chiede permessi molto più ampi.
 
 ## Configurazione della build
 
+`.env` contiene i valori comuni a sviluppo e build: `VITE_PRIVACY_OWNER` e
+`VITE_PRIVACY_CONTACT`, titolare e contatto dell'informativa privacy.
+
 `.env.production` contiene i valori pubblici della versione online:
 
 - `VITE_POSTHOG_KEY` — vuota = statistiche spente e nessun banner di consenso.
   Per attivarle vedi `docs/ANALYTICS.md`, poi ricostruisci e ripubblica.
 - `VITE_CF_BEACON_TOKEN` — token di Cloudflare Web Analytics (visite aggregate):
   lo script viene aggiunto solo nella build pubblicata. Vuoto = disattivato.
-- `VITE_PRIVACY_OWNER`, `VITE_PRIVACY_CONTACT` — titolare e contatto
-  dell'informativa privacy.
 
 ## Dominio personalizzato (facoltativo)
 

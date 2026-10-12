@@ -2,7 +2,7 @@
  * Informativa privacy (art. 13 GDPR), in italiano e in inglese.
  *
  * Titolare e contatto vengono dalla configurazione della build
- * (VITE_PRIVACY_OWNER, VITE_PRIVACY_CONTACT in .env.production): una sola
+ * (VITE_PRIVACY_OWNER, VITE_PRIVACY_CONTACT in .env): una sola
  * persona li compila, il testo resta nei file di lingua.
  */
 

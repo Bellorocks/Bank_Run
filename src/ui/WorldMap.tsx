@@ -13,10 +13,6 @@ import { rankForXp } from '../persistence/progression';
 import { PALETTE } from '../styles/palette';
 import { PixelSprite } from './sprites/PixelCanvas';
 import {
-  WOOD_LOG_CORNER_TL,
-  WOOD_LOG_CORNER_TR,
-  WOOD_LOG_CORNER_BL,
-  WOOD_LOG_CORNER_BR,
   MAP_PIN_BANNER,
   WOOD_CHAIN_HANGER,
   WOOD_IRON_CLAMP,
@@ -166,19 +162,6 @@ export function WorldMap({ onSelectLevel, onBackToTitle }: WorldMapProps) {
             }}
           />
 
-          {/* Angolari decorativi 16-bit a tronco di legno intagliato */}
-          <div style={{ position: 'absolute', top: -10, left: -10, zIndex: 30, pointerEvents: 'none' }}>
-            <PixelSprite frame={WOOD_LOG_CORNER_TL} scale={1.8} />
-          </div>
-          <div style={{ position: 'absolute', top: -10, right: -10, zIndex: 30, pointerEvents: 'none' }}>
-            <PixelSprite frame={WOOD_LOG_CORNER_TR} scale={1.8} />
-          </div>
-          <div style={{ position: 'absolute', bottom: -10, left: -10, zIndex: 30, pointerEvents: 'none' }}>
-            <PixelSprite frame={WOOD_LOG_CORNER_BL} scale={1.8} />
-          </div>
-          <div style={{ position: 'absolute', bottom: -10, right: -10, zIndex: 30, pointerEvents: 'none' }}>
-            <PixelSprite frame={WOOD_LOG_CORNER_BR} scale={1.8} />
-          </div>
 
           {/* Linee di rotta / sentieri pixel a quadratini dorati */}
           {pathDots(ISLANDS).map((p, i) => (
@@ -259,19 +242,6 @@ export function WorldMap({ onSelectLevel, onBackToTitle }: WorldMapProps) {
 
         {/* Pannello Dettaglio Isola e Livelli — Stile Cartelli in Legno Appesi */}
         <div style={panelOuterStyle}>
-          {/* Angolari decorativi 16-bit a tronco per il pannello */}
-          <div style={{ position: 'absolute', top: -10, left: -10, zIndex: 30, pointerEvents: 'none' }}>
-            <PixelSprite frame={WOOD_LOG_CORNER_TL} scale={1.6} />
-          </div>
-          <div style={{ position: 'absolute', top: -10, right: -10, zIndex: 30, pointerEvents: 'none' }}>
-            <PixelSprite frame={WOOD_LOG_CORNER_TR} scale={1.6} />
-          </div>
-          <div style={{ position: 'absolute', bottom: -10, left: -10, zIndex: 30, pointerEvents: 'none' }}>
-            <PixelSprite frame={WOOD_LOG_CORNER_BL} scale={1.6} />
-          </div>
-          <div style={{ position: 'absolute', bottom: -10, right: -10, zIndex: 30, pointerEvents: 'none' }}>
-            <PixelSprite frame={WOOD_LOG_CORNER_BR} scale={1.6} />
-          </div>
 
           {/* Intestazione cartello appeso con catene */}
           <div style={hangingSignHeaderStyle}>
