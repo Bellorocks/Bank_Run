@@ -2,7 +2,7 @@
 
 **An 8-bit game that trains Excel the way investment bankers and private equity analysts use it: keyboard only, real formulas, every answer graded like a model review.**
 
-**Play it:** https://playbankrun.pages.dev (desktop browser with a keyboard; Italian and English)
+**Play it:** https://playbankrun.pages.dev/?ref=github (desktop browser with a keyboard; Italian and English)
 
 ![Title screen](docs/img/title.jpg)
 

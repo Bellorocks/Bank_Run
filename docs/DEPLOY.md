@@ -4,6 +4,7 @@ Il gioco è pubblicato su **Cloudflare Pages** (piano gratuito):
 
 - indirizzo: https://playbankrun.pages.dev
 - informativa privacy: https://playbankrun.pages.dev/?privacy
+- codice sorgente: https://github.com/Bellorocks/Bank_Run (branch `main`)
 - progetto Cloudflare: `playbankrun` (account di lorenzo.bellorini@gmail.com),
   branch di produzione `master`
 

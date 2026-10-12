@@ -41,6 +41,7 @@ scade dopo 30 minuti di inattività).
 | `export_xlsx` | esportazione in Excel | `level` |
 | `language_change` | cambio lingua | `from`, `to` |
 | `free_play_toggle` | modalità libera | `on` |
+| `source_click` | clic sul link al codice sorgente (Crediti) | — |
 | `linkedin_click` | clic sul profilo LinkedIn dell'autore | `location` (credits = finestra Crediti, home = riga "di Lorenzo Bellorini" sul titolo) |
 | `mobile_share` | dal telefono, "Mandati il link" | — |
 | `analytics_opt_in` | consenso dato | — |

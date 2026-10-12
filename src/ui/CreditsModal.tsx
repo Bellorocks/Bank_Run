@@ -11,6 +11,7 @@ import { tr } from '../i18n/ui';
 import { PALETTE } from '../styles/palette';
 
 export const LINKEDIN_URL = 'https://www.linkedin.com/in/lorenzobellorini1404';
+export const SORGENTE_URL = 'https://github.com/Bellorocks/Bank_Run';
 
 /** Libreria, uso nel gioco, licenza. I nomi propri non si traducono. */
 const LIBRERIE: readonly (readonly [string, string, string])[] = [
@@ -71,6 +72,20 @@ export function CreditsModal({ onClose }: { readonly onClose: () => void }) {
               </li>
             ))}
           </ul>
+
+          <h3 style={sezione}>{tr('Credits.codice')}</h3>
+          <p style={riga}>
+            {tr('Credits.codiceTesto')}{' '}
+            <a
+              href={SORGENTE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => track('source_click')}
+              style={{ color: PALETTE.petrolio, fontWeight: 700 }}
+            >
+              github.com/Bellorocks/Bank_Run ↗
+            </a>
+          </p>
         </div>
       </div>
     </div>
