@@ -30,7 +30,7 @@ scade dopo 30 minuti di inattività).
 
 | Evento | Quando | Proprietà principali |
 |---|---|---|
-| `app_open` | apertura del gioco | `new_player`, `days_since_first`, `screen_w`, `screen_h`, `touch`, `referrer`, `browser_lang` |
+| `app_open` | apertura del gioco | `new_player`, `days_since_first`, `screen_w`, `screen_h`, `touch`, `referrer`, `ref`, `browser_lang` |
 | `screen_view` | cambio schermata | `screen` (title / map / level) |
 | `level_start` | apertura di un livello | `level`, `module`, `rank`, `mode`, `seed`, `replay` |
 | `level_check` | ogni Verifica (F12) | `attempt`, `passed`, `tasks_correct`, `tasks_total`, `failed_tasks`, `failed_families` (value / structure / style), `seconds` |
@@ -42,6 +42,7 @@ scade dopo 30 minuti di inattività).
 | `language_change` | cambio lingua | `from`, `to` |
 | `free_play_toggle` | modalità libera | `on` |
 | `linkedin_click` | clic sul profilo LinkedIn dell'autore | `location` (credits = finestra Crediti, home = riga "di Lorenzo Bellorini" sul titolo) |
+| `mobile_share` | dal telefono, "Mandati il link" | — |
 | `analytics_opt_in` | consenso dato | — |
 | `app_error` | errore JavaScript (max 5 per visita) | `message`, `source` |
 
@@ -60,6 +61,11 @@ Tutti si fanno da *Product analytics → New insight*, senza scrivere codice.
   "Unique users", intervallo giorno/settimana/mese.
 - **Nuovi giocatori** — *Trends*, `app_open` filtrato `new_player = true`.
 - **Da dove arrivano** — *Trends*, `app_open` raggruppato per `referrer`.
+- **Quale link condiviso funziona** — *Trends*, `app_open` raggruppato per `ref`.
+  Usa un'etichetta diversa per ogni posto in cui metti il link:
+  `https://playbankrun.pages.dev/?ref=cv`, `?ref=linkedin`, `?ref=github`… Serve
+  perché LinkedIn e molte app non passano il sito di provenienza (`referrer`
+  vuoto). L'etichetta viene tolta dall'indirizzo appena il gioco si apre.
 - **Lingua** — *Trends*, `app_open` raggruppato per `lang`.
 
 **Attivazione (il KPI più importante all'inizio)**

@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import { track } from '../analytics/analytics';
 import { tr } from '../i18n/ui';
 import { PALETTE } from '../styles/palette';
 
@@ -25,7 +26,27 @@ export function TouchNotice() {
       return senzaPuntatoreFine();
     }
   });
+  const [copiato, setCopiato] = useState(false);
   if (!visibile) return null;
+  // Chi arriva dal telefono (tipico da LinkedIn) puo' mandarsi il link per aprirlo dal computer.
+  const condividi = async () => {
+    track('mobile_share');
+    const url = window.location.origin + '/';
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Bank Run', url });
+        return;
+      }
+    } catch {
+      return; // condivisione annullata
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiato(true);
+    } catch {
+      // niente appunti: resta l'indirizzo nella barra del browser
+    }
+  };
   const chiudi = () => {
     try {
       localStorage.setItem(CHIAVE, '1');
@@ -38,9 +59,15 @@ export function TouchNotice() {
     <div role="alert" style={stile}>
       <div style={{ fontFamily: 'var(--font-titolo)', fontSize: 17, color: PALETTE.ambra }}>{tr('Touch.titolo')}</div>
       <div style={{ fontSize: 14, lineHeight: 1.5, margin: '6px 0 10px' }}>{tr('Touch.testo')}</div>
-      <button type="button" onClick={chiudi} style={bottone}>
-        {tr('Touch.ok')}
-      </button>
+      {copiato && <div style={{ fontSize: 13, color: PALETTE.lime, marginBottom: 8 }}>{tr('Touch.copiato')}</div>}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button type="button" onClick={() => void condividi()} style={bottone}>
+          {tr('Touch.condividi')}
+        </button>
+        <button type="button" onClick={chiudi} style={bottoneSecondario}>
+          {tr('Touch.ok')}
+        </button>
+      </div>
     </div>
   );
 }
@@ -69,4 +96,10 @@ const bottone: React.CSSProperties = {
   color: PALETTE.inchiostro,
   background: PALETTE.ambra,
   border: `2px solid ${PALETTE.ambra}`,
+};
+
+const bottoneSecondario: React.CSSProperties = {
+  ...bottone,
+  color: PALETTE.bianco,
+  background: 'transparent',
 };

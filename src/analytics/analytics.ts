@@ -24,6 +24,28 @@ const K_PRIMA_VISITA = 'dd_first_seen';
 
 export type Consenso = 'si' | 'no' | null;
 
+/**
+ * Etichetta del link da cui si arriva (`/?ref=cv`, `/?ref=linkedin`): dice quale
+ * link condiviso porta giocatori anche quando il browser non manda il referrer.
+ * Si legge una volta all'avvio e si toglie dall'indirizzo, cosi' chi ricondivide
+ * la pagina non si porta dietro l'etichetta di qualcun altro.
+ */
+const REF = leggiRef();
+
+function leggiRef(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const url = new URL(window.location.href);
+    const valore = url.searchParams.get('ref');
+    if (valore === null) return null;
+    url.searchParams.delete('ref');
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+    return valore.toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 32) || null;
+  } catch {
+    return null;
+  }
+}
+
 function leggi(k: string): string | null {
   try {
     return localStorage.getItem(k);
@@ -168,6 +190,7 @@ export function trackAppOpen(): void {
     screen_h: window.innerHeight,
     touch,
     referrer,
+    ref: REF,
     browser_lang: navigator.language,
   });
 }
