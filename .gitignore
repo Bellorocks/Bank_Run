@@ -11,3 +11,6 @@ src-tauri/gen/schemas/
 # Configurazione locale (la chiave di produzione va in .env.production)
 .env.local
 .env.*.local
+
+# Appunti e screenshot di lavoro, non pubblicati
+local/

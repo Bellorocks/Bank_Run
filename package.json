@@ -3,7 +3,10 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "BANK RUN — Excel trainer gamificato per Investment Banking & Private Equity",
+  "description": "Bank Run: an 8-bit game that trains Excel for investment banking and private equity",
+  "author": "Lorenzo Bellorini",
+  "license": "GPL-3.0-only",
+  "homepage": "https://playbankrun.pages.dev",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
