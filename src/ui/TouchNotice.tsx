@@ -10,9 +10,14 @@ import { PALETTE } from '../styles/palette';
 
 const CHIAVE = 'dd_touch_notice_seen';
 
-function senzaPuntatoreFine(): boolean {
+/**
+ * Il puntatore principale e' il dito. Non basta "nessun puntatore preciso": i
+ * telefoni con pennino (Galaxy S Ultra, Note) dichiarano anche un puntatore fine
+ * e l'avviso non compariva.
+ */
+function puntatoreDito(): boolean {
   try {
-    return window.matchMedia('(any-pointer: fine)').matches === false;
+    return window.matchMedia('(pointer: coarse)').matches;
   } catch {
     return false;
   }
@@ -21,9 +26,9 @@ function senzaPuntatoreFine(): boolean {
 export function TouchNotice() {
   const [visibile, setVisibile] = useState(() => {
     try {
-      return senzaPuntatoreFine() && localStorage.getItem(CHIAVE) === null;
+      return puntatoreDito() && localStorage.getItem(CHIAVE) === null;
     } catch {
-      return senzaPuntatoreFine();
+      return puntatoreDito();
     }
   });
   const [copiato, setCopiato] = useState(false);
