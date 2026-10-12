@@ -4,7 +4,8 @@
  * cornice e pulsanti del menu in legno intagliato pixel art.
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { track } from '../analytics/analytics';
 import { sound } from '../audio/chiptune';
 import { PALETTE } from '../styles/palette';
 import { SettingsModal } from './SettingsModal';
@@ -20,11 +21,15 @@ import {
 import { PrivacyLink, PrivacyModal } from './PrivacyModal';
 import { tr } from '../i18n/ui';
 import { LanguageSwitch } from './LanguageSwitch';
+import { CreditsModal, LINKEDIN_URL } from './CreditsModal';
+
 export interface TitleScreenProps {
   readonly onStartGame: () => void;
 }
 
-type MenuSelection = 'start' | 'grimoire' | 'settings';
+type MenuSelection = 'start' | 'grimoire' | 'settings' | 'credits';
+
+const MENU: readonly MenuSelection[] = ['start', 'grimoire', 'settings', 'credits'];
 
 export function TitleScreen({ onStartGame }: TitleScreenProps) {
   const [hoveredOption, setHoveredOption] = useState<MenuSelection>('start');
@@ -32,7 +37,10 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
   // `/?privacy` apre direttamente l'informativa: e' l'indirizzo da linkare fuori dal gioco.
   const [showPrivacy, setShowPrivacy] = useState(() => new URLSearchParams(window.location.search).has('privacy'));
   const [showGrimoire, setShowGrimoire] = useState(false);
+  const [showCredits, setShowCredits] = useState(false);
   const [audioStarted, setAudioStarted] = useState(false);
+  const plankRefs = useRef<Partial<Record<MenuSelection, HTMLButtonElement | null>>>({});
+  const finestraAperta = showSettings || showPrivacy || showGrimoire || showCredits;
 
   const handleStart = () => {
     if (!audioStarted && !sound.isMuted()) {
@@ -51,6 +59,45 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
     }
   };
 
+  const apri = (mostra: (v: boolean) => void) => () => {
+    sound.playSelect();
+    mostra(true);
+  };
+
+  const azioni: Record<MenuSelection, () => void> = {
+    start: handleStart,
+    grimoire: apri(setShowGrimoire),
+    settings: apri(setShowSettings),
+    credits: apri(setShowCredits),
+  };
+
+  // Menu da tastiera: frecce su/giù spostano la voce evidenziata (e il focus),
+  // Invio la apre. Con una finestra aperta i tasti sono suoi.
+  useEffect(() => {
+    if (finestraAperta) return;
+    const onKey = (e: KeyboardEvent) => {
+      const attivo = document.activeElement;
+      const libero = !attivo || attivo === document.body;
+      if (e.key === 'Enter') {
+        // Su un pulsante o un link Invio lo gestisce già il browser.
+        if (!libero) return;
+        e.preventDefault();
+        azioni[hoveredOption]();
+        return;
+      }
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      if (!libero && !MENU.some((id) => plankRefs.current[id] === attivo)) return;
+      e.preventDefault();
+      const passo = e.key === 'ArrowDown' ? 1 : MENU.length - 1;
+      const prossima = MENU[(MENU.indexOf(hoveredOption) + passo) % MENU.length];
+      setHoveredOption(prossima);
+      sound.playSelect();
+      plankRefs.current[prossima]?.focus();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
   const menuPlank = (
     id: MenuSelection,
     label: string,
@@ -62,7 +109,11 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
       <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
         <button
           type="button"
+          ref={(el) => {
+            plankRefs.current[id] = el;
+          }}
           onClick={onClick}
+          onFocus={() => setHoveredOption(id)}
           onMouseEnter={() => {
             setHoveredOption(id);
             sound.playSelect();
@@ -125,6 +176,15 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
           <h1 style={logoStyle}>{tr('TitleScreen.1')}</h1>
           <div style={taglineStyle}>{tr('TitleScreen.2')}</div>
           <div style={statLineStyle}>{tr('TitleScreen.3')}</div>
+          <a
+            href={LINKEDIN_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => track('linkedin_click', { location: 'home' })}
+            style={autoreStyle}
+          >
+            {tr('TitleScreen.autore')}
+          </a>
         </div>
 
         {/* Graffette di ferro di raccordo tra Tavola 1 e Tavola 2 */}
@@ -143,10 +203,7 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
         </div>
 
         {/* 3. TAVOLA 2: ALBERO DELLE SKILL */}
-        {menuPlank('grimoire', tr('TitleScreen.5'), () => {
-          sound.playSelect();
-          setShowGrimoire(true);
-        })}
+        {menuPlank('grimoire', tr('TitleScreen.5'), azioni.grimoire)}
 
         {/* Graffette di ferro di raccordo tra Tavola 3 e Tavola 4 */}
         <div style={stapleRowStyle}>
@@ -155,10 +212,15 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
         </div>
 
         {/* 4. TAVOLA 3: IMPOSTAZIONI & AUDIO */}
-        {menuPlank('settings', tr('TitleScreen.6'), () => {
-          sound.playSelect();
-          setShowSettings(true);
-        })}
+        {menuPlank('settings', tr('TitleScreen.6'), azioni.settings)}
+
+        <div style={stapleRowStyle}>
+          <PixelSprite frame={WOOD_STAPLE_LINK} scale={1.8} />
+          <PixelSprite frame={WOOD_STAPLE_LINK} scale={1.8} />
+        </div>
+
+        {/* 5. TAVOLA 4: CREDITI */}
+        {menuPlank('credits', tr('TitleScreen.crediti'), azioni.credits)}
 
         {/* Graffette di ferro di raccordo tra Tavola 4 e Tavola 5 */}
         <div style={stapleRowStyle}>
@@ -166,7 +228,7 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
           <PixelSprite frame={WOOD_STAPLE_LINK} scale={1.8} />
         </div>
 
-        {/* 5. TAVOLA INFERIORE: FOOTER & TOGGLE AUDIO LITTLEROOT TOWN */}
+        {/* 6. TAVOLA INFERIORE: FOOTER & TOGGLE AUDIO LITTLEROOT TOWN */}
         <div style={footerPlankStyle}>
           <span style={footerTextStyle}>
             {tr('TitleScreen.7')} · <PrivacyLink onOpen={() => setShowPrivacy(true)} colore="inherit" />
@@ -181,6 +243,7 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} />}
       {showGrimoire && <SkillGrimoireModal onClose={() => setShowGrimoire(false)} />}
+      {showCredits && <CreditsModal onClose={() => setShowCredits(false)} />}
     </div>
   );
 }
@@ -332,6 +395,15 @@ const statLineStyle: React.CSSProperties = {
   color: PALETTE.lime,
   marginTop: 2,
   whiteSpace: 'nowrap',
+};
+
+const autoreStyle: React.CSSProperties = {
+  fontFamily: 'var(--font-testo)',
+  fontSize: 14,
+  color: PALETTE.ghiaccio,
+  marginTop: 6,
+  textDecoration: 'underline dotted',
+  textUnderlineOffset: 3,
 };
 
 const footerTextStyle: React.CSSProperties = {
