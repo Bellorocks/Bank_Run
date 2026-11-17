@@ -164,7 +164,7 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
       </div>
 
       <main className="br-entra" style={colonnaStyle}>
-        <h1 className="br-logo br-galleggia" style={{ fontSize: 'clamp(72px, 14vw, 176px)' }}>
+        <h1 className="br-logo br-galleggia" style={{ fontSize: 'clamp(72px, min(14vw, 21vh), 176px)' }}>
           {tr('TitleScreen.1')}
         </h1>
         <div className="br-tassello" style={insegnaStyle}>

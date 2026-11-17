@@ -44,13 +44,15 @@ const bannerStyle: React.CSSProperties = {
   position: 'fixed',
   left: 16,
   right: 16,
-  bottom: 44,
-  maxWidth: 720,
+  // Una fascia bassa e larga, appena sopra il nastro: sul titolo non deve
+  // coprire il menu, che e' la prima cosa che un visitatore cerca.
+  bottom: 38,
+  maxWidth: 1180,
   margin: '0 auto',
   zIndex: 50,
   flexDirection: 'row',
   flexWrap: 'wrap',
   alignItems: 'center',
   gap: 12,
-  padding: '12px 16px',
+  padding: '8px 14px',
 };
