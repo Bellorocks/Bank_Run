@@ -1,31 +1,24 @@
 /**
- * I mattoni 8-bit dell'interfaccia (spec §8).
+ * I mattoni dell'interfaccia.
  *
- * Regola d'arte: **chrome pixelato, contenuto leggibile**. Qui vive il chrome —
- * bordi netti, nessun raggio, nessuna ombra sfumata, riempimenti a step. Il
- * contenuto lungo (il brief, i messaggi del grader) usa DotGothic16 e resta leggibile.
- *
- * Nessun colore inventato: tutto arriva da `src/styles/palette.ts`. Se un colore
- * non e' nella palette non esiste, e non basta che "stia bene".
+ * Regola d'arte: **chrome scuro e netto, contenuto leggibile**. Qui vive il
+ * chrome — bordi sottili, nessun raggio, ombre dure. L'aspetto sta nelle classi
+ * `br-*` di `global.css` (hover, pressione e animazioni non si fanno con gli
+ * stili inline); i componenti scelgono solo la variante.
  *
  * Sono componenti di sola presentazione: nessuno stato globale, nessuno store.
- * L'unico stato ammesso e' quello puramente visivo (hover, pressione).
  */
 
-import { useState, type CSSProperties, type ReactNode } from 'react';
-import { PALETTE, UI } from '../styles/palette';
+import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { T, UI } from '../styles/palette';
 
 import { displayLocale } from '../i18n/language';
 // ---------------------------------------------------------------------------
 // Stili condivisi
 // ---------------------------------------------------------------------------
 
-/**
- * Il bordo "pixelato": due contorni netti e concentrici. E' un box-shadow senza
- * sfocatura, quindi resta un rettangolo duro anche a scale diverse — mentre un
- * `border` doppio richiederebbe un elemento in piu' per ogni pannello.
- */
-export function bordoPixel(colore: string = UI.bordo, esterno: string = PALETTE.inchiostro): CSSProperties {
+/** Doppio contorno netto: un bordo colorato e un filo scuro attorno. */
+export function bordoPixel(colore: string = UI.bordo, esterno: string = T.abisso): CSSProperties {
   return {
     border: `2px solid ${colore}`,
     boxShadow: `0 0 0 2px ${esterno}`,
@@ -33,21 +26,26 @@ export function bordoPixel(colore: string = UI.bordo, esterno: string = PALETTE.
   };
 }
 
-/** Testo da interfaccia: Jersey 25, corto, spaziato. */
+/** Testo da interfaccia: Silkscreen, corto, maiuscolo, spaziato. */
 export const TESTO_UI: CSSProperties = {
   fontFamily: 'var(--font-titolo)',
-  letterSpacing: '0.04em',
-  lineHeight: 1.6,
+  letterSpacing: '0.14em',
+  textTransform: 'uppercase',
+  lineHeight: 1.4,
 };
 
-/** Testo lungo: DotGothic16, alto e leggibile. */
+/** Testo lungo: DotGothic16 alla sua taglia nativa, 16px. */
 export const TESTO_LUNGO: CSSProperties = {
   fontFamily: 'var(--font-testo)',
-  fontSize: 17,
-  lineHeight: 1.45,
+  fontSize: 16,
+  lineHeight: 1.5,
 };
 
 // ---------------------------------------------------------------------------
+// Pannello
+// ---------------------------------------------------------------------------
+
+/** Le varianti storiche restano accettate: l'aspetto oggi e' uno solo. */
 export type VariantePannello = 'scuro' | 'pergamena' | 'legno' | 'castello';
 
 export interface PannelloProps {
@@ -57,63 +55,29 @@ export interface PannelloProps {
   readonly children: ReactNode;
   /** Il corpo scorre invece di crescere. Serve al brief e alla task list. */
   readonly scorrevole?: boolean;
-  /** Scanline CRT (§8): ammesse sui pannelli di menu, MAI sulla griglia. */
+  /** Scanline CRT: ammesse sui pannelli di menu, MAI sulla griglia. */
   readonly crt?: boolean;
+  /** Colore del titolo. */
   readonly colore?: string;
   readonly variante?: VariantePannello;
+  /** Bordo dorato: il pannello che conta in questo momento. */
+  readonly acceso?: boolean;
   readonly style?: CSSProperties;
   readonly bodyStyle?: CSSProperties;
 }
 
-export function Pannello({
-  titolo,
-  azione,
-  children,
-  scorrevole,
-  crt,
-  colore = PALETTE.inchiostro,
-  variante = 'scuro',
-  style,
-  bodyStyle,
-}: PannelloProps) {
-  const isPergamena = variante === 'pergamena';
-  const isLegno = variante === 'legno';
-  const isCastello = variante === 'castello';
-
-  const bgCorpo = isPergamena ? PALETTE.bianco : isLegno ? PALETTE.bianco : isCastello ? PALETTE.ardesia : PALETTE.bianco;
-  const coloreTesto = PALETTE.inchiostro;
-  const bgHeader = isPergamena ? PALETTE.ambra : isLegno ? PALETTE.corallo : isCastello ? PALETTE.ardesia : PALETTE.nebbia;
-  const headerBordo = colore;
+export function Pannello({ titolo, azione, children, scorrevole, crt, colore, acceso, style, bodyStyle }: PannelloProps) {
+  const classi = ['br-pannello'];
+  if (acceso === true) classi.push('br-pannello--acceso');
+  if (crt === true) classi.push('br-scan');
 
   return (
-    <section
-      className={crt === true ? 'dd-crt dd-pannello' : 'dd-pannello'}
-      style={{
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: 0,
-        background: bgCorpo,
-        color: coloreTesto,
-        border: `3px solid ${colore}`,
-        boxShadow: `3px 3px 0 ${PALETTE.ardesia}`,
-        ...style,
-      }}
-    >
+    <section className={classi.join(' ')} style={style}>
       {titolo !== undefined && (
-        <header
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12,
-            padding: '8px 10px',
-            background: bgHeader,
-            borderBottom: `2px solid ${headerBordo}`,
-            flex: '0 0 auto',
-          }}
-        >
-          <h2 style={{ ...TESTO_UI, margin: 0, fontSize: 16, color: isPergamena ? PALETTE.inchiostro : PALETTE.bianco }}>{titolo}</h2>
+        <header className="br-pannello__testa">
+          <h2 className="br-pannello__titolo" style={colore !== undefined ? { color: colore } : undefined}>
+            {titolo}
+          </h2>
           {azione}
         </header>
       )}
@@ -121,7 +85,7 @@ export function Pannello({
         style={{
           flex: '1 1 auto',
           minHeight: 0,
-          padding: 12,
+          padding: 14,
           overflowY: scorrevole === true ? 'auto' : 'visible',
           ...bodyStyle,
         }}
@@ -136,25 +100,14 @@ export function Pannello({
 // Pulsante
 // ---------------------------------------------------------------------------
 
-export type VariantePulsante = 'primario' | 'secondario' | 'pericolo' | 'fantasma';
-
-interface Livrea {
-  readonly sfondo: string;
-  readonly testo: string;
-  readonly bordo: string;
-}
-
-const LIVREE: Readonly<Record<VariantePulsante, Livrea>> = {
-  primario: { sfondo: UI.accento, testo: PALETTE.inchiostro, bordo: PALETTE.bianco },
-  secondario: { sfondo: PALETTE.notte, testo: UI.testo, bordo: UI.bordo },
-  pericolo: { sfondo: UI.errore, testo: PALETTE.bianco, bordo: PALETTE.corallo },
-  fantasma: { sfondo: 'transparent', testo: UI.testoTenue, bordo: UI.bordo },
-};
+export type VariantePulsante = 'primario' | 'secondario' | 'accento' | 'pericolo' | 'fantasma';
+export type TagliaPulsante = 'piccolo' | 'normale' | 'grande';
 
 export interface PulsanteProps {
   readonly children: ReactNode;
   readonly onClick?: () => void;
   readonly variante?: VariantePulsante;
+  readonly taglia?: TagliaPulsante;
   readonly disabled?: boolean;
   readonly larghezzaPiena?: boolean;
   /** Etichetta del tasto equivalente, mostrata a destra: il gioco si gioca da tastiera. */
@@ -164,10 +117,19 @@ export interface PulsanteProps {
   readonly style?: CSSProperties;
 }
 
+/** Le classi di un pulsante: servono anche a link e pulsanti scritti a mano. */
+export function classiPulsante(variante: VariantePulsante = 'secondario', taglia: TagliaPulsante = 'normale'): string {
+  const classi = ['br-btn'];
+  if (variante !== 'secondario') classi.push(`br-btn--${variante}`);
+  if (taglia !== 'normale') classi.push(`br-btn--${taglia}`);
+  return classi.join(' ');
+}
+
 export function Pulsante({
   children,
   onClick,
   variante = 'secondario',
+  taglia = 'normale',
   disabled = false,
   larghezzaPiena = false,
   scorciatoia,
@@ -175,62 +137,18 @@ export function Pulsante({
   autoFocus,
   style,
 }: PulsanteProps) {
-  // Hover e pressione sono stato puramente visivo: restano dentro il componente,
-  // non risalgono a nessuno store.
-  const [hover, setHover] = useState(false);
-  const [premuto, setPremuto] = useState(false);
-  const livrea = LIVREE[variante];
-
-  const spento = disabled === true;
-  const acceso = !spento && (hover || premuto);
-
   return (
     <button
       type="button"
-      onClick={spento ? undefined : onClick}
-      disabled={spento}
+      className={classiPulsante(variante, taglia)}
+      onClick={onClick}
+      disabled={disabled}
       title={title}
       autoFocus={autoFocus}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => {
-        setHover(false);
-        setPremuto(false);
-      }}
-      onMouseDown={() => setPremuto(true)}
-      onMouseUp={() => setPremuto(false)}
-      style={{
-        ...TESTO_UI,
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        width: larghezzaPiena ? '100%' : undefined,
-        padding: '10px 14px',
-        fontSize: 15,
-        cursor: spento ? 'not-allowed' : 'pointer',
-        color: spento ? UI.testoTenue : livrea.testo,
-        background: spento ? PALETTE.grafite : acceso ? PALETTE.bianco : livrea.sfondo,
-        ...bordoPixel(spento ? UI.bordo : livrea.bordo),
-        // La pressione sposta il pulsante di 2px: e' l'unica "animazione" che un
-        // bottone 8-bit puo' permettersi senza smettere di sembrare disegnato a pixel.
-        transform: premuto && !spento ? 'translate(2px, 2px)' : undefined,
-        ...style,
-      }}
+      style={{ width: larghezzaPiena ? '100%' : undefined, ...style }}
     >
       <span>{children}</span>
-      {scorciatoia !== undefined && (
-        <span
-          style={{
-            fontSize: 13,
-            padding: '2px 4px',
-            color: spento ? UI.testoTenue : PALETTE.inchiostro,
-            background: spento ? 'transparent' : PALETTE.nebbia,
-            border: `1px solid ${spento ? UI.bordo : PALETTE.inchiostro}`,
-          }}
-        >
-          {scorciatoia}
-        </span>
-      )}
+      {scorciatoia !== undefined && <span className="br-kbd">{scorciatoia}</span>}
     </button>
   );
 }
@@ -251,40 +169,23 @@ export interface BarraXpProps {
 }
 
 /**
- * Barra a step, non fluida (§8): il riempimento e' fatto di blocchi discreti,
- * come nei giochi a cui somiglia. Un gradiente continuo sarebbe piu' facile e
- * sbagliato.
+ * Barra a step, non fluida: il riempimento e' fatto di blocchi discreti, come
+ * nei giochi a cui somiglia.
  *
  * Il segmento si accende solo quando e' pieno per davvero (`floor`), tranne
  * l'ultimo, che si accende all'arrivo esatto al massimo: una barra "quasi piena"
  * non deve mai sembrare completa.
  */
-export function BarraXp({
-  valore,
-  massimo,
-  passi = 20,
-  colore = UI.accento,
-  etichetta,
-  altezza = 14,
-  style,
-}: BarraXpProps) {
+export function BarraXp({ valore, massimo, passi = 20, colore = T.oro, etichetta, altezza = 14, style }: BarraXpProps) {
   const quota = massimo > 0 ? Math.max(0, Math.min(1, valore / massimo)) : 0;
   const pieni = quota >= 1 ? passi : Math.floor(quota * passi);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, ...style }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, ...style }}>
       {etichetta !== undefined && (
-        <div
-          style={{
-            ...TESTO_UI,
-            display: 'flex',
-            justifyContent: 'space-between',
-            fontSize: 14,
-            color: UI.testoTenue,
-          }}
-        >
+        <div className="br-label" style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
           <span>{etichetta}</span>
-          <span style={{ color: colore }}>
+          <span style={{ color: colore, whiteSpace: 'nowrap' }}>
             {Math.round(valore)} / {Math.round(massimo)}
           </span>
         </div>
@@ -300,8 +201,8 @@ export function BarraXp({
           gap: 2,
           padding: 2,
           height: altezza,
-          background: PALETTE.inchiostro,
-          ...bordoPixel(),
+          background: T.abisso,
+          border: `2px solid ${T.linea}`,
         }}
       >
         {Array.from({ length: passi }, (_, i) => (
@@ -309,7 +210,8 @@ export function BarraXp({
             key={i}
             style={{
               flex: '1 1 0',
-              background: i < pieni ? colore : PALETTE.grafite,
+              background: i < pieni ? colore : T.rialzo,
+              boxShadow: i < pieni ? `0 0 6px ${colore}88` : undefined,
             }}
           />
         ))}
@@ -336,12 +238,15 @@ export function Badge({ children, colore = UI.testoTenue, pieno = false, title, 
     <span
       title={title}
       style={{
-        ...TESTO_UI,
         display: 'inline-block',
-        padding: '3px 6px',
-        fontSize: 13,
+        padding: '2px 7px',
+        fontFamily: 'var(--font-titolo)',
+        fontSize: 12,
+        letterSpacing: '0.06em',
+        textTransform: 'uppercase',
+        lineHeight: 1.4,
         whiteSpace: 'nowrap',
-        color: pieno ? PALETTE.inchiostro : colore,
+        color: pieno ? T.abisso : colore,
         background: pieno ? colore : 'transparent',
         border: `2px solid ${colore}`,
         borderRadius: 0,
@@ -350,6 +255,114 @@ export function Badge({ children, colore = UI.testoTenue, pieno = false, title, 
     >
       {children}
     </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Finestra
+// ---------------------------------------------------------------------------
+
+/** Le finestre aperte, dalla piu' vecchia alla piu' recente: Esc chiude solo l'ultima. */
+const pilaFinestre: symbol[] = [];
+
+export interface FinestraProps {
+  readonly titolo: string;
+  readonly sottotitolo?: string;
+  readonly onClose: () => void;
+  readonly children: ReactNode;
+  readonly larghezza?: number;
+  /** Etichetta accessibile del pulsante di chiusura. */
+  readonly chiudiLabel?: string;
+  readonly zIndex?: number;
+  /** Fascia fissa sotto il corpo (pulsanti di conferma). */
+  readonly piede?: ReactNode;
+  readonly bodyStyle?: CSSProperties;
+}
+
+/**
+ * Finestra modale: velo scuro, pannello acceso, testata con chiusura.
+ * Esc e il clic fuori chiudono; con piu' finestre aperte Esc chiude la piu' recente.
+ */
+export function Finestra({
+  titolo,
+  sottotitolo,
+  onClose,
+  children,
+  larghezza = 560,
+  chiudiLabel,
+  zIndex = 100,
+  piede,
+  bodyStyle,
+}: FinestraProps) {
+  const chiudiRef = useRef(onClose);
+  chiudiRef.current = onClose;
+
+  useEffect(() => {
+    const id = Symbol('finestra');
+    pilaFinestre.push(id);
+    const esc = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || pilaFinestre[pilaFinestre.length - 1] !== id) return;
+      e.stopImmediatePropagation();
+      chiudiRef.current();
+    };
+    window.addEventListener('keydown', esc);
+    return () => {
+      window.removeEventListener('keydown', esc);
+      const i = pilaFinestre.indexOf(id);
+      if (i >= 0) pilaFinestre.splice(i, 1);
+    };
+  }, []);
+
+  return (
+    <div
+      className="br-velo"
+      style={{ zIndex }}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-label={titolo}
+        className="br-pannello br-pannello--acceso br-finestra"
+        style={{ width: larghezza, maxWidth: '100%', maxHeight: '90vh' }}
+      >
+        <header className="br-pannello__testa" style={{ padding: '10px 14px' }}>
+          <div style={{ minWidth: 0 }}>
+            <h2 className="br-pannello__titolo" style={{ fontSize: 14 }}>
+              {titolo}
+            </h2>
+            {sottotitolo !== undefined && (
+              <div style={{ marginTop: 4, fontSize: 14, lineHeight: 1.35, color: T.tenue }}>{sottotitolo}</div>
+            )}
+          </div>
+          <button
+            type="button"
+            className="br-btn br-btn--fantasma br-btn--piccolo"
+            onClick={onClose}
+            aria-label={chiudiLabel ?? 'Esc'}
+            style={{ flexShrink: 0 }}
+          >
+            ✕ <span className="br-kbd">ESC</span>
+          </button>
+        </header>
+        <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', padding: 18, ...bodyStyle }}>{children}</div>
+        {piede !== undefined && (
+          <footer
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 10,
+              padding: '12px 14px',
+              borderTop: `2px solid ${T.linea}`,
+              background: T.rialzo,
+            }}
+          >
+            {piede}
+          </footer>
+        )}
+      </div>
+    </div>
   );
 }
 

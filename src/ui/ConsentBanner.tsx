@@ -9,7 +9,7 @@
 import { useEffect, useState } from 'react';
 import { consenso, impostaConsenso, statisticheDisponibili, suConsenso } from '../analytics/analytics';
 import { tr } from '../i18n/ui';
-import { PALETTE } from '../styles/palette';
+import { T } from '../styles/palette';
 import { PrivacyLink, PrivacyModal } from './PrivacyModal';
 
 export function ConsentBanner() {
@@ -20,19 +20,19 @@ export function ConsentBanner() {
   if (!statisticheDisponibili() || stato !== null) return null;
 
   return (
-    <div role="dialog" aria-label={tr('Consenso.titolo')} style={bannerStyle}>
+    <div role="dialog" aria-label={tr('Consenso.titolo')} className="br-pannello br-pannello--acceso br-finestra" style={bannerStyle}>
       <div style={{ flex: 1, minWidth: 220 }}>
-        <div style={{ fontFamily: 'var(--font-titolo)', fontSize: 16, color: PALETTE.ambra }}>{tr('Consenso.titolo')}</div>
-        <div style={{ fontSize: 13, lineHeight: 1.45, marginTop: 4 }}>
-          {tr('Consenso.testo')} <PrivacyLink onOpen={() => setPrivacy(true)} colore={PALETTE.ambra} />
+        <div className="br-label" style={{ color: T.accento }}>{tr('Consenso.titolo')}</div>
+        <div style={{ fontSize: 14, lineHeight: 1.4, marginTop: 4, color: T.tenue }}>
+          {tr('Consenso.testo')} <PrivacyLink onOpen={() => setPrivacy(true)} colore={T.accento} />
         </div>
         {privacy && <PrivacyModal onClose={() => setPrivacy(false)} />}
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <button type="button" onClick={() => impostaConsenso(true)} style={bottone(true)}>
+        <button type="button" onClick={() => impostaConsenso(true)} className="br-btn br-btn--accento">
           {tr('Consenso.si')}
         </button>
-        <button type="button" onClick={() => impostaConsenso(false)} style={bottone(false)}>
+        <button type="button" onClick={() => impostaConsenso(false)} className="br-btn">
           {tr('Consenso.no')}
         </button>
       </div>
@@ -44,30 +44,13 @@ const bannerStyle: React.CSSProperties = {
   position: 'fixed',
   left: 16,
   right: 16,
-  bottom: 16,
+  bottom: 44,
   maxWidth: 720,
   margin: '0 auto',
   zIndex: 50,
-  display: 'flex',
+  flexDirection: 'row',
   flexWrap: 'wrap',
   alignItems: 'center',
   gap: 12,
   padding: '12px 16px',
-  background: PALETTE.inchiostro,
-  color: PALETTE.bianco,
-  border: `3px solid ${PALETTE.ambra}`,
-  boxShadow: `4px 4px 0 ${PALETTE.rubino}`,
-  fontFamily: 'var(--font-testo)',
 };
-
-function bottone(primario: boolean): React.CSSProperties {
-  return {
-    fontFamily: 'var(--font-titolo)',
-    fontSize: 15,
-    padding: '6px 14px',
-    cursor: 'pointer',
-    color: primario ? PALETTE.inchiostro : PALETTE.bianco,
-    background: primario ? PALETTE.ambra : 'transparent',
-    border: `2px solid ${PALETTE.ambra}`,
-  };
-}

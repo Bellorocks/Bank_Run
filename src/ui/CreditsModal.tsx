@@ -8,7 +8,8 @@
 import { useEffect, useRef } from 'react';
 import { track } from '../analytics/analytics';
 import { tr } from '../i18n/ui';
-import { PALETTE } from '../styles/palette';
+import { T } from '../styles/palette';
+import { Finestra } from './primitives';
 
 export const LINKEDIN_URL = 'https://www.linkedin.com/in/lorenzobellorini1404';
 export const SORGENTE_URL = 'https://github.com/Bellorocks/Bank_Run';
@@ -26,150 +27,77 @@ export function CreditsModal({ onClose }: { readonly onClose: () => void }) {
 
   useEffect(() => {
     linkRef.current?.focus();
-    const esc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', esc);
-    return () => window.removeEventListener('keydown', esc);
-  }, [onClose]);
+  }, []);
 
   return (
-    <div style={overlay} onClick={onClose}>
-      <div role="dialog" aria-label={tr('Credits.titolo')} style={finestra} onClick={(e) => e.stopPropagation()}>
-        <div style={testata}>
-          <h2 style={titolo}>{tr('Credits.titolo')}</h2>
-          <button type="button" onClick={onClose} style={chiudi} aria-label={tr('SkillGrimoireModal.12')}>
-            ✕
-          </button>
-        </div>
-
-        <div style={corpo}>
-          <div style={{ textAlign: 'center', margin: '4px 0 18px' }}>
-            <div style={{ fontFamily: 'var(--font-titolo)', fontSize: 22, color: PALETTE.inchiostro }}>{tr('Credits.autore')}</div>
-            <a
-              ref={linkRef}
-              href={LINKEDIN_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => track('linkedin_click', { location: 'credits' })}
-              style={linkedin}
-            >
-              {tr('Credits.linkedin')} ↗
-            </a>
-          </div>
-
-          <h3 style={sezione}>{tr('Credits.musica')}</h3>
-          <p style={riga}>{tr('Credits.musicaTesto')}</p>
-
-          <h3 style={sezione}>{tr('Credits.font')}</h3>
-          <p style={riga}>DotGothic16, Jersey 25, JetBrains Mono, Tiny5 — SIL Open Font License 1.1</p>
-
-          <h3 style={sezione}>{tr('Credits.librerie')}</h3>
-          <ul style={{ margin: 0, paddingLeft: 18 }}>
-            {LIBRERIE.map(([nome, uso, licenza]) => (
-              <li key={nome} style={riga}>
-                <strong>{nome}</strong> — {tr(uso)} ({licenza})
-              </li>
-            ))}
-          </ul>
-
-          <h3 style={sezione}>{tr('Credits.codice')}</h3>
-          <p style={riga}>
-            {tr('Credits.codiceTesto')}{' '}
-            <a
-              href={SORGENTE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => track('source_click')}
-              style={{ color: PALETTE.petrolio, fontWeight: 700 }}
-            >
-              github.com/Bellorocks/Bank_Run ↗
-            </a>
-          </p>
-        </div>
+    <Finestra
+      titolo={tr('Credits.titolo')}
+      onClose={onClose}
+      larghezza={560}
+      zIndex={110}
+      chiudiLabel={tr('SkillGrimoireModal.12')}
+      bodyStyle={{ fontSize: 16, lineHeight: 1.45, color: T.tenue }}
+    >
+      <div style={{ textAlign: 'center', margin: '4px 0 20px' }}>
+        <div style={autoreStyle}>{tr('Credits.autore')}</div>
+        <a
+          ref={linkRef}
+          href={LINKEDIN_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => track('linkedin_click', { location: 'credits' })}
+          className="br-btn br-btn--accento"
+          style={{ marginTop: 14 }}
+        >
+          {tr('Credits.linkedin')} ↗
+        </a>
       </div>
-    </div>
+
+      <h3 className="br-label" style={sezione}>
+        {tr('Credits.musica')}
+      </h3>
+      <p style={riga}>{tr('Credits.musicaTesto')}</p>
+
+      <h3 className="br-label" style={sezione}>
+        {tr('Credits.font')}
+      </h3>
+      <p style={riga}>Jersey 25, Silkscreen, DotGothic16, JetBrains Mono, Tiny5 — SIL Open Font License 1.1</p>
+
+      <h3 className="br-label" style={sezione}>
+        {tr('Credits.librerie')}
+      </h3>
+      <ul style={{ margin: 0, paddingLeft: 18 }}>
+        {LIBRERIE.map(([nome, uso, licenza]) => (
+          <li key={nome} style={riga}>
+            <strong style={{ color: T.testo }}>{nome}</strong> — {tr(uso)} ({licenza})
+          </li>
+        ))}
+      </ul>
+
+      <h3 className="br-label" style={sezione}>
+        {tr('Credits.codice')}
+      </h3>
+      <p style={riga}>
+        {tr('Credits.codiceTesto')}{' '}
+        <a href={SORGENTE_URL} target="_blank" rel="noopener noreferrer" onClick={() => track('source_click')}>
+          github.com/Bellorocks/Bank_Run ↗
+        </a>
+      </p>
+    </Finestra>
   );
 }
 
-const overlay: React.CSSProperties = {
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(26, 28, 44, 0.75)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 110,
-  padding: 16,
-};
-
-const finestra: React.CSSProperties = {
-  width: 560,
-  maxWidth: '100%',
-  maxHeight: '90vh',
-  display: 'flex',
-  flexDirection: 'column',
-  background: PALETTE.bianco,
-  border: `4px solid ${PALETTE.inchiostro}`,
-  outline: `3px solid ${PALETTE.corallo}`,
-  boxShadow: `8px 8px 0 ${PALETTE.inchiostro}`,
-};
-
-const testata: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  background: PALETTE.grafite,
-  borderBottom: `2px solid ${PALETTE.inchiostro}`,
-  padding: '10px 14px',
-};
-
-const titolo: React.CSSProperties = {
-  margin: 0,
-  fontSize: 19,
-  color: PALETTE.ambra,
-  fontFamily: 'var(--font-titolo)',
-  letterSpacing: '0.06em',
-};
-
-const chiudi: React.CSSProperties = {
-  fontFamily: 'var(--font-titolo)',
-  fontSize: 15,
-  color: PALETTE.bianco,
-  background: PALETTE.rubino,
-  border: `2px solid ${PALETTE.inchiostro}`,
-  padding: '4px 10px',
-  cursor: 'pointer',
-};
-
-const corpo: React.CSSProperties = {
-  overflowY: 'auto',
-  padding: '16px 20px 20px',
-  fontFamily: 'var(--font-testo)',
-  fontSize: 14,
-  lineHeight: 1.5,
-  color: PALETTE.inchiostro,
-};
-
-const linkedin: React.CSSProperties = {
-  display: 'inline-block',
-  marginTop: 10,
-  padding: '6px 14px',
-  fontFamily: 'var(--font-titolo)',
-  fontSize: 15,
-  color: PALETTE.bianco,
-  background: PALETTE.petrolio,
-  border: `2px solid ${PALETTE.inchiostro}`,
-  boxShadow: `2px 2px 0 ${PALETTE.inchiostro}`,
-  textDecoration: 'none',
+const autoreStyle: React.CSSProperties = {
+  fontFamily: 'var(--font-logo)',
+  fontSize: 34,
+  lineHeight: 1,
+  letterSpacing: '0.04em',
+  color: T.testo,
 };
 
 const sezione: React.CSSProperties = {
-  margin: '14px 0 4px',
-  fontFamily: 'var(--font-titolo)',
-  fontSize: 14,
-  color: PALETTE.rubino,
-  letterSpacing: '0.04em',
+  margin: '16px 0 4px',
+  color: T.corallo,
 };
 
 const riga: React.CSSProperties = { margin: '0 0 4px' };

@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { track } from '../analytics/analytics';
 import { tr } from '../i18n/ui';
-import { PALETTE } from '../styles/palette';
+import { T } from '../styles/palette';
 
 const CHIAVE = 'dd_touch_notice_seen';
 
@@ -61,15 +61,15 @@ export function TouchNotice() {
     setVisibile(false);
   };
   return (
-    <div role="alert" style={stile}>
-      <div style={{ fontFamily: 'var(--font-titolo)', fontSize: 17, color: PALETTE.ambra }}>{tr('Touch.titolo')}</div>
-      <div style={{ fontSize: 14, lineHeight: 1.5, margin: '6px 0 10px' }}>{tr('Touch.testo')}</div>
-      {copiato && <div style={{ fontSize: 13, color: PALETTE.lime, marginBottom: 8 }}>{tr('Touch.copiato')}</div>}
+    <div role="alert" className="br-pannello br-pannello--acceso br-finestra" style={stile}>
+      <div className="br-label" style={{ color: T.oro }}>{tr('Touch.titolo')}</div>
+      <div style={{ fontSize: 16, lineHeight: 1.4, margin: '6px 0 12px', color: T.tenue }}>{tr('Touch.testo')}</div>
+      {copiato && <div style={{ fontSize: 14, color: T.menta, marginBottom: 8 }}>{tr('Touch.copiato')}</div>}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <button type="button" onClick={() => void condividi()} style={bottone}>
+        <button type="button" onClick={() => void condividi()} className="br-btn br-btn--primario">
           {tr('Touch.condividi')}
         </button>
-        <button type="button" onClick={chiudi} style={bottoneSecondario}>
+        <button type="button" onClick={chiudi} className="br-btn">
           {tr('Touch.ok')}
         </button>
       </div>
@@ -86,25 +86,4 @@ const stile: React.CSSProperties = {
   margin: '0 auto',
   zIndex: 60,
   padding: '14px 16px',
-  background: PALETTE.inchiostro,
-  color: PALETTE.bianco,
-  border: `3px solid ${PALETTE.ambra}`,
-  boxShadow: `4px 4px 0 ${PALETTE.rubino}`,
-  fontFamily: 'var(--font-testo)',
-};
-
-const bottone: React.CSSProperties = {
-  fontFamily: 'var(--font-titolo)',
-  fontSize: 15,
-  padding: '6px 14px',
-  cursor: 'pointer',
-  color: PALETTE.inchiostro,
-  background: PALETTE.ambra,
-  border: `2px solid ${PALETTE.ambra}`,
-};
-
-const bottoneSecondario: React.CSSProperties = {
-  ...bottone,
-  color: PALETTE.bianco,
-  background: 'transparent',
 };

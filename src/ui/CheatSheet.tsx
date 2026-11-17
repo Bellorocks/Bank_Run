@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { CHEAT_SHEET, searchCheatSheet, type CheatSheetRow } from '../keymap/cheatSheet';
-import { UI } from '../styles/palette';
+import { T, UI } from '../styles/palette';
 import { Badge } from './primitives';
 
 import { tr } from '../i18n/ui';
@@ -32,14 +32,15 @@ export function CheatSheet({ open, onClose }: CheatSheetProps) {
 
   return (
     <div
-      style={sfondoStyle}
+      className="br-velo"
+      style={{ zIndex: 100 }}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="dd-crt" style={pannelloStyle}>
-        <header style={intestazioneStyle}>
-          <span className="dd-titolo" style={{ fontSize: 19, color: UI.accento }}>
+      <div className="br-pannello br-pannello--acceso br-finestra" style={pannelloStyle}>
+        <header className="br-pannello__testa" style={{ padding: '10px 12px' }}>
+          <span className="br-pannello__titolo" style={{ fontSize: 14 }}>
             {tr('CheatSheet.1')}
           </span>
           <input
@@ -54,8 +55,8 @@ export function CheatSheet({ open, onClose }: CheatSheetProps) {
             spellCheck={false}
             style={ricercaStyle}
           />
-          <button type="button" onClick={onClose} style={chiudiStyle} title={tr('CheatSheet.3')}>
-            ✕
+          <button type="button" onClick={onClose} className="br-btn br-btn--fantasma br-btn--piccolo" title={tr('CheatSheet.3')}>
+            ✕ <span className="br-kbd">ESC</span>
           </button>
         </header>
 
@@ -94,7 +95,7 @@ function Sezione({ titolo, rows }: { titolo: string; rows: readonly CheatSheetRo
         <tbody>
           {rows.map((r, i) => (
             <tr key={`${r.command}-${i}`}>
-              <td style={{ ...cellaStyle, width: 180, color: UI.evidenza, fontFamily: 'var(--font-griglia)' }}>
+              <td style={{ ...cellaStyle, width: 200, color: T.accento, fontFamily: 'var(--font-griglia)', fontSize: 13 }}>
                 {r.keys}
               </td>
               <td style={cellaStyle}>
@@ -109,59 +110,26 @@ function Sezione({ titolo, rows }: { titolo: string; rows: readonly CheatSheetRo
   );
 }
 
-const sfondoStyle: CSSProperties = {
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(26,28,44,0.85)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 100,
-};
-
 const pannelloStyle: CSSProperties = {
-  position: 'relative',
-  width: 'min(820px, 92vw)',
-  height: 'min(640px, 88vh)',
-  display: 'flex',
-  flexDirection: 'column',
-  background: UI.sfondo,
-  border: `2px solid ${UI.bordo}`,
-};
-
-const intestazioneStyle: CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 10,
-  padding: '10px 12px',
-  borderBottom: `1px solid ${UI.bordo}`,
-  background: UI.sfondoPannello,
+  width: 'min(860px, 92vw)',
+  height: 'min(660px, 88vh)',
 };
 
 const ricercaStyle: CSSProperties = {
   flex: 1,
-  background: 'rgba(0,0,0,0.25)',
-  border: `1px solid ${UI.bordo}`,
-  color: UI.testo,
-  padding: '5px 8px',
+  background: T.abisso,
+  border: `2px solid ${T.linea}`,
+  color: T.testo,
+  padding: '6px 10px',
   fontFamily: 'var(--font-griglia)',
   fontSize: 13,
   outline: 'none',
 };
 
-const chiudiStyle: CSSProperties = {
-  background: 'transparent',
-  border: 'none',
-  color: UI.testoTenue,
-  cursor: 'pointer',
-  fontSize: 16,
-  padding: '2px 6px',
-};
-
 const corpoStyle: CSSProperties = {
   flex: 1,
   overflowY: 'auto',
-  padding: 14,
+  padding: 16,
 };
 
 const piedeStyle: CSSProperties = {
@@ -169,16 +137,19 @@ const piedeStyle: CSSProperties = {
   alignItems: 'center',
   gap: 10,
   padding: '8px 12px',
-  borderTop: `1px solid ${UI.bordo}`,
-  background: UI.sfondoPannello,
+  borderTop: `2px solid ${T.linea}`,
+  background: T.rialzo,
 };
 
 const titoloSezioneStyle: CSSProperties = {
   fontFamily: 'var(--font-titolo)',
-  fontSize: 15,
-  color: UI.info,
+  fontSize: 12,
+  letterSpacing: '0.14em',
+  textTransform: 'uppercase',
+  color: T.corallo,
   margin: '0 0 8px',
-  letterSpacing: '0.03em',
+  paddingBottom: 6,
+  borderBottom: `1px solid ${T.linea}`,
 };
 
 const tabellaStyle: CSSProperties = {
@@ -189,7 +160,7 @@ const tabellaStyle: CSSProperties = {
 const cellaStyle: CSSProperties = {
   padding: '3px 8px 3px 0',
   fontFamily: 'var(--font-testo)',
-  fontSize: 15,
+  fontSize: 16,
   color: UI.testo,
   verticalAlign: 'top',
 };

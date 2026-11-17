@@ -11,7 +11,7 @@
 
 import type { CSSProperties } from 'react';
 import { Pannello, Pulsante, Badge, BarraXp, formatDurata, formatScarto, formatIntero } from './primitives';
-import { UI, PALETTE } from '../styles/palette';
+import { T } from '../styles/palette';
 import { FAMILY_LABEL } from '../grader/messages';
 import type { GradeReport } from '../grader/grade';
 import type { RunMetrics, XpResult } from '../input/metrics';
@@ -47,35 +47,36 @@ export function Risultato(props: RisultatoProps) {
   const erroriPerTipo = raggruppaErrori(report);
 
   return (
-    <div className="dd-crt" style={sfondoStyle}>
-      <div style={colonnaStyle}>
+    <div className="br-velo" style={sfondoStyle}>
+      <div className="br-entra" style={colonnaStyle}>
         <h1
-          className="dd-titolo"
-          style={{ fontSize: 30, color: superato ? UI.successo : UI.errore, textAlign: 'center', margin: 0 }}
+          className="br-logo"
+          style={{ fontSize: 'clamp(64px, 11vw, 112px)', textAlign: 'center', ...(superato ? null : { color: T.rosso }) }}
         >
           {superato ? tr('Risultato.1') : tr('Risultato.2')}
         </h1>
+        <div style={xpGrandeStyle}>+{formatIntero(xp.total)} XP</div>
 
-        <Pannello titolo={tr('Risultato.punteggio')} variante="pergamena">
+        <Pannello titolo={tr('Risultato.punteggio')} acceso>
           <div style={rigaMetricheStyle}>
             <Metrica etichetta="Task" valore={`${report.tasksCorrect}/${report.tasksTotal}`} />
             <Metrica
               etichetta={tr('Hud.tempo')}
               valore={formatDurata(metrics.durationMs)}
               nota={formatScarto(metrics.durationMs, par.seconds)}
-              notaColore={metrics.durationMs <= par.seconds * 1000 ? PALETTE.smeraldo : PALETTE.corallo}
+              notaColore={metrics.durationMs <= par.seconds * 1000 ? T.menta : T.oro}
             />
             <Metrica etichetta={tr('Hud.tasti')} valore={`${formatIntero(metrics.keystrokes)}`} nota={tr('Risultato.3', { p0: (metrics.keystrokeEfficiency * 100).toFixed(0) })} />
             <Metrica etichetta="Mouse" valore={formatIntero(metrics.mouseClicks)} nota={metrics.mouseBlocked > 0 ? tr('Risultato.4', { p0: metrics.mouseBlocked }) : undefined} />
           </div>
         </Pannello>
 
-        <Pannello titolo={tr('Risultato.5', { p0: formatIntero(xp.total) })} variante="pergamena">
+        <Pannello titolo={tr('Risultato.5', { p0: formatIntero(xp.total) })} colore={T.oro}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
             {xp.breakdown.map((v) => (
               <div key={v.label} style={vociXpStyle}>
-                <span style={{ color: PALETTE.grafite }}>{v.label}</span>
-                <span style={{ color: v.delta >= 0 ? PALETTE.smeraldo : PALETTE.rubino, fontFamily: 'var(--font-griglia)', fontWeight: 'bold' }}>
+                <span style={{ color: T.tenue }}>{v.label}</span>
+                <span style={{ color: v.delta >= 0 ? T.menta : T.rosso, fontFamily: 'var(--font-griglia)', fontSize: 14, fontWeight: 'bold' }}>
                   {v.delta >= 0 ? '+' : ''}
                   {v.delta}
                 </span>
@@ -86,23 +87,23 @@ export function Risultato(props: RisultatoProps) {
             valore={xpNelRank}
             massimo={xpPerRank}
             etichetta={tr('Risultato.progresso')}
-            colore={PALETTE.ambra}
+            colore={T.oro}
           />
           {xpTotaleDopo !== xpTotalePrima && (
-            <p style={{ color: PALETTE.ardesia, fontSize: 16, marginTop: 6 }}>
+            <p style={{ color: T.tenue, fontSize: 15, margin: '8px 0 0' }}>
               {formatIntero(xpTotalePrima)} → {formatIntero(xpTotaleDopo)}{' '}{tr('Risultato.6')}
             </p>
           )}
         </Pannello>
 
         {erroriPerTipo.length > 0 && (
-          <Pannello titolo={tr('Risultato.revisione')} variante="pergamena">
+          <Pannello titolo={tr('Risultato.revisione')} colore={T.rosso}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {erroriPerTipo.map((e) => (
                 <div key={e.tipo} style={erroreRigaStyle}>
-                  <Badge colore={UI.errore}>{FAMILY_LABEL[e.famiglia]}</Badge>
+                  <Badge colore={T.rosso}>{FAMILY_LABEL[e.famiglia]}</Badge>
                   <span style={{ flex: 1 }}>{e.tipo}</span>
-                  <Badge colore={PALETTE.rubino} pieno>
+                  <Badge colore={T.rosso} pieno>
                     ×{e.conteggio}
                   </Badge>
                 </div>
@@ -144,12 +145,10 @@ function Metrica({
   notaColore?: string;
 }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 90 }}>
-      <span style={{ fontFamily: 'var(--font-titolo)', fontSize: 13, color: PALETTE.ardesia }}>{etichetta}</span>
-      <span style={{ fontFamily: 'var(--font-griglia)', fontSize: 20, color: PALETTE.inchiostro }}>{valore}</span>
-      {nota !== undefined && (
-        <span style={{ fontSize: 15, color: notaColore ?? PALETTE.ardesia }}>{nota}</span>
-      )}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 96, flex: '1 1 0' }}>
+      <span className="br-label">{etichetta}</span>
+      <span style={{ fontFamily: 'var(--font-logo)', fontSize: 40, lineHeight: 0.9, letterSpacing: '0.03em', color: T.testo }}>{valore}</span>
+      <span style={{ fontSize: 14, lineHeight: 1.2, minHeight: 17, color: notaColore ?? T.tenue }}>{nota ?? ''}</span>
     </div>
   );
 }
@@ -175,34 +174,43 @@ function raggruppaErrori(report: GradeReport): ErroreAggregato[] {
 }
 
 const sfondoStyle: CSSProperties = {
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(26, 28, 44, 0.85)',
-  display: 'flex',
   alignItems: 'flex-start',
-  justifyContent: 'center',
   overflowY: 'auto',
-  padding: '32px 16px',
+  padding: '36px 16px',
+  background: 'rgba(26, 28, 44, 0.92)',
   zIndex: 90,
 };
 
 const colonnaStyle: CSSProperties = {
-  width: 'min(560px, 100%)',
+  position: 'relative',
+  zIndex: 6,
+  width: 'min(600px, 100%)',
   display: 'flex',
   flexDirection: 'column',
   gap: 16,
 };
 
+/** Il bottino, grande, subito sotto il verdetto. */
+const xpGrandeStyle: CSSProperties = {
+  marginTop: -4,
+  textAlign: 'center',
+  fontFamily: 'var(--font-titolo)',
+  fontSize: 16,
+  letterSpacing: '0.3em',
+  color: T.oro,
+};
+
 const rigaMetricheStyle: CSSProperties = {
   display: 'flex',
-  gap: 20,
+  gap: 16,
   flexWrap: 'wrap',
 };
 
 const vociXpStyle: CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
-  fontSize: 14,
+  gap: 12,
+  fontSize: 16,
   fontFamily: 'var(--font-testo)',
 };
 
@@ -210,15 +218,15 @@ const erroreRigaStyle: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: 8,
-  fontSize: 14,
+  fontSize: 16,
   fontFamily: 'var(--font-testo)',
-  color: PALETTE.inchiostro,
+  color: T.testo,
 };
 
 const pulsantiStyle: CSSProperties = {
   display: 'flex',
   // Piu' larga della scheda: le quattro azioni stanno su una riga anche in italiano.
-  width: 'min(780px, calc(100vw - 32px))',
+  width: 'min(820px, calc(100vw - 32px))',
   alignSelf: 'center',
   gap: 10,
   flexWrap: 'wrap',

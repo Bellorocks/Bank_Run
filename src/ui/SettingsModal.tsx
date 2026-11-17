@@ -4,12 +4,13 @@
 
 import { useState } from 'react';
 import { sound } from '../audio/chiptune';
-import { PALETTE } from '../styles/palette';
+import { T } from '../styles/palette';
 import { isFreePlay, setFreePlay } from '../persistence/progress';
 
 import { tr } from '../i18n/ui';
 import { LanguageSwitch } from './LanguageSwitch';
 import { PrivacyLink, PrivacyModal } from './PrivacyModal';
+import { Finestra, Pulsante } from './primitives';
 import { consenso, impostaConsenso, statisticheDisponibili, track } from '../analytics/analytics';
 export interface SettingsModalProps {
   readonly onClose: () => void;
@@ -55,235 +56,135 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     sound.playSelect();
   };
 
+  const riga = (etichetta: string, nota: React.ReactNode, controllo: React.ReactNode) => (
+    <div className="br-riga" style={rigaStyle}>
+      <div style={{ minWidth: 0 }}>
+        <div className="br-label" style={{ color: T.testo }}>
+          {etichetta}
+        </div>
+        <div style={notaStyle}>{nota}</div>
+      </div>
+      {controllo}
+    </div>
+  );
+
+  const interruttore = (acceso: boolean, onClick: () => void, spento: string = 'OFF') => (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={acceso}
+      className={acceso ? 'br-linguetta is-scelta' : 'br-linguetta'}
+      style={{ minWidth: 64, flexShrink: 0 }}
+    >
+      {acceso ? 'ON' : spento}
+    </button>
+  );
+
   return (
     <>
-    {privacy && <PrivacyModal onClose={() => setPrivacy(false)} />}
-    <div style={overlayStyle}>
-      <div style={modalStyle}>
-        <div style={headerRowStyle}>
-          <h2 style={titleStyle}>{tr('SettingsModal.1')}</h2>
-          <button type="button" onClick={onClose} style={closeButtonStyle}>
-            ✕
-          </button>
-        </div>
+      {privacy && <PrivacyModal onClose={() => setPrivacy(false)} />}
+      <Finestra
+        titolo={tr('SettingsModal.1')}
+        onClose={onClose}
+        larghezza={520}
+        chiudiLabel={tr('SkillGrimoireModal.12')}
+        piede={
+          <Pulsante variante="accento" onClick={onClose}>
+            {tr('SettingsModal.21')}
+          </Pulsante>
+        }
+        bodyStyle={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+      >
+        {riga(tr('SettingsModal.lingua'), tr('SettingsModal.linguaNota'), <LanguageSwitch />)}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 14 }}>
-          <div style={settingRowStyle}>
-            <div>
-              <div style={labelStyle}>{tr('SettingsModal.lingua')}</div>
-              <div style={subLabelStyle}>{tr('SettingsModal.linguaNota')}</div>
-            </div>
-            <LanguageSwitch />
-          </div>
+        {riga(
+          tr('SettingsModal.2'),
+          muted ? tr('SettingsModal.3') : tr('SettingsModal.4'),
+          interruttore(!muted, handleToggleMute, tr('SettingsModal.5')),
+        )}
 
-          <div style={settingRowStyle}>
-            <div>
-              <div style={labelStyle}>{tr('SettingsModal.2')}</div>
-              <div style={subLabelStyle}>{muted ? tr('SettingsModal.3') : tr('SettingsModal.4')}</div>
-            </div>
-            <button type="button" onClick={handleToggleMute} style={pillButtonStyle(!muted)}>
-              {muted ? tr('SettingsModal.5') : 'ON'}
-            </button>
-          </div>
+        {riga(
+          tr('SettingsModal.6'),
+          `${musicVol}%`,
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={musicVol}
+            disabled={muted}
+            onChange={(e) => handleMusicChange(Number(e.target.value))}
+          />,
+        )}
 
-          <div style={settingRowStyle}>
-            <div>
-              <div style={labelStyle}>{tr('SettingsModal.6')}</div>
-              <div style={subLabelStyle}>{musicVol}%</div>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={musicVol}
-              disabled={muted}
-              onChange={(e) => handleMusicChange(Number(e.target.value))}
-              style={{ accentColor: PALETTE.ambra, cursor: 'pointer' }}
-            />
-          </div>
+        {riga(
+          tr('SettingsModal.7'),
+          `${sfxVol}%`,
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={sfxVol}
+            disabled={muted}
+            onChange={(e) => handleSfxChange(Number(e.target.value))}
+          />,
+        )}
 
-          <div style={settingRowStyle}>
-            <div>
-              <div style={labelStyle}>{tr('SettingsModal.7')}</div>
-              <div style={subLabelStyle}>{sfxVol}%</div>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={sfxVol}
-              disabled={muted}
-              onChange={(e) => handleSfxChange(Number(e.target.value))}
-              style={{ accentColor: PALETTE.smeraldo, cursor: 'pointer' }}
-            />
-          </div>
+        {riga(
+          tr('SettingsModal.8'),
+          freePlay ? tr('SettingsModal.9') : tr('SettingsModal.10'),
+          interruttore(freePlay, handleToggleFreePlay, tr('SettingsModal.11')),
+        )}
 
-          <div style={settingRowStyle}>
-            <div>
-              <div style={labelStyle}>{tr('SettingsModal.8')}</div>
-              <div style={subLabelStyle}>
-                {freePlay ? tr('SettingsModal.9') : tr('SettingsModal.10')}
-              </div>
-            </div>
-            <button type="button" onClick={handleToggleFreePlay} style={pillButtonStyle(freePlay)}>
-              {freePlay ? 'ON' : tr('SettingsModal.11')}
-            </button>
-          </div>
-
-          {statisticheDisponibili() && (
-            <div style={settingRowStyle}>
-              <div>
-                <div style={labelStyle}>{tr('Consenso.impostazione')}</div>
-                <div style={subLabelStyle}>
-                  {tr('Consenso.impostazioneNota')} · <PrivacyLink onOpen={() => setPrivacy(true)} colore="inherit" />
-                </div>
-              </div>
-              <button type="button" onClick={handleToggleStatistiche} style={pillButtonStyle(statistiche)}>
-                {statistiche ? 'ON' : 'OFF'}
-              </button>
-            </div>
+        {statisticheDisponibili() &&
+          riga(
+            tr('Consenso.impostazione'),
+            <>
+              {tr('Consenso.impostazioneNota')} · <PrivacyLink onOpen={() => setPrivacy(true)} colore="inherit" />
+            </>,
+            interruttore(statistiche, handleToggleStatistiche),
           )}
 
-          <div style={hintBoxStyle}>
-            <div style={hintTitleStyle}>{tr('SettingsModal.12')}</div>
-            <div style={hintBodyStyle}>
-              <strong>F1</strong>{' '}{tr('SettingsModal.13')}{' '}<strong>{tr('SettingsModal.14')}</strong>{' '}{tr('SettingsModal.15')}{' '}
-              <strong>F12</strong>{' '}{tr('SettingsModal.16')}{' '}<strong>F2</strong>{' '}{tr('SettingsModal.17')}{' '}
-              <strong>{tr('SettingsModal.18')}</strong>{' '}{tr('SettingsModal.19')}{' '}<strong>?</strong>{' '}{tr('SettingsModal.20')}
-            </div>
+        <div style={promemoriaStyle}>
+          <div className="br-label" style={{ color: T.oro }}>
+            {tr('SettingsModal.12')}
           </div>
-
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={saveButtonStyle}>
-              {tr('SettingsModal.21')}
-            </button>
+          <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.8, color: T.tenue }}>
+            <Tasto>F1</Tasto> {tr('SettingsModal.13')} <Tasto>{tr('SettingsModal.14')}</Tasto> {tr('SettingsModal.15')}{' '}
+            <Tasto>F12</Tasto> {tr('SettingsModal.16')} <Tasto>F2</Tasto> {tr('SettingsModal.17')}{' '}
+            <Tasto>{tr('SettingsModal.18')}</Tasto> {tr('SettingsModal.19')} <Tasto>?</Tasto> {tr('SettingsModal.20')}
           </div>
         </div>
-      </div>
-    </div>
+      </Finestra>
     </>
   );
 }
 
-const overlayStyle: React.CSSProperties = {
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(26, 28, 44, 0.75)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 100,
-  padding: 16,
-};
-
-const modalStyle: React.CSSProperties = {
-  width: 500,
-  maxWidth: '95%',
-  padding: 20,
-  background: PALETTE.bianco,
-  border: `4px solid ${PALETTE.inchiostro}`,
-  outline: `3px solid ${PALETTE.corallo}`,
-  boxShadow: `8px 8px 0 ${PALETTE.inchiostro}`,
-  display: 'flex',
-  flexDirection: 'column',
-};
-
-const headerRowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  background: PALETTE.grafite,
-  border: `2px solid ${PALETTE.inchiostro}`,
-  padding: '10px 14px',
-};
-
-const titleStyle: React.CSSProperties = {
-  margin: 0,
-  fontSize: 19,
-  color: PALETTE.ambra,
-  fontFamily: 'var(--font-titolo)',
-  letterSpacing: '0.06em',
-};
-
-const closeButtonStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-titolo)',
-  fontSize: 15,
-  color: PALETTE.bianco,
-  background: PALETTE.rubino,
-  border: `2px solid ${PALETTE.inchiostro}`,
-  borderTop: `2px solid ${PALETTE.corallo}`,
-  borderBottom: `2px solid ${PALETTE.prugna}`,
-  padding: '4px 10px',
-  cursor: 'pointer',
-};
-
-function pillButtonStyle(on: boolean): React.CSSProperties {
-  return {
-    fontFamily: 'var(--font-titolo)',
-    fontSize: 15,
-    color: on ? PALETTE.inchiostro : PALETTE.bianco,
-    background: on ? PALETTE.lime : PALETTE.corallo,
-    border: `2px solid ${PALETTE.inchiostro}`,
-    borderTop: `2px solid ${on ? PALETTE.bianco : PALETTE.ambra}`,
-    borderBottom: `2px solid ${on ? PALETTE.smeraldo : PALETTE.rubino}`,
-    boxShadow: `2px 2px 0 ${PALETTE.inchiostro}`,
-    padding: '6px 14px',
-    minWidth: 64,
-    cursor: 'pointer',
-  };
+function Tasto({ children }: { readonly children: React.ReactNode }) {
+  return (
+    <span className="br-kbd" style={{ color: T.accento }}>
+      {children}
+    </span>
+  );
 }
 
-const saveButtonStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-titolo)',
-  fontSize: 16,
-  color: PALETTE.bianco,
-  background: PALETTE.smeraldo,
-  border: `3px solid ${PALETTE.inchiostro}`,
-  borderTop: `2px solid ${PALETTE.lime}`,
-  borderBottom: `3px solid ${PALETTE.petrolio}`,
-  boxShadow: `4px 4px 0 ${PALETTE.inchiostro}`,
-  padding: '10px 28px',
-  cursor: 'pointer',
-};
-
-const settingRowStyle: React.CSSProperties = {
+const rigaStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  gap: 12,
-  padding: '8px 10px',
-  background: PALETTE.bianco,
-  border: `1px solid ${PALETTE.nebbia}`,
+  gap: 14,
+  padding: '10px 12px',
 };
 
-const labelStyle: React.CSSProperties = {
-  fontSize: 15,
-  color: PALETTE.grafite,
-  fontFamily: 'var(--font-titolo)',
+const notaStyle: React.CSSProperties = {
+  marginTop: 2,
+  fontSize: 14,
+  lineHeight: 1.35,
+  color: T.tenue,
 };
 
-const subLabelStyle: React.CSSProperties = {
-  fontSize: 15,
-  color: PALETTE.petrolio,
-  fontFamily: 'var(--font-testo)',
-};
-
-const hintBoxStyle: React.CSSProperties = {
-  background: PALETTE.nebbia + '33',
-  padding: 12,
-  border: `2px solid ${PALETTE.ardesia}`,
-};
-
-const hintTitleStyle: React.CSSProperties = {
-  fontSize: 15,
-  color: PALETTE.grafite,
-  fontFamily: 'var(--font-titolo)',
-};
-
-const hintBodyStyle: React.CSSProperties = {
-  fontSize: 15,
-  color: PALETTE.inchiostro,
+const promemoriaStyle: React.CSSProperties = {
   marginTop: 6,
-  lineHeight: 1.5,
-  fontFamily: 'var(--font-testo)',
+  padding: 12,
+  background: T.abisso,
+  border: `2px dashed ${T.linea}`,
 };

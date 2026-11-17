@@ -1,11 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
-  <rect width="16" height="16" fill="#1a1c2c"/>
-  <rect x="1" y="1" width="14" height="14" fill="#ef7d57"/>
-  <g fill="#1a1c2c">
-    <!-- B -->
+  <rect width="16" height="16" fill="#060a14"/>
+  <rect x="1" y="1" width="14" height="14" fill="#0f182c"/>
+  <!-- B, ciano -->
+  <g fill="#4fe0ff">
     <rect x="2" y="4" width="1" height="8"/><rect x="3" y="4" width="2" height="1"/><rect x="5" y="5" width="1" height="2"/>
     <rect x="3" y="7" width="2" height="1"/><rect x="5" y="8" width="1" height="3"/><rect x="3" y="11" width="2" height="1"/>
-    <!-- R -->
+  </g>
+  <!-- R, rosa -->
+  <g fill="#ff4f7e">
     <rect x="9" y="4" width="1" height="8"/><rect x="10" y="4" width="2" height="1"/><rect x="12" y="5" width="1" height="2"/>
     <rect x="10" y="7" width="2" height="1"/><rect x="11" y="8" width="1" height="2"/><rect x="12" y="10" width="1" height="2"/>
   </g>

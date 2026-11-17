@@ -1,22 +1,18 @@
 /**
- * Schermata del titolo — Direzione artistica rinnovata sulla palette dei 16 colori (spec §8).
- * Sfondo a bande piatte con cielo compatto, imponente foresta di grandi querce e pini,
- * cornice e pulsanti del menu in legno intagliato pixel art.
+ * Schermata del titolo.
+ *
+ * Lo sfondo e' la valle disegnata e animata da `Scena`; sopra, il logo in
+ * rilievo, il menu a tasselli d'inchiostro e, in fondo, il nastro delle
+ * quotazioni.
  */
 
 import { useEffect, useRef, useState } from 'react';
 import { track } from '../analytics/analytics';
 import { sound } from '../audio/chiptune';
-import { PALETTE } from '../styles/palette';
+import { T } from '../styles/palette';
 import { SettingsModal } from './SettingsModal';
 import { SkillGrimoireModal } from './SkillGrimoireModal';
-import { PixelSprite } from './sprites/PixelCanvas';
-import {
-  WOOD_CHAIN_HANGER,
-  WOOD_STAPLE_LINK,
-  WOOD_PLANK_CAP_L,
-  WOOD_PLANK_CAP_R,
-} from './sprites/decorations';
+import { Scena } from './Scena';
 
 import { PrivacyLink, PrivacyModal } from './PrivacyModal';
 import { tr } from '../i18n/ui';
@@ -31,6 +27,24 @@ type MenuSelection = 'start' | 'grimoire' | 'settings' | 'credits';
 
 const MENU: readonly MenuSelection[] = ['start', 'grimoire', 'settings', 'credits'];
 
+/** Il nastro in fondo: sigle del mestiere con una variazione inventata. Solo colore. */
+const QUOTAZIONI: readonly (readonly [string, string, boolean])[] = [
+  ['EBITDA', '+12.4%', true],
+  ['WACC', '8.10%', false],
+  ['NWC', '-3.2%', false],
+  ['EV/EBITDA', '9.5x', true],
+  ['FCF', '+6.8%', true],
+  ['NET DEBT', '-1.4x', true],
+  ['IRR', '21.3%', true],
+  ['CAPEX', '+4.1%', false],
+  ['DSO', '-6d', true],
+  ['EPS', '+0.18', true],
+  ['MOIC', '2.6x', true],
+  ['LEVERAGE', '4.5x', false],
+  ['TV', '+2.0%', true],
+  ['BETA', '1.12', false],
+];
+
 export function TitleScreen({ onStartGame }: TitleScreenProps) {
   const [hoveredOption, setHoveredOption] = useState<MenuSelection>('start');
   const [showSettings, setShowSettings] = useState(false);
@@ -39,7 +53,8 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
   const [showGrimoire, setShowGrimoire] = useState(false);
   const [showCredits, setShowCredits] = useState(false);
   const [audioStarted, setAudioStarted] = useState(false);
-  const plankRefs = useRef<Partial<Record<MenuSelection, HTMLButtonElement | null>>>({});
+  const [, ridisegna] = useState(0);
+  const vociRef = useRef<Partial<Record<MenuSelection, HTMLButtonElement | null>>>({});
   const finestraAperta = showSettings || showPrivacy || showGrimoire || showCredits;
 
   const handleStart = () => {
@@ -57,6 +72,7 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
       sound.playSelect();
       setAudioStarted(true);
     }
+    ridisegna((n) => n + 1);
   };
 
   const apri = (mostra: (v: boolean) => void) => () => {
@@ -71,7 +87,7 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
     credits: apri(setShowCredits),
   };
 
-  // Menu da tastiera: frecce su/giù spostano la voce evidenziata (e il focus),
+  // Menu da tastiera: le frecce spostano la voce evidenziata (e il focus),
   // Invio la apre. Con una finestra aperta i tasti sono suoi.
   useEffect(() => {
     if (finestraAperta) return;
@@ -85,158 +101,107 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
         azioni[hoveredOption]();
         return;
       }
-      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-      if (!libero && !MENU.some((id) => plankRefs.current[id] === attivo)) return;
+      const avanti = e.key === 'ArrowDown' || e.key === 'ArrowRight';
+      const indietro = e.key === 'ArrowUp' || e.key === 'ArrowLeft';
+      if (!avanti && !indietro) return;
+      if (!libero && !MENU.some((id) => vociRef.current[id] === attivo)) return;
       e.preventDefault();
-      const passo = e.key === 'ArrowDown' ? 1 : MENU.length - 1;
+      const passo = avanti ? 1 : MENU.length - 1;
       const prossima = MENU[(MENU.indexOf(hoveredOption) + passo) % MENU.length];
       setHoveredOption(prossima);
       sound.playSelect();
-      plankRefs.current[prossima]?.focus();
+      vociRef.current[prossima]?.focus();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  const menuPlank = (
-    id: MenuSelection,
-    label: string,
-    onClick: () => void,
-    trailing?: string,
-  ) => {
-    const isHovered = hoveredOption === id;
+  const voce = (id: MenuSelection, etichetta: string, principale = false) => {
+    const scelta = hoveredOption === id;
+    const classi = ['br-btn'];
+    if (principale) classi.push('br-btn--primario', 'br-btn--grande');
+    if (scelta) classi.push('is-acceso');
     return (
-      <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
-        <button
-          type="button"
-          ref={(el) => {
-            plankRefs.current[id] = el;
-          }}
-          onClick={onClick}
-          onFocus={() => setHoveredOption(id)}
-          onMouseEnter={() => {
-            setHoveredOption(id);
-            sound.playSelect();
-          }}
-          style={plankButtonStyle(isHovered)}
-        >
-          {/* Estremità Sinistra a Bordo Arrotondato */}
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <PixelSprite frame={WOOD_PLANK_CAP_L} scale={2} />
-          </div>
-
-          {/* Corpo Centrale della Tavola di Legno */}
-          <div style={plankBodyStyle(isHovered)}>
-            <span style={{ width: 16, display: 'inline-flex', color: isHovered ? PALETTE.smeraldo : PALETTE.ambra }}>
-              {isHovered ? '▶' : ' '}
-            </span>
-            <span style={{ flex: 1, textAlign: 'left', letterSpacing: '0.06em' }}>{label}</span>
-            {trailing && (
-              <span style={trailingBadgeStyle(isHovered)}>
-                {trailing}
-              </span>
-            )}
-          </div>
-
-          {/* Estremità Destra a Bordo Arrotondato */}
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <PixelSprite frame={WOOD_PLANK_CAP_R} scale={2} />
-          </div>
-        </button>
-      </div>
+      <button
+        type="button"
+        ref={(el) => {
+          vociRef.current[id] = el;
+        }}
+        className={classi.join(' ')}
+        onClick={azioni[id]}
+        onFocus={() => setHoveredOption(id)}
+        onMouseEnter={() => {
+          if (hoveredOption !== id) sound.playSelect();
+          setHoveredOption(id);
+        }}
+        style={principale ? { width: '100%' } : { flex: '1 1 auto', padding: '12px 10px', letterSpacing: '0.06em' }}
+      >
+        {principale && <span className={scelta ? 'br-lampeggia' : undefined}>▶</span>}
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{etichetta}</span>
+        {principale && <span className="br-kbd">{tr('TitleScreen.invio')}</span>}
+      </button>
     );
   };
 
-  return (
-    <div style={pageStyle}>
-      {/* Sfondo del Titolo in Pixel Art HD */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: 'url(/art/title_bg.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          imageRendering: 'pixelated',
-          zIndex: 0,
-        }}
-      />
+  const nastro = QUOTAZIONI.map(([sigla, valore, su], i) => (
+    <span key={i}>
+      {sigla}{' '}
+      <span style={{ color: su ? T.menta : T.corallo }}>
+        {su ? '▲' : '▼'} {valore}
+      </span>
+    </span>
+  ));
 
-      {/* STRUTTURA A CARTELLO IN LEGNO SOSPESO (REFERENCE MATCH) */}
-      <div style={hangingSignContainerStyle}>
-        {/* Catene di sospensione dall'alto */}
-        <div style={chainsWrapperStyle}>
-          <PixelSprite frame={WOOD_CHAIN_HANGER} scale={2} />
-          <PixelSprite frame={WOOD_CHAIN_HANGER} scale={2} />
+  return (
+    <div style={paginaStyle}>
+      <Scena tipo="valle" />
+
+      <div style={angoloStyle}>
+        <LanguageSwitch compatto />
+        <button type="button" className="br-btn br-btn--piccolo" onClick={handleToggleAudio}>
+          {sound.isMuted() ? tr('TitleScreen.8') : tr('TitleScreen.9')}
+        </button>
+      </div>
+
+      <main className="br-entra" style={colonnaStyle}>
+        <h1 className="br-logo br-galleggia" style={{ fontSize: 'clamp(72px, 14vw, 176px)' }}>
+          {tr('TitleScreen.1')}
+        </h1>
+        <div className="br-tassello" style={insegnaStyle}>
+          <div style={mottoStyle}>{tr('TitleScreen.2')}</div>
+          <div style={numeriStyle}>{tr('TitleScreen.3')}</div>
         </div>
 
-        {/* 1. TAVOLA SUPERIORE: Intestazione Titolo & Logo */}
-        <div style={headerPlankStyle}>
-          <div style={badgeStyle}>BR</div>
-          <h1 style={logoStyle}>{tr('TitleScreen.1')}</h1>
-          <div style={taglineStyle}>{tr('TitleScreen.2')}</div>
-          <div style={statLineStyle}>{tr('TitleScreen.3')}</div>
+        <nav style={menuStyle}>
+          {voce('start', tr('TitleScreen.4'), true)}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, width: '100%' }}>
+            {voce('grimoire', tr('TitleScreen.5'))}
+            {voce('settings', tr('TitleScreen.6'))}
+            {voce('credits', tr('TitleScreen.crediti'))}
+          </div>
+        </nav>
+
+        <div className="br-tassello" style={piedeStyle}>
           <a
             href={LINKEDIN_URL}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => track('linkedin_click', { location: 'home' })}
-            style={autoreStyle}
+            style={{ color: T.accento, textUnderlineOffset: 3 }}
           >
             {tr('TitleScreen.autore')}
           </a>
+          <span>·</span>
+          <span>{tr('TitleScreen.7')}</span>
+          <span>·</span>
+          <PrivacyLink onOpen={() => setShowPrivacy(true)} colore="inherit" />
         </div>
+      </main>
 
-        {/* Graffette di ferro di raccordo tra Tavola 1 e Tavola 2 */}
-        <div style={stapleRowStyle}>
-          <PixelSprite frame={WOOD_STAPLE_LINK} scale={1.8} />
-          <PixelSprite frame={WOOD_STAPLE_LINK} scale={1.8} />
-        </div>
-
-        {/* 2. TAVOLA 1: AVVIA CAMPAGNA */}
-        {menuPlank('start', tr('TitleScreen.4'), handleStart, tr('TitleScreen.invio'))}
-
-        {/* Graffette di ferro di raccordo tra Tavola 2 e Tavola 3 */}
-        <div style={stapleRowStyle}>
-          <PixelSprite frame={WOOD_STAPLE_LINK} scale={1.8} />
-          <PixelSprite frame={WOOD_STAPLE_LINK} scale={1.8} />
-        </div>
-
-        {/* 3. TAVOLA 2: ALBERO DELLE SKILL */}
-        {menuPlank('grimoire', tr('TitleScreen.5'), azioni.grimoire)}
-
-        {/* Graffette di ferro di raccordo tra Tavola 3 e Tavola 4 */}
-        <div style={stapleRowStyle}>
-          <PixelSprite frame={WOOD_STAPLE_LINK} scale={1.8} />
-          <PixelSprite frame={WOOD_STAPLE_LINK} scale={1.8} />
-        </div>
-
-        {/* 4. TAVOLA 3: IMPOSTAZIONI & AUDIO */}
-        {menuPlank('settings', tr('TitleScreen.6'), azioni.settings)}
-
-        <div style={stapleRowStyle}>
-          <PixelSprite frame={WOOD_STAPLE_LINK} scale={1.8} />
-          <PixelSprite frame={WOOD_STAPLE_LINK} scale={1.8} />
-        </div>
-
-        {/* 5. TAVOLA 4: CREDITI */}
-        {menuPlank('credits', tr('TitleScreen.crediti'), azioni.credits)}
-
-        {/* Graffette di ferro di raccordo tra Tavola 4 e Tavola 5 */}
-        <div style={stapleRowStyle}>
-          <PixelSprite frame={WOOD_STAPLE_LINK} scale={1.8} />
-          <PixelSprite frame={WOOD_STAPLE_LINK} scale={1.8} />
-        </div>
-
-        {/* 6. TAVOLA INFERIORE: FOOTER & TOGGLE AUDIO LITTLEROOT TOWN */}
-        <div style={footerPlankStyle}>
-          <span style={footerTextStyle}>
-            {tr('TitleScreen.7')} · <PrivacyLink onOpen={() => setShowPrivacy(true)} colore="inherit" />
-          </span>
-          <LanguageSwitch compatto />
-          <button type="button" onClick={handleToggleAudio} style={woodSmallButtonStyle}>
-            {sound.isMuted() ? tr('TitleScreen.8') : tr('TitleScreen.9')}
-          </button>
+      <div className="br-nastro" style={nastroStyle} aria-hidden>
+        <div className="br-nastro__corsa">
+          {nastro}
+          {nastro}
         </div>
       </div>
 
@@ -248,177 +213,81 @@ export function TitleScreen({ onStartGame }: TitleScreenProps) {
   );
 }
 
-const pageStyle: React.CSSProperties = {
+const paginaStyle: React.CSSProperties = {
   height: '100%',
   position: 'relative',
   display: 'flex',
+  flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
   overflow: 'hidden',
-  background: PALETTE.notte,
+  background: '#41a6f6',
 };
 
-const hangingSignContainerStyle: React.CSSProperties = {
+const angoloStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: 14,
+  right: 14,
+  zIndex: 10,
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+};
+
+const colonnaStyle: React.CSSProperties = {
   position: 'relative',
   zIndex: 10,
-  width: 460,
-  maxWidth: '94%',
+  width: 620,
+  maxWidth: '100%',
+  padding: '0 16px 44px',
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  marginTop: -15,
+  textAlign: 'center',
 };
 
-const chainsWrapperStyle: React.CSSProperties = {
-  width: '60%',
-  display: 'flex',
-  justifyContent: 'space-between',
-  marginBottom: -4,
-  zIndex: 2,
+const insegnaStyle: React.CSSProperties = {
+  marginTop: 34,
+  padding: '10px 18px 9px',
 };
 
-const stapleRowStyle: React.CSSProperties = {
-  width: '70%',
-  display: 'flex',
-  justifyContent: 'space-between',
-  margin: '-4px 0',
-  zIndex: 5,
-  pointerEvents: 'none',
-};
-
-const headerPlankStyle: React.CSSProperties = {
-  width: '100%',
-  background: PALETTE.corallo,
-  border: `4px solid ${PALETTE.inchiostro}`,
-  borderTop: `4px solid ${PALETTE.ambra}`,
-  borderBottom: `4px solid ${PALETTE.rubino}`,
-  boxShadow: `5px 5px 0 ${PALETTE.inchiostro}`,
-  padding: '14px 18px',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  position: 'relative',
-  zIndex: 3,
-};
-
-const plankButtonStyle = (active: boolean): React.CSSProperties => ({
-  background: 'none',
-  border: 'none',
-  padding: 0,
-  display: 'inline-flex',
-  alignItems: 'stretch',
-  cursor: 'pointer',
-  transform: active ? 'scale(1.02)' : 'none',
-  transition: 'none',
-  width: '100%',
-  zIndex: 3,
-});
-
-const plankBodyStyle = (active: boolean): React.CSSProperties => ({
-  flex: 1,
-  background: active ? PALETTE.ambra : PALETTE.corallo,
-  borderTop: `4px solid ${active ? PALETTE.bianco : PALETTE.ambra}`,
-  borderBottom: `4px solid ${active ? PALETTE.corallo : PALETTE.rubino}`,
-  boxShadow: `0 4px 0 ${PALETTE.inchiostro}`,
-  display: 'flex',
-  alignItems: 'center',
-  padding: '0 14px',
+const mottoStyle: React.CSSProperties = {
   fontFamily: 'var(--font-titolo)',
-  fontSize: 17,
-  color: active ? PALETTE.inchiostro : PALETTE.bianco,
-  height: 40,
-  minWidth: 0,
-});
-
-const trailingBadgeStyle = (active: boolean): React.CSSProperties => ({
-  fontSize: 14,
-  fontFamily: 'var(--font-titolo)',
-  color: active ? PALETTE.inchiostro : PALETTE.bianco,
-  background: active ? PALETTE.corallo : PALETTE.inchiostro,
-  padding: '3px 8px',
-  border: `1px solid ${active ? PALETTE.inchiostro : PALETTE.ardesia}`,
-  marginLeft: 10,
-});
-
-const footerPlankStyle: React.CSSProperties = {
-  width: '100%',
-  background: PALETTE.corallo,
-  border: `3px solid ${PALETTE.inchiostro}`,
-  borderTop: `3px solid ${PALETTE.ambra}`,
-  borderBottom: `3px solid ${PALETTE.rubino}`,
-  boxShadow: `4px 4px 0 ${PALETTE.inchiostro}`,
-  padding: '8px 16px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  zIndex: 3,
+  fontSize: 'clamp(12px, 2.4vw, 16px)',
+  letterSpacing: '0.3em',
+  color: T.accento,
 };
 
-const badgeStyle: React.CSSProperties = {
-  width: 40,
-  height: 40,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontFamily: 'var(--font-titolo)',
-  fontSize: 19,
-  color: PALETTE.inchiostro,
-  background: PALETTE.ambra,
-  border: `3px solid ${PALETTE.inchiostro}`,
-  borderTop: `3px solid ${PALETTE.bianco}`,
-  borderBottom: `3px solid ${PALETTE.corallo}`,
-  boxShadow: `2px 2px 0 ${PALETTE.rubino}`,
-  marginBottom: 8,
-};
-
-const logoStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-titolo)',
-  fontSize: 30,
-  color: PALETTE.ambra,
-  margin: 0,
-  letterSpacing: '0.08em',
-  textShadow: `3px 3px 0 ${PALETTE.prugna}`,
-};
-
-const taglineStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-testo)',
-  fontSize: 16,
-  color: PALETTE.ghiaccio,
-  letterSpacing: '0.12em',
+const numeriStyle: React.CSSProperties = {
   marginTop: 4,
-  whiteSpace: 'nowrap',
-};
-
-const statLineStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-testo)',
   fontSize: 16,
-  color: PALETTE.lime,
-  marginTop: 2,
-  whiteSpace: 'nowrap',
+  letterSpacing: '0.06em',
+  color: T.testo,
 };
 
-const autoreStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-testo)',
+const menuStyle: React.CSSProperties = {
+  marginTop: 22,
+  width: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 14,
+};
+
+const piedeStyle: React.CSSProperties = {
+  marginTop: 22,
+  padding: '5px 12px',
+  display: 'flex',
+  flexWrap: 'wrap',
+  justifyContent: 'center',
+  gap: 8,
   fontSize: 14,
-  color: PALETTE.ghiaccio,
-  marginTop: 6,
-  textDecoration: 'underline dotted',
-  textUnderlineOffset: 3,
+  color: T.tenue,
 };
 
-const footerTextStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-testo)',
-  fontSize: 14,
-  color: PALETTE.inchiostro,
+const nastroStyle: React.CSSProperties = {
+  position: 'absolute',
+  left: 0,
+  right: 0,
+  bottom: 0,
+  zIndex: 6,
 };
-
-const woodSmallButtonStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-titolo)',
-  fontSize: 14,
-  color: PALETTE.bianco,
-  background: PALETTE.inchiostro,
-  border: `2px solid ${PALETTE.ardesia}`,
-  padding: '4px 10px',
-  cursor: 'pointer',
-};
-

@@ -32,7 +32,7 @@ import {
   HEADER_COL_WIDTH,
   HEADER_ROW_HEIGHT,
 } from '../engine/types';
-import { PALETTE, UI } from '../styles/palette';
+import { T } from '../styles/palette';
 import type { GridSession, SessionSnapshot } from '../game/session';
 import { Axis, indicesInViewport } from './geometry';
 import { displayCell } from './cellDisplay';
@@ -249,18 +249,14 @@ export function Grid({ session, snap }: GridProps): JSX.Element {
           alignItems: 'center',
           justifyContent:
             d.align === 'right' ? 'flex-end' : d.align === 'center' ? 'center' : 'flex-start',
-          background: bloccata
-            ? PALETTE.nebbia + '44'
-            : selezionata && !attiva
-              ? PALETTE.ghiaccio + '88'
-              : PALETTE.bianco,
-          color: d.color ?? PALETTE.inchiostro,
+          background: selezionata && !attiva ? SELEZIONE : bloccata ? T.cartaTenue : T.carta,
+          color: d.color ?? T.cartaTesto,
           fontWeight: style.bold ? 700 : 400,
           fontStyle: style.italic ? 'italic' : 'normal',
           textDecoration: style.underline ? 'underline' : 'none',
-          borderRight: `1px solid ${PALETTE.nebbia}88`,
-          borderBottom: `1px solid ${PALETTE.nebbia}88`,
-          outline: attiva ? `2px solid ${PALETTE.smeraldo}` : undefined,
+          borderRight: `1px solid ${T.cartaLinea}`,
+          borderBottom: `1px solid ${T.cartaLinea}`,
+          outline: attiva ? `2px solid ${T.cartaAttiva}` : undefined,
           outlineOffset: -2,
           overflow: deborda ? 'visible' : 'hidden',
           whiteSpace: style.wrap && !inEditing ? 'pre-wrap' : 'pre',
@@ -296,8 +292,7 @@ export function Grid({ session, snap }: GridProps): JSX.Element {
           top: 0,
           width: w,
           height: HEADER_ROW_HEIGHT,
-          background: evidenziata ? PALETTE.ambra : PALETTE.nebbia + '55',
-          fontWeight: evidenziata ? 700 : 500,
+          ...(evidenziata ? headerAccesoStyle : null),
         }}
       >
         {colToLetters(col)}
@@ -322,8 +317,7 @@ export function Grid({ session, snap }: GridProps): JSX.Element {
           top: y,
           width: HEADER_COL_WIDTH,
           height: h,
-          background: evidenziata ? PALETTE.ambra : PALETTE.nebbia + '55',
-          fontWeight: evidenziata ? 700 : 500,
+          ...(evidenziata ? headerAccesoStyle : null),
         }}
       >
         {row + 1}
@@ -346,7 +340,6 @@ export function Grid({ session, snap }: GridProps): JSX.Element {
         height: HEADER_ROW_HEIGHT,
         zIndex: 5,
         cursor: 'pointer',
-        background: PALETTE.ambra + '88',
       }}
       title={tr('Grid.1')}
     />
@@ -359,7 +352,7 @@ export function Grid({ session, snap }: GridProps): JSX.Element {
     <div className="dd-grid" style={contenitoreStyle} onMouseDown={onMouseDown}>
       {angoloFisso()}
       {/* angolo: intestazioni + eventuali righe/colonne bloccate, sempre fermo */}
-      <div style={{ position: 'absolute', left: 0, top: 0, width: originX, height: originY, zIndex: 4, background: PALETTE.bianco, borderRight: `1px solid ${PALETTE.nebbia}`, borderBottom: `1px solid ${PALETTE.nebbia}` }}>
+      <div style={{ position: 'absolute', left: 0, top: 0, width: originX, height: originY, zIndex: 4, background: T.carta, borderRight: `1px solid ${BORDO_TESTATA}`, borderBottom: `1px solid ${BORDO_TESTATA}` }}>
         {colonneFisse.map((c) => intestazioneCol(c, HEADER_COL_WIDTH + colAxis.offset(c), colAxis.size(c)))}
         {righeFisse.map((r) => intestazioneRiga(r, HEADER_ROW_HEIGHT + rowAxis.offset(r), rowAxis.size(r)))}
         {righeFisse.map((r) =>
@@ -370,7 +363,7 @@ export function Grid({ session, snap }: GridProps): JSX.Element {
       </div>
 
       {/* banda superiore: intestazioni di colonna e righe bloccate, scorre solo in orizzontale */}
-      <div style={{ position: 'absolute', left: originX, top: 0, right: 0, height: originY, overflow: 'hidden', zIndex: 3, background: PALETTE.bianco, borderBottom: `1px solid ${PALETTE.nebbia}` }}>
+      <div style={{ position: 'absolute', left: originX, top: 0, right: 0, height: originY, overflow: 'hidden', zIndex: 3, background: T.carta, borderBottom: `1px solid ${BORDO_TESTATA}` }}>
         <div style={{ position: 'absolute', left: -scroll.left, top: 0, height: '100%' }}>
           {colonneVisibili.map((cv) => intestazioneCol(frozenCols + cv.index, cv.start, cv.size))}
           {righeFisse.map((r) =>
@@ -382,7 +375,7 @@ export function Grid({ session, snap }: GridProps): JSX.Element {
       </div>
 
       {/* banda sinistra: intestazioni di riga e colonne bloccate, scorre solo in verticale */}
-      <div style={{ position: 'absolute', left: 0, top: originY, width: originX, bottom: 0, overflow: 'hidden', zIndex: 3, background: PALETTE.bianco, borderRight: `1px solid ${PALETTE.nebbia}` }}>
+      <div style={{ position: 'absolute', left: 0, top: originY, width: originX, bottom: 0, overflow: 'hidden', zIndex: 3, background: T.carta, borderRight: `1px solid ${BORDO_TESTATA}` }}>
         <div style={{ position: 'absolute', left: 0, top: -scroll.top, width: '100%' }}>
           {righeVisibili.map((rv) => intestazioneRiga(frozenRows + rv.index, rv.start, rv.size))}
           {righeVisibili.map((rv) =>
@@ -397,7 +390,7 @@ export function Grid({ session, snap }: GridProps): JSX.Element {
       <div
         ref={scroller}
         onScroll={onScroll}
-        style={{ position: 'absolute', left: originX, top: originY, right: 0, bottom: 0, overflow: 'auto', background: PALETTE.bianco }}
+        style={{ position: 'absolute', left: originX, top: originY, right: 0, bottom: 0, overflow: 'auto', background: T.carta }}
       >
         <div style={{ width: colVirt.getTotalSize(), height: rowVirt.getTotalSize(), position: 'relative' }}>
           {righeVisibili.map((rv) =>
@@ -411,12 +404,16 @@ export function Grid({ session, snap }: GridProps): JSX.Element {
   );
 }
 
+/** Celle selezionate ma non attive: un velo ciano sulla carta. */
+const SELEZIONE = '#d4f2fb';
+const BORDO_TESTATA = '#b9c5d8';
+
 const contenitoreStyle: React.CSSProperties = {
   position: 'relative',
   width: '100%',
   height: '100%',
   overflow: 'hidden',
-  background: PALETTE.bianco,
+  background: T.carta,
   fontFamily: 'var(--font-griglia)',
   fontSize: 13,
   userSelect: 'none',
@@ -427,13 +424,26 @@ const headerStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  color: PALETTE.inchiostro,
-  background: PALETTE.nebbia + '55',
-  borderRight: `1px solid ${PALETTE.nebbia}`,
-  borderBottom: `1px solid ${PALETTE.nebbia}`,
+  color: T.spento,
+  background: T.cartaTenue,
+  borderRight: `1px solid ${BORDO_TESTATA}`,
+  borderBottom: `1px solid ${BORDO_TESTATA}`,
   boxSizing: 'border-box',
   fontSize: 11,
+  fontWeight: 500,
   cursor: 'default',
+};
+
+/**
+ * L'intestazione della riga e della colonna correnti prende i colori del
+ * chrome: e' il punto in cui l'occhio ritrova il cursore a colpo sicuro.
+ */
+const headerAccesoStyle: React.CSSProperties = {
+  color: T.accento,
+  background: T.rialzo,
+  borderRightColor: T.rialzo,
+  borderBottomColor: T.rialzo,
+  fontWeight: 700,
 };
 
 const caretStyle: React.CSSProperties = {
@@ -441,6 +451,6 @@ const caretStyle: React.CSSProperties = {
   width: 1,
   height: '1.1em',
   marginLeft: 1,
-  background: UI.accento,
+  background: T.cartaTesto,
   animation: 'dd-blink 1s steps(2, start) infinite',
 };

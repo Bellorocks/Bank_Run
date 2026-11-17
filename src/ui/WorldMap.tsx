@@ -1,7 +1,6 @@
 /**
- * Mappa del mondo — selezione modulo con vere Isole Fluttuanti nel cielo,
- * terreno sottostante visibile in lontananza e Boss Planet nello spazio cosmico.
- * Palette 16 colori fissa (spec §8), bande piatte e bordi duri.
+ * Mappa del mondo: le isole fluttuanti a sinistra, viste di notte, con un faro
+ * per isola; a destra il pannello dell'isola scelta con moduli e livelli.
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -10,16 +9,9 @@ import { SKILLS_BY_ID } from '../content/skills';
 import type { LevelTemplate, ModuleId } from '../content/types';
 import { isFreePlay, loadProgress, subscribeProgress, type ProgressSnapshot } from '../persistence/progress';
 import { rankForXp } from '../persistence/progression';
-import { PALETTE } from '../styles/palette';
-import { PixelSprite } from './sprites/PixelCanvas';
-import {
-  MAP_PIN_BANNER,
-  WOOD_CHAIN_HANGER,
-  WOOD_IRON_CLAMP,
-} from './sprites/decorations';
-import {
-  SELECTION_CURSOR,
-} from './sprites/islands';
+import { T } from '../styles/palette';
+import { Scena, type TemaIsola } from './Scena';
+import { Badge } from './primitives';
 
 import { tr } from '../i18n/ui';
 export interface WorldMapProps {
@@ -37,6 +29,10 @@ interface IslandDef {
   readonly x: number;
   readonly y: number;
   readonly boss?: boolean;
+  /** Cosa c'e' sopra l'isola disegnata dalla scena. */
+  readonly tema: TemaIsola;
+  /** Larghezza dell'isola, in percentuale della mappa. */
+  readonly larga?: number;
 }
 
 const ISLANDS: IslandDef[] = [
@@ -48,8 +44,9 @@ const ISLANDS: IslandDef[] = [
     moduleIds: ['M0-A', 'M0-B', 'M0-C', 'M0-D', 'M0-E', 'M0-F'],
     summary:
       tr('WorldMap.4'),
-    x: 52,
-    y: 84, // Giù nel lago del continente
+    x: 20,
+    y: 70,
+    tema: 'prato',
   },
   {
     id: 'isola-prospetti',
@@ -59,8 +56,9 @@ const ISLANDS: IslandDef[] = [
     moduleIds: ['M1', 'M2', 'M3'],
     summary:
       tr('WorldMap.8'),
-    x: 14,
-    y: 50, // Verso le colonne a sinistra
+    x: 41,
+    y: 43,
+    tema: 'colonne',
   },
   {
     id: 'isola-valutazioni',
@@ -70,8 +68,9 @@ const ISLANDS: IslandDef[] = [
     moduleIds: ['M4', 'M5', 'M6', 'M7'],
     summary:
       tr('WorldMap.12'),
-    x: 46,
-    y: 54, // Al centro prima delle scale
+    x: 66,
+    y: 72,
+    tema: 'autunno',
   },
   {
     id: 'isola-credito',
@@ -81,8 +80,9 @@ const ISLANDS: IslandDef[] = [
     moduleIds: ['M8', 'M9', 'M10', 'M11'],
     summary:
       tr('WorldMap.16'),
-    x: 32,
-    y: 22, // Nell'isola più alta col castello
+    x: 70,
+    y: 40,
+    tema: 'castello',
   },
   {
     id: 'isola-finale',
@@ -92,11 +92,16 @@ const ISLANDS: IslandDef[] = [
     moduleIds: ['M12'],
     summary:
       tr('WorldMap.20'),
-    x: 84,
-    y: 20, // Nello squarcio cosmico
+    x: 89,
+    y: 17,
+    tema: 'tempesta',
+    larga: 20,
     boss: true,
   },
 ];
+
+/** Le isole come le vuole la scena: fuori dal componente, cosi' non si ridisegna a ogni render. */
+const SCENA_ISOLE = ISLANDS.map((r) => ({ x: r.x, y: r.y, tema: r.tema, larga: r.larga }));
 
 export function WorldMap({ onSelectLevel, onBackToTitle }: WorldMapProps) {
   const [selectedId, setSelectedId] = useState<string>(ISLANDS[0].id);
@@ -124,147 +129,104 @@ export function WorldMap({ onSelectLevel, onBackToTitle }: WorldMapProps) {
   const activeModule = selectedModule ?? island.moduleIds[0];
   const moduleTemplates = islandTemplates.filter((t) => t.module === activeModule);
 
+  const islandIndex = ISLANDS.indexOf(island);
+  const islandDone = islandTemplates.filter((t) => completed.has(t.id)).length;
+  // Il prossimo livello da giocare nel modulo: e' l'unico con il pulsante rosa.
+  const prossimo = moduleTemplates.find((t) => !completed.has(t.id) && playable(t))?.id;
+
   return (
     <div style={pageStyle}>
-      {/* Intestazione in stile legno con staffe */}
       <header style={headerStyle}>
-        <div style={badgeStyle}>BR</div>
-        <span style={{ fontFamily: 'var(--font-titolo)', fontSize: 19, color: PALETTE.ambra, textShadow: `2px 2px 0 ${PALETTE.prugna}` }}>
+        <span className="br-logo" style={{ fontSize: 30, animation: 'none' }}>
+          {tr('App.1')}
+        </span>
+        <span className="br-label" style={{ marginLeft: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {tr('WorldMap.21')}
         </span>
         <span style={{ flex: 1 }} />
-        <span style={headerChipStyle(PALETTE.ambra)} title={tr('WorldMap.22')}>
-          {rankForXp(xp).toUpperCase()} · {xp} XP
-        </span>
-        <span style={headerChipStyle(PALETTE.lime)}>
-          ✓ {completed.size}/{TEMPLATES.length}{' '}{tr('WorldMap.23')}{freePlay ? tr('WorldMap.24') : ''}
-        </span>
+        <Badge colore={T.oro} title={tr('WorldMap.22')}>
+          {rankForXp(xp)} · {xp} XP
+        </Badge>
+        <Badge colore={T.menta}>
+          ✓ {completed.size}/{TEMPLATES.length} {tr('WorldMap.23')}
+          {freePlay ? tr('WorldMap.24') : ''}
+        </Badge>
         {onBackToTitle && (
-          <button type="button" onClick={onBackToTitle} style={woodHeaderButtonStyle}>
+          <button type="button" onClick={onBackToTitle} className="br-btn br-btn--piccolo">
             {tr('WorldMap.25')}
           </button>
         )}
       </header>
 
-      <div style={bodyStyle}>
-        {/* Riquadro della Mappa Aerea con Isole nel Paesaggio */}
+      <div className="br-entra" style={bodyStyle}>
         <div style={mapFrameStyle}>
-          {/* Sfondo Pixel Art HD Pulito (senza scritte) */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundImage: 'url(/art/map_bg.jpg)',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              imageRendering: 'pixelated',
-              zIndex: 0,
-            }}
-          />
+          <Scena tipo="isole" isole={SCENA_ISOLE} />
 
-
-          {/* Linee di rotta / sentieri pixel a quadratini dorati */}
           {pathDots(ISLANDS).map((p, i) => (
-            <div
-              key={i}
-              style={{
-                position: 'absolute',
-                left: `${p.x}%`,
-                top: `${p.y}%`,
-                width: 6,
-                height: 6,
-                background: PALETTE.ambra,
-                border: `1px solid ${PALETTE.inchiostro}`,
-                transform: 'translate(-50%, -50%)',
-                zIndex: 4,
-              }}
-            />
+            <div key={i} style={{ ...dotStyle, left: `${p.x}%`, top: `${p.y}%` }} />
           ))}
 
-          {/* Segnaposto e Cartelli in Legno sulle posizioni geografiche reali */}
           {ISLANDS.map((r) => {
             const isSelected = r.id === island.id;
             const islandList = TEMPLATES.filter((t) => r.moduleIds.includes(t.module));
             const count = islandList.length;
             const done = islandList.filter((t) => completed.has(t.id)).length;
+            const colore = r.boss ? T.corallo : done === count && count > 0 ? T.menta : T.accento;
             return (
-              <div
+              <button
                 key={r.id}
+                type="button"
+                onClick={() => {
+                  setSelectedId(r.id);
+                  setSelectedModule(r.moduleIds[0]);
+                }}
+                title={tr('WorldMap.26', { p0: r.name, done, count })}
                 style={{
-                  position: 'absolute',
+                  ...pinStyle,
+                  ...pinLato(r.x),
                   left: `${r.x}%`,
                   top: `${r.y}%`,
-                  transform: 'translate(-50%, -50%)',
                   zIndex: isSelected ? 15 : 6,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
+                  ['--faro' as string]: colore,
                 }}
               >
-                {/* Cursore animato sopra il punto attivo */}
-                {isSelected && (
-                  <div style={{ marginBottom: -6, zIndex: 16 }}>
-                    <PixelSprite frame={SELECTION_CURSOR} scale={2.4} />
-                  </div>
-                )}
-
-                {/* Palo con bandiera di checkpoint */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedId(r.id);
-                    setSelectedModule(r.moduleIds[0]);
-                  }}
-                  title={tr('WorldMap.26', { p0: r.name, done, count })}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    padding: 0,
-                    cursor: 'pointer',
-                    transform: isSelected ? 'scale(1.15)' : 'scale(1.0)',
-                    transition: 'none',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                  }}
-                >
-                  <PixelSprite frame={MAP_PIN_BANNER} scale={1.8} />
-
-                  {/* Cartello in legno intagliato sotto la bandiera */}
-                  <div style={woodenSignTagStyle(isSelected, r.boss)}>
-                    {r.labelShort} ({done}/{count})
-                  </div>
-                </button>
-              </div>
+                <span className={isSelected ? 'br-faro is-scelto' : 'br-faro'} />
+                <span style={tagStyle(isSelected, colore)}>
+                  <span>{r.labelShort}</span>
+                  <span style={{ opacity: 0.75 }}>
+                    {done}/{count}
+                  </span>
+                </span>
+              </button>
             );
           })}
         </div>
 
-        {/* Pannello Dettaglio Isola e Livelli — Stile Cartelli in Legno Appesi */}
-        <div style={panelOuterStyle}>
-
-          {/* Intestazione cartello appeso con catene */}
-          <div style={hangingSignHeaderStyle}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 20px', marginBottom: -4 }}>
-              <PixelSprite frame={WOOD_CHAIN_HANGER} scale={1.4} />
-              <PixelSprite frame={WOOD_CHAIN_HANGER} scale={1.4} />
+        <div className="br-pannello" style={panelStyle}>
+          <div style={panelTopStyle}>
+            <div className="br-label" style={{ color: island.boss ? T.corallo : T.accento }}>
+              {String(islandIndex + 1).padStart(2, '0')} / {String(ISLANDS.length).padStart(2, '0')}
             </div>
-            <div style={hangingSignBoardStyle}>
-              <h2 style={panelTitleStyle}>{island.name}</h2>
-              <p style={panelSubtitleStyle}>{island.subtitle}</p>
+            <h2 style={panelTitleStyle}>{island.name}</h2>
+            <p style={panelSubtitleStyle}>{island.subtitle}</p>
+            <p style={panelSummaryStyle}>{island.summary}</p>
+
+            <div style={barraStyle} role="progressbar" aria-valuemin={0} aria-valuemax={islandTemplates.length} aria-valuenow={islandDone}>
+              <div
+                style={{
+                  width: `${islandTemplates.length > 0 ? (islandDone / islandTemplates.length) * 100 : 0}%`,
+                  height: '100%',
+                  background: T.menta,
+                  boxShadow: `0 0 8px ${T.menta}`,
+                }}
+              />
             </div>
           </div>
 
-          <p style={panelSummaryStyle}>{island.summary}</p>
-
-          {/* Selezione modulo dell'isola: Cartelli in legno concatenati */}
-          <div style={{ marginBottom: 6 }}>
-            <span style={{ fontFamily: 'var(--font-titolo)', fontSize: 14, color: PALETTE.ardesia }}>
+          <div style={moduleBarStyle}>
+            <span className="br-label" style={{ width: '100%' }}>
               {tr('WorldMap.27')}
             </span>
-          </div>
-
-          <div style={moduleTabsStyle}>
             {island.moduleIds.map((mId) => {
               const isCurrent = mId === activeModule;
               const modList = islandTemplates.filter((t) => t.module === mId);
@@ -275,48 +237,58 @@ export function WorldMap({ onSelectLevel, onBackToTitle }: WorldMapProps) {
                   key={mId}
                   type="button"
                   onClick={() => setSelectedModule(mId)}
-                  style={moduleWoodenPlankStyle(isCurrent)}
+                  className={isCurrent ? 'br-linguetta is-scelta' : 'br-linguetta'}
                 >
-                  <PixelSprite frame={WOOD_IRON_CLAMP} scale={1.0} />
-                  <span>
-                    {mId} ({done}/{count})
+                  {mId}{' '}
+                  <span style={{ opacity: 0.7 }}>
+                    {done}/{count}
                   </span>
                 </button>
               );
             })}
           </div>
 
-          {/* Elenco dei livelli: Cartelli in legno intagliati ad asse singola/doppia */}
           <div style={levelListStyle}>
             {moduleTemplates.map((t, idx) => {
               const record = progress?.levels[t.id];
               const aperto = playable(t);
               const mancanti = t.prerequisites.filter((p) => !completed.has(p));
               return (
-                <div key={t.id} style={{ ...levelPlankCardStyle, opacity: aperto ? 1 : 0.6 }}>
-                  <span style={levelIndexSignStyle(record !== undefined)}>{record ? '✓' : idx + 1}</span>
+                <div
+                  key={t.id}
+                  className={aperto ? 'br-riga br-riga--viva' : 'br-riga'}
+                  style={{ ...levelRowStyle, opacity: aperto ? 1 : 0.55 }}
+                >
+                  <span style={levelIndexStyle(record !== undefined, t.id === prossimo)}>
+                    {record ? '✓' : String(idx + 1).padStart(2, '0')}
+                  </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={levelTitleStyle} title={t.title}>
                       {t.title}
                     </div>
                     <div style={levelMetaStyle}>
-                      {tr('WorldMap.28')}{' '}{t.rank} · ~{Math.round(t.estimatedSeconds / 60)}{' '}{tr('WorldMap.29')}
+                      {tr('WorldMap.28')} {t.rank} · ~{Math.round(t.estimatedSeconds / 60)} {tr('WorldMap.29')}
                       {record
                         ? tr('WorldMap.30', { p0: record.bestXp, p1: record.bestTimeMs != null ? ` in ${formatTime(record.bestTimeMs)}` : '' })
                         : ` · ${t.skills.slice(0, 2).map((k) => SKILLS_BY_ID.get(k)?.label ?? k).join(', ')}`}
                     </div>
                     {!aperto && (
                       <div style={levelLockStyle}>
-                        {tr('WorldMap.31')}{' '}{mancanti.map((p) => getTemplate(p)?.title ?? p).join(' · ')}
+                        {tr('WorldMap.31')} {mancanti.map((p) => getTemplate(p)?.title ?? p).join(' · ')}
                       </div>
                     )}
                   </div>
                   {aperto ? (
-                    <button type="button" onClick={() => onSelectLevel(t.id)} style={playWoodArrowButtonStyle}>
+                    <button
+                      type="button"
+                      onClick={() => onSelectLevel(t.id)}
+                      className={t.id === prossimo ? 'br-btn br-btn--primario br-btn--piccolo' : 'br-btn br-btn--piccolo'}
+                      style={{ flexShrink: 0 }}
+                    >
                       {record ? tr('WorldMap.32') : tr('WorldMap.33')}
                     </button>
                   ) : (
-                    <span style={lockedBadgeStyle} title={tr('WorldMap.34')}>
+                    <span style={lockedStyle} title={tr('WorldMap.34')}>
                       {tr('WorldMap.35')}
                     </span>
                   )}
@@ -335,21 +307,10 @@ function formatTime(ms: number): string {
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 }
 
-function headerChipStyle(color: string): React.CSSProperties {
-  return {
-    fontFamily: 'var(--font-titolo)',
-    fontSize: 15,
-    color,
-    background: PALETTE.inchiostro,
-    padding: '4px 10px',
-    border: `1px solid ${PALETTE.ardesia}`,
-  };
-}
-
-/** Punti del sentiero come quadratini pixel pieni */
+/** Punti della rotta fra un'isola e la successiva. */
 function pathDots(islands: readonly IslandDef[]): { x: number; y: number }[] {
   const dots: { x: number; y: number }[] = [];
-  const spacing = 3.6;
+  const spacing = 3.2;
   for (let i = 0; i < islands.length - 1; i++) {
     const a = islands[i];
     const b = islands[i + 1];
@@ -364,43 +325,32 @@ function pathDots(islands: readonly IslandDef[]): { x: number; y: number }[] {
   return dots;
 }
 
-/** Cartello in legno intagliato per i punti sulla mappa (stile reference) */
-function woodenSignTagStyle(isSelected: boolean, isBoss?: boolean): React.CSSProperties {
-  return {
-    fontFamily: 'var(--font-titolo)',
-    fontSize: 14,
-    color: isSelected ? PALETTE.inchiostro : PALETTE.bianco,
-    background: isSelected
-      ? PALETTE.ambra
-      : isBoss
-      ? PALETTE.rubino
-      : PALETTE.corallo,
-    border: `3px solid ${PALETTE.inchiostro}`,
-    borderTop: `3px solid ${isSelected ? PALETTE.bianco : PALETTE.ambra}`,
-    borderBottom: `3px solid ${isSelected ? PALETTE.corallo : PALETTE.rubino}`,
-    boxShadow: `3px 3px 0 ${PALETTE.inchiostro}`,
-    padding: '4px 8px',
-    marginTop: 2,
-    whiteSpace: 'nowrap',
-  };
+/**
+ * Vicino ai bordi della mappa l'etichetta si allinea al faro invece di
+ * centrarsi sotto: altrimenti finirebbe tagliata dalla cornice.
+ */
+function pinLato(x: number): React.CSSProperties {
+  if (x < 25) return { alignItems: 'flex-start', transform: 'translate(-9px, -9px)' };
+  if (x > 75) return { alignItems: 'flex-end', transform: 'translate(calc(-100% + 9px), -9px)' };
+  return {};
 }
 
-/** Pulsanti dei moduli a tavolette di legno con morsetto in ferro */
-function moduleWoodenPlankStyle(active: boolean): React.CSSProperties {
+function tagStyle(isSelected: boolean, colore: string): React.CSSProperties {
   return {
-    fontFamily: 'var(--font-titolo)',
-    fontSize: 14,
-    color: active ? PALETTE.inchiostro : PALETTE.bianco,
-    background: active ? PALETTE.ambra : PALETTE.corallo,
-    border: `2px solid ${PALETTE.inchiostro}`,
-    borderTop: `2px solid ${active ? PALETTE.bianco : PALETTE.ambra}`,
-    borderBottom: `2px solid ${active ? PALETTE.corallo : PALETTE.rubino}`,
-    boxShadow: `3px 3px 0 ${PALETTE.inchiostro}`,
-    padding: '6px 10px',
-    cursor: 'pointer',
     display: 'inline-flex',
-    alignItems: 'center',
-    gap: 6,
+    gap: 8,
+    marginTop: 12,
+    padding: '5px 9px',
+    fontFamily: 'var(--font-titolo)',
+    fontSize: 12,
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase',
+    lineHeight: 1.3,
+    whiteSpace: 'nowrap',
+    color: isSelected ? T.abisso : T.testo,
+    background: isSelected ? colore : T.fondo,
+    border: `2px solid ${colore}`,
+    boxShadow: `0 3px 0 ${T.abisso}`,
   };
 }
 
@@ -408,7 +358,7 @@ const pageStyle: React.CSSProperties = {
   height: '100%',
   display: 'flex',
   flexDirection: 'column',
-  background: PALETTE.inchiostro,
+  background: T.abisso,
 };
 
 const headerStyle: React.CSSProperties = {
@@ -416,39 +366,10 @@ const headerStyle: React.CSSProperties = {
   alignItems: 'center',
   gap: 12,
   padding: '8px 16px',
-  background: PALETTE.grafite,
-  borderBottom: `4px solid ${PALETTE.inchiostro}`,
-  outline: `2px solid ${PALETTE.corallo}`,
-  boxShadow: `0 3px 0 ${PALETTE.inchiostro}`,
+  minHeight: 52,
+  background: T.fondo,
+  borderBottom: `2px solid ${T.linea}`,
   zIndex: 20,
-};
-
-const badgeStyle: React.CSSProperties = {
-  width: 32,
-  height: 32,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontFamily: 'var(--font-titolo)',
-  fontSize: 17,
-  color: PALETTE.inchiostro,
-  background: PALETTE.ambra,
-  border: `2px solid ${PALETTE.inchiostro}`,
-  borderTop: `2px solid ${PALETTE.bianco}`,
-  borderBottom: `2px solid ${PALETTE.corallo}`,
-};
-
-const woodHeaderButtonStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-titolo)',
-  fontSize: 15,
-  color: PALETTE.bianco,
-  background: PALETTE.corallo,
-  border: `2px solid ${PALETTE.inchiostro}`,
-  borderTop: `2px solid ${PALETTE.ambra}`,
-  borderBottom: `2px solid ${PALETTE.rubino}`,
-  padding: '6px 14px',
-  cursor: 'pointer',
-  boxShadow: `2px 2px 0 ${PALETTE.inchiostro}`,
 };
 
 const bodyStyle: React.CSSProperties = {
@@ -462,102 +383,113 @@ const bodyStyle: React.CSSProperties = {
 const mapFrameStyle: React.CSSProperties = {
   position: 'relative',
   flex: '1 1 54%',
-  border: `4px solid ${PALETTE.inchiostro}`,
-  outline: `3px solid ${PALETTE.corallo}`,
-  boxShadow: `6px 6px 0 ${PALETTE.inchiostro}`,
+  minWidth: 0,
+  border: `2px solid ${T.linea}`,
+  boxShadow: `0 0 0 2px ${T.abisso}`,
   overflow: 'hidden',
+  background: '#41a6f6',
 };
 
-const panelOuterStyle: React.CSSProperties = {
-  position: 'relative',
-  flex: '1 1 46%',
+const dotStyle: React.CSSProperties = {
+  position: 'absolute',
+  width: 5,
+  height: 5,
+  background: T.testo,
+  boxShadow: `0 0 0 2px ${T.fondo}`,
+  transform: 'translate(-50%, -50%)',
+  zIndex: 4,
+};
+
+const pinStyle: React.CSSProperties = {
+  position: 'absolute',
+  transform: 'translate(-50%, -9px)',
   display: 'flex',
   flexDirection: 'column',
-  minHeight: 0,
-  background: PALETTE.bianco,
-  border: `4px solid ${PALETTE.inchiostro}`,
-  outline: `3px solid ${PALETTE.corallo}`,
-  boxShadow: `6px 6px 0 ${PALETTE.inchiostro}`,
-  padding: 16,
+  alignItems: 'center',
+  padding: 0,
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+};
+
+const panelStyle: React.CSSProperties = {
+  flex: '1 1 46%',
+  minWidth: 0,
   overflowY: 'auto',
 };
 
-const hangingSignHeaderStyle: React.CSSProperties = {
-  marginBottom: 10,
-};
-
-const hangingSignBoardStyle: React.CSSProperties = {
-  background: PALETTE.corallo,
-  border: `3px solid ${PALETTE.inchiostro}`,
-  borderTop: `3px solid ${PALETTE.ambra}`,
-  borderBottom: `3px solid ${PALETTE.rubino}`,
-  boxShadow: `4px 4px 0 ${PALETTE.inchiostro}`,
-  padding: '12px 14px',
+const panelTopStyle: React.CSSProperties = {
+  padding: '16px 18px 14px',
+  borderBottom: `2px solid ${T.linea}`,
+  background: `linear-gradient(180deg, ${T.rialzo}, ${T.pannello})`,
+  flex: '0 0 auto',
 };
 
 const panelTitleStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-titolo)',
-  fontSize: 19,
-  color: PALETTE.bianco,
-  margin: 0,
-  letterSpacing: '0.04em',
-  textShadow: `2px 2px 0 ${PALETTE.inchiostro}`,
+  fontFamily: 'var(--font-logo)',
+  fontSize: 44,
+  lineHeight: 0.95,
+  letterSpacing: '0.03em',
+  textTransform: 'none',
+  color: T.testo,
+  margin: '6px 0 0',
 };
 
 const panelSubtitleStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-testo)',
-  fontSize: 17,
-  color: PALETTE.ambra,
-  margin: '4px 0 0',
+  fontSize: 16,
+  color: T.accento,
+  margin: '6px 0 0',
 };
 
 const panelSummaryStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-testo)',
   fontSize: 16,
-  color: PALETTE.inchiostro,
   lineHeight: 1.4,
-  margin: '0 0 10px',
-  background: PALETTE.nebbia + '33',
-  padding: '10px 12px',
-  border: `2px solid ${PALETTE.ardesia}`,
+  color: T.tenue,
+  margin: '8px 0 12px',
 };
 
-const moduleTabsStyle: React.CSSProperties = {
+const barraStyle: React.CSSProperties = {
+  height: 8,
+  padding: 1,
+  background: T.abisso,
+  border: `2px solid ${T.linea}`,
+  boxSizing: 'content-box',
+};
+
+const moduleBarStyle: React.CSSProperties = {
   display: 'flex',
-  gap: 6,
+  gap: 8,
   flexWrap: 'wrap',
-  marginBottom: 12,
+  padding: '12px 18px 15px',
+  borderBottom: `2px solid ${T.linea}`,
+  flex: '0 0 auto',
 };
 
 const levelListStyle: React.CSSProperties = {
-  flex: 1,
+  flex: '1 1 auto',
   display: 'flex',
   flexDirection: 'column',
   gap: 8,
+  padding: '14px 18px 18px',
 };
 
-/** Cartello in legno ad asse per ciascun livello */
-const levelPlankCardStyle: React.CSSProperties = {
+const levelRowStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  gap: 10,
-  padding: '8px 12px',
-  background: PALETTE.bianco,
-  border: `3px solid ${PALETTE.inchiostro}`,
-  borderTop: `3px solid ${PALETTE.ambra}`,
-  borderBottom: `3px solid ${PALETTE.corallo}`,
-  boxShadow: `3px 3px 0 ${PALETTE.ardesia}`,
+  gap: 12,
+  padding: '9px 12px',
 };
 
-function levelIndexSignStyle(done: boolean): React.CSSProperties {
+function levelIndexStyle(done: boolean, prossimo: boolean): React.CSSProperties {
+  const colore = done ? T.menta : prossimo ? T.accento : T.spento;
   return {
     fontFamily: 'var(--font-titolo)',
-    fontSize: 15,
-    color: done ? PALETTE.bianco : PALETTE.inchiostro,
-    background: done ? PALETTE.smeraldo : PALETTE.ambra,
-    border: `2px solid ${PALETTE.inchiostro}`,
-    width: 26,
-    height: 26,
+    fontSize: 12,
+    color: done ? T.abisso : colore,
+    background: done ? T.menta : 'transparent',
+    border: `2px solid ${colore}`,
+    width: 30,
+    height: 30,
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -565,51 +497,38 @@ function levelIndexSignStyle(done: boolean): React.CSSProperties {
   };
 }
 
-const levelLockStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-testo)',
-  fontSize: 13,
-  color: PALETTE.rubino,
-  marginTop: 2,
-};
-
-const lockedBadgeStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-titolo)',
-  fontSize: 13,
-  color: PALETTE.ardesia,
-  border: `2px dashed ${PALETTE.ardesia}`,
-  padding: '5px 8px',
-  flexShrink: 0,
-  whiteSpace: 'nowrap',
-};
-
 const levelTitleStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-titolo)',
-  fontSize: 15,
-  color: PALETTE.grafite,
+  fontFamily: 'var(--font-logo)',
+  fontSize: 21,
+  lineHeight: 1.1,
+  letterSpacing: '0.03em',
+  color: T.testo,
   whiteSpace: 'nowrap',
   overflow: 'hidden',
   textOverflow: 'ellipsis',
 };
 
 const levelMetaStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-testo)',
   fontSize: 14,
-  color: PALETTE.ardesia,
+  lineHeight: 1.3,
+  color: T.tenue,
+  marginTop: 1,
+};
+
+const levelLockStyle: React.CSSProperties = {
+  fontSize: 14,
+  lineHeight: 1.3,
+  color: T.oro,
   marginTop: 2,
 };
 
-const playWoodArrowButtonStyle: React.CSSProperties = {
+const lockedStyle: React.CSSProperties = {
   fontFamily: 'var(--font-titolo)',
-  fontSize: 14,
-  color: PALETTE.bianco,
-  background: PALETTE.smeraldo,
-  border: `2px solid ${PALETTE.inchiostro}`,
-  borderTop: `2px solid ${PALETTE.lime}`,
-  borderBottom: `2px solid ${PALETTE.petrolio}`,
-  boxShadow: `2px 2px 0 ${PALETTE.inchiostro}`,
-  padding: '6px 10px',
-  cursor: 'pointer',
+  fontSize: 12,
+  letterSpacing: '0.06em',
+  color: T.spento,
+  border: `2px dashed ${T.linea}`,
+  padding: '5px 8px',
   flexShrink: 0,
+  whiteSpace: 'nowrap',
 };
-
-

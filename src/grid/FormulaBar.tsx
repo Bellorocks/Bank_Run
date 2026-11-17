@@ -14,7 +14,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { coordToA1, rangeToA1 } from '../engine/address';
 import { collectRefsFromText, assignRefColors } from '../engine/formula/refs';
-import { PALETTE, UI } from '../styles/palette';
+import { PALETTE, T } from '../styles/palette';
 import type { GridSession, SessionSnapshot } from '../game/session';
 
 import { tr } from '../i18n/ui';
@@ -26,7 +26,7 @@ const REF_COLORS = [
   PALETTE.corallo,
   PALETTE.prugna,
   PALETTE.petrolio,
-  PALETTE.ambra,
+  '#b26a00',
 ] as const;
 
 export interface FormulaBarProps {
@@ -105,7 +105,7 @@ function TestoColorato({
             top: 0,
             bottom: 0,
             width: caretFine !== null && caretFine > caret ? `${caretFine - caret}ch` : '1px',
-            background: caretFine !== null && caretFine > caret ? 'rgba(65,166,246,0.35)' : UI.accento,
+            background: caretFine !== null && caretFine > caret ? 'rgba(79,224,255,0.4)' : T.cartaTesto,
           }}
         />
       )}
@@ -156,20 +156,20 @@ function NameBox({ session, snap }: FormulaBarProps): JSX.Element {
 const barraStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'stretch',
-  height: 28,
-  background: PALETTE.bianco,
-  borderBottom: `2px solid ${PALETTE.nebbia}`,
+  height: 30,
+  background: T.carta,
+  borderBottom: `2px solid ${T.cartaLinea}`,
   fontFamily: 'var(--font-griglia)',
   fontSize: 13,
 };
 
+/** La casella del nome e' un pezzo di chrome appoggiato sulla carta. */
 const nameBoxStyle: React.CSSProperties = {
   width: 120,
-  background: PALETTE.nebbia + '33',
-  color: PALETTE.inchiostro,
+  background: T.rialzo,
+  color: T.accento,
   border: 'none',
-  borderRight: `2px solid ${PALETTE.nebbia}`,
-  padding: '0 8px',
+  padding: '0 10px',
   fontFamily: 'var(--font-griglia)',
   fontSize: 13,
   fontWeight: 'bold',
@@ -180,10 +180,10 @@ const fxStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   padding: '0 10px',
-  color: PALETTE.smeraldo,
+  color: T.spento,
   fontWeight: 'bold',
   fontStyle: 'italic',
-  borderRight: `2px solid ${PALETTE.nebbia}`,
+  borderRight: `1px solid ${T.cartaLinea}`,
 };
 
 const campoStyle: React.CSSProperties = {
@@ -191,7 +191,7 @@ const campoStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   padding: '0 10px',
-  color: PALETTE.inchiostro,
-  background: PALETTE.bianco,
+  color: T.cartaTesto,
+  background: T.carta,
   overflow: 'hidden',
 };

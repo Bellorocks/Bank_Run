@@ -1,39 +1,54 @@
 /*
  * Stili globali di BANK RUN.
  *
- * Estetica: 16-bit pulito sulla palette dei 16 colori dello spec (§8) — mai
- * un colore fuori da quella lista, mai un gradiente sfumato al posto di
- * bande piatte. Griglia: monospace ad altissima leggibilità per i numeri e
- * la formula bar — il chrome è pixelato, il contenuto resta sempre leggibile.
+ * Tre regole reggono tutto il resto:
+ *  1. Il mondo e' di giorno e a colori pieni (gli sfondi di `ui/Scena.tsx`);
+ *     l'interfaccia ci sta sopra a tasselli color inchiostro. Due accenti:
+ *     oro per cio' che e' attivo, verde Excel per l'azione principale.
+ *  2. La griglia e' carta: chiara, antialiased, monospace. Li' si lavora, e la
+ *     disciplina dei colori del mestiere si legge solo su fondo bianco.
+ *  3. Il pixel sta nei font, nei bordi netti e nelle ombre dure — mai raggi,
+ *     mai sfumature morbide sui componenti.
  *
- * Sui font: i titoli erano in Press Start 2P, che è una griglia 8×8 NES. A 9-13px
- * (le taglie usate dalla UI) restano ~6px di altezza reale per glifo: bello ma
- * illeggibile. Le due famiglie di adesso sono dell'era 16-bit — Jersey 25 è un
- * arcade condensato ad alto x-height, DotGothic16 è disegnato su 16px — e
- * vogliono taglie più grandi: qualunque nuova `fontSize` per `--font-titolo`
- * parte da 13, non da 8. Jersey 25 esiste solo in peso 400: niente bold, il
- * risalto viene da taglia e colore, non dal `font-weight`.
+ * I colori vivono in `palette.ts` (oggetto `T`) e sono replicati qui come
+ * variabili per le classi condivise: se ne cambia uno, va cambiato in entrambi.
+ *
+ * Font: Jersey 25 per logo, numeri grandi e titoli; Silkscreen per etichette
+ * e pulsanti (solo maiuscole, spaziato largo); DotGothic16 per il testo lungo;
+ * JetBrains Mono per la griglia.
+ *
+ * Taglie: Silkscreen MAI sotto i 12px e DotGothic16 a 16px (14 per le note).
+ * Sotto quelle soglie i contorni si chiudono e la "C" si legge "O": in un gioco
+ * dove "C7" e' un indirizzo di cella non e' un dettaglio estetico.
  */
 
 :root {
-  --c-inchiostro: #1a1c2c;
-  --c-prugna: #5d275d;
-  --c-rubino: #b13e53;
-  --c-corallo: #ef7d57;
-  --c-ambra: #ffcd75;
-  --c-lime: #a7f070;
-  --c-smeraldo: #38b764;
-  --c-petrolio: #257179;
-  --c-notte: #29366f;
-  --c-oltremare: #3b5dc9;
-  --c-azzurro: #41a6f6;
-  --c-ghiaccio: #73eff7;
-  --c-bianco: #f4f4f4;
-  --c-nebbia: #94b0c2;
-  --c-ardesia: #566c86;
-  --c-grafite: #333c57;
+  --t-abisso: #10111c;
+  --t-fondo: #1a1c2c;
+  --t-pannello: #20243a;
+  --t-rialzo: #2a304a;
+  --t-rialzo2: #333c57;
+  --t-linea: #44527a;
+  --t-linea-forte: #566c86;
+  --t-testo: #f4f4f4;
+  --t-tenue: #a9bdce;
+  --t-spento: #73869f;
+  --t-accento: #ffcd75;
+  --t-accento-scuro: #b8742c;
+  --t-azione: #38b764;
+  --t-azione-scuro: #1b6e4b;
+  --t-corallo: #ef7d57;
+  --t-corallo-scuro: #b13e53;
+  --t-oro: #ffcd75;
+  --t-oro-scuro: #b8742c;
+  --t-menta: #a7f070;
+  --t-menta-scuro: #38b764;
+  --t-rosso: #f4627c;
+  --t-rosso-scuro: #b13e53;
+  --t-viola: #b48cff;
 
-  --font-titolo: 'Jersey 25', 'DotGothic16', 'Tiny5', 'Trebuchet MS', sans-serif;
+  --font-logo: 'Jersey 25', 'Silkscreen', 'Trebuchet MS', sans-serif;
+  --font-titolo: 'BR Ecommerciale', 'Silkscreen', 'Jersey 25', 'Tiny5', 'Trebuchet MS', sans-serif;
   --font-testo: 'DotGothic16', 'Tiny5', 'Trebuchet MS', sans-serif;
   --font-griglia: 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;
 
@@ -41,7 +56,18 @@
   --colonna-w: 88px;
   --intestazione-w: 48px;
 
-  color-scheme: light dark;
+  color-scheme: dark;
+}
+
+/*
+ * La "&" di Silkscreen si legge come un "$": in un gioco di finanza "M&A" non
+ * puo' sembrare "M$A". Quel solo carattere arriva da Jersey 25.
+ */
+@font-face {
+  font-family: 'BR Ecommerciale';
+  src: url('@fontsource/jersey-25/files/jersey-25-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+26;
+  font-display: block;
 }
 
 *,
@@ -59,16 +85,29 @@ body,
 }
 
 body {
-  background: var(--c-inchiostro);
-  color: var(--c-bianco);
+  background: var(--t-abisso);
+  color: var(--t-testo);
   font-family: var(--font-testo);
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.5;
   overflow: hidden;
   image-rendering: pixelated;
-  -webkit-font-smoothing: none;
   user-select: none;
   -webkit-user-select: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--t-accento);
+}
+
+::selection {
+  background: var(--t-accento);
+  color: var(--t-abisso);
 }
 
 /* Griglia spreadsheet professionale ad altissima leggibilità */
@@ -86,7 +125,7 @@ h3,
 .dd-titolo {
   font-family: var(--font-titolo);
   font-weight: 400;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.08em;
   line-height: 1.3;
 }
 
@@ -103,25 +142,434 @@ textarea,
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--c-grafite);
-  border: 1px solid var(--c-inchiostro);
+  background: var(--t-abisso);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--c-ardesia);
-  border: 2px solid var(--c-inchiostro);
+  background: var(--t-linea);
+  border: 2px solid var(--t-abisso);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--c-ambra);
+  background: var(--t-accento);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--t-abisso);
+}
+
+/* Sulla carta della griglia le barre di scorrimento tornano chiare. */
+.dd-grid ::-webkit-scrollbar-track,
+.dd-grid ::-webkit-scrollbar-corner {
+  background: #edf1f7;
+}
+
+.dd-grid ::-webkit-scrollbar-thumb {
+  background: #9fb0c9;
+  border-color: #edf1f7;
+}
+
+.dd-grid ::-webkit-scrollbar-thumb:hover {
+  background: #5d7095;
 }
 
 :focus-visible {
-  outline: 3px solid var(--c-ambra);
-  outline-offset: 1px;
+  outline: 2px solid var(--t-accento);
+  outline-offset: 2px;
 }
 
-/* Cursore lampeggiante Formula */
+/* ------------------------------------------------------------------------ */
+/* Atmosfera: scanline, velature, logo                                       */
+/* ------------------------------------------------------------------------ */
+
+/* Scanline CRT. Mai sulla griglia: li' i numeri devono restare puliti. */
+.br-scan {
+  position: relative;
+}
+
+.br-scan::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  background: repeating-linear-gradient(to bottom, rgba(26, 28, 44, 0.22) 0 1px, transparent 1px 3px);
+}
+
+/* Le vecchie superfici "dd-crt" ereditano lo stesso effetto. */
+.dd-crt {
+  position: relative;
+}
+
+/*
+ * Il logo: lettere d'oro con il contorno d'inchiostro e lo spessore che scende
+ * in corallo e rubino, come un'insegna in rilievo. L'ordine delle ombre conta:
+ * le prime stanno sopra.
+ */
+.br-logo {
+  font-family: var(--font-logo);
+  font-weight: 400;
+  line-height: 0.9;
+  letter-spacing: 0.06em;
+  color: #ffcd75;
+  margin: 0;
+  text-shadow:
+    0 0.055em 0 #ef7d57,
+    0 0.11em 0 #b13e53,
+    0.045em 0 0 #1a1c2c,
+    -0.045em 0 0 #1a1c2c,
+    0 -0.045em 0 #1a1c2c,
+    0.045em -0.045em 0 #1a1c2c,
+    -0.045em -0.045em 0 #1a1c2c,
+    0.045em 0.11em 0 #1a1c2c,
+    -0.045em 0.11em 0 #1a1c2c,
+    0 0.165em 0 #1a1c2c,
+    0.045em 0.165em 0 #1a1c2c,
+    -0.045em 0.165em 0 #1a1c2c,
+    0 0.26em 0 rgba(26, 28, 44, 0.28);
+}
+
+/* Il logo del titolo respira: sale e scende di qualche pixel, a scatti. */
+.br-galleggia {
+  animation: br-galleggia 3.2s steps(4, end) infinite alternate;
+}
+
+@keyframes br-galleggia {
+  to {
+    transform: translateY(-6px);
+  }
+}
+
+/* Tassello d'inchiostro per il testo appoggiato direttamente sullo sfondo. */
+.br-tassello {
+  background: rgba(26, 28, 44, 0.9);
+  box-shadow: 0 3px 0 rgba(16, 17, 28, 0.45);
+}
+
+/* Etichetta di sezione: piccola, maiuscola, spaziata. */
+.br-label {
+  font-family: var(--font-titolo);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-tenue);
+  line-height: 1.4;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Pulsanti                                                                  */
+/* ------------------------------------------------------------------------ */
+
+.br-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 16px;
+  font-family: var(--font-titolo);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--t-testo);
+  background: var(--t-rialzo);
+  border: 2px solid var(--t-linea);
+  border-radius: 0;
+  box-shadow: 0 3px 0 var(--t-abisso);
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s,
+    box-shadow 0.12s;
+}
+
+.br-btn:hover:not(:disabled),
+.br-btn.is-acceso {
+  color: var(--t-accento);
+  border-color: var(--t-accento);
+  background: var(--t-rialzo2);
+}
+
+.br-btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: none;
+}
+
+.br-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.br-btn--primario {
+  color: #10111c;
+  background: var(--t-azione);
+  border-color: #1a1c2c;
+  box-shadow: 0 4px 0 var(--t-azione-scuro);
+}
+
+.br-btn--primario:hover:not(:disabled),
+.br-btn--primario.is-acceso {
+  color: #10111c;
+  background: #55d57f;
+  border-color: #f4f4f4;
+  box-shadow: 0 4px 0 var(--t-azione-scuro);
+}
+
+.br-btn--accento {
+  color: var(--t-abisso);
+  background: var(--t-accento);
+  border-color: var(--t-accento);
+  box-shadow: 0 3px 0 var(--t-accento-scuro);
+}
+
+.br-btn--accento:hover:not(:disabled) {
+  color: var(--t-abisso);
+  background: #ffe2ab;
+  border-color: #ffffff;
+}
+
+.br-btn--pericolo {
+  color: #ffffff;
+  background: var(--t-rosso-scuro);
+  border-color: var(--t-rosso);
+  box-shadow: 0 3px 0 #5d275d;
+}
+
+.br-btn--pericolo:hover:not(:disabled) {
+  color: #ffffff;
+  background: #c94a60;
+  border-color: #f4f4f4;
+}
+
+.br-btn--fantasma {
+  color: var(--t-tenue);
+  background: transparent;
+  box-shadow: none;
+}
+
+.br-btn--fantasma:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.br-btn--piccolo {
+  padding: 6px 10px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  box-shadow: 0 2px 0 var(--t-abisso);
+}
+
+.br-btn--grande {
+  padding: 18px 22px;
+  font-size: 16px;
+  letter-spacing: 0.32em;
+}
+
+@media (max-width: 520px) {
+  .br-btn--grande {
+    padding: 16px 12px;
+    font-size: 13px;
+    letter-spacing: 0.14em;
+  }
+}
+
+/* Il tasto equivalente accanto all'etichetta. */
+.br-kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  font-family: var(--font-titolo);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  color: inherit;
+  background: rgba(26, 28, 44, 0.35);
+  border: 1px solid currentColor;
+  opacity: 0.85;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Pannelli e finestre                                                       */
+/* ------------------------------------------------------------------------ */
+
+.br-pannello {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  color: var(--t-testo);
+  background: var(--t-pannello);
+  border: 2px solid var(--t-linea);
+  box-shadow: 0 0 0 2px var(--t-abisso);
+}
+
+.br-pannello--acceso {
+  border-color: var(--t-accento);
+  box-shadow:
+    0 0 0 2px var(--t-abisso),
+    0 0 32px rgba(255, 205, 117, 0.16);
+}
+
+.br-pannello__testa {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  flex: 0 0 auto;
+  background: var(--t-rialzo);
+  border-bottom: 2px solid var(--t-linea);
+}
+
+.br-pannello__titolo {
+  margin: 0;
+  font-family: var(--font-titolo);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1.35;
+  color: var(--t-accento);
+}
+
+.br-velo {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(26, 28, 44, 0.82);
+}
+
+.br-finestra {
+  animation: br-sali 0.18s steps(4, end);
+}
+
+/*
+ * Le entrate muovono soltanto, non partono mai da trasparente: dove le
+ * animazioni non avanzano (scheda in background, cattura senza schermo) il
+ * contenuto deve restare visibile comunque.
+ */
+@keyframes br-sali {
+  from {
+    transform: translateY(12px);
+  }
+}
+
+/* ------------------------------------------------------------------------ */
+/* Elementi ricorrenti                                                       */
+/* ------------------------------------------------------------------------ */
+
+/* Riga cliccabile (livelli, skill): si accende al passaggio. */
+.br-riga {
+  background: var(--t-rialzo);
+  border: 2px solid var(--t-linea);
+  transition:
+    border-color 0.12s,
+    background 0.12s;
+}
+
+.br-riga--viva:hover {
+  border-color: var(--t-linea-forte);
+  background: var(--t-rialzo2);
+}
+
+/* Linguette: quella scelta e' piena, le altre aspettano. */
+.br-linguetta {
+  font-family: var(--font-titolo);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  padding: 8px 12px;
+  color: var(--t-tenue);
+  background: var(--t-rialzo);
+  border: 2px solid var(--t-linea);
+  box-shadow: 0 3px 0 var(--t-abisso);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    color 0.12s,
+    border-color 0.12s;
+}
+
+.br-linguetta:hover {
+  color: var(--t-accento);
+  border-color: var(--t-accento);
+}
+
+.br-linguetta.is-scelta {
+  color: var(--t-abisso);
+  background: var(--t-accento);
+  border-color: var(--t-accento);
+  box-shadow: 0 3px 0 var(--t-accento-scuro);
+}
+
+/* Faro sulla mappa: un quadrato che pulsa. */
+.br-faro {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  background: var(--faro, var(--t-accento));
+  border: 2px solid var(--t-fondo);
+  box-shadow:
+    0 0 0 2px var(--faro, var(--t-accento)),
+    0 0 0 4px var(--t-fondo);
+  transform: rotate(45deg);
+}
+
+.br-faro.is-scelto::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border: 2px solid var(--faro, var(--t-accento));
+  animation: br-onda 1.4s steps(6, end) infinite;
+}
+
+@keyframes br-onda {
+  from {
+    transform: scale(0.6);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+/* Nastro delle quotazioni in fondo al titolo. */
+.br-nastro {
+  overflow: hidden;
+  white-space: nowrap;
+  border-top: 2px solid var(--t-linea);
+  background: rgba(26, 28, 44, 0.85);
+}
+
+.br-nastro__corsa {
+  display: inline-flex;
+  gap: 36px;
+  padding: 7px 18px;
+  font-family: var(--font-titolo);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--t-tenue);
+  animation: br-scorri 80s linear infinite;
+}
+
+@keyframes br-scorri {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Entrata delle schermate. */
+.br-entra {
+  animation: br-sali 0.28s steps(5, end);
+}
+
+/* Cursore lampeggiante */
 @keyframes dd-blink {
   0%,
   100% {
@@ -134,4 +582,24 @@ textarea,
 
 .dd-caret {
   animation: dd-blink 1s steps(2, start) infinite;
+}
+
+.br-lampeggia {
+  animation: dd-blink 1.1s steps(2, start) infinite;
+}
+
+input[type='range'] {
+  accent-color: var(--t-accento);
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .br-galleggia,
+  .br-nastro__corsa,
+  .br-entra,
+  .br-finestra,
+  .br-faro.is-scelto::before,
+  .br-lampeggia {
+    animation: none;
+  }
 }

@@ -18,7 +18,7 @@ import { TaskList } from '../ui/TaskList';
 import { Hud } from '../ui/Hud';
 import { CheatSheet } from '../ui/CheatSheet';
 import { Risultato } from '../ui/Risultato';
-import { PALETTE } from '../styles/palette';
+import { T } from '../styles/palette';
 import { instantiate, getTemplate } from '../content/registry';
 import { loadInstance } from './loadLevel';
 import { GridSession } from './session';
@@ -368,17 +368,16 @@ export function PlayScreen({ templateId, seed, onRiprovaStessoSeed, onNuovoSeed,
               justifyContent: 'center',
               cursor: 'row-resize',
               userSelect: 'none',
-              background: isDragging ? PALETTE.ardesia : isHovered ? PALETTE.grafite : 'transparent',
-              transition: 'background 0.1s ease',
+              background: 'transparent',
             }}
             title={tr('PlayScreen.2')}
           >
             <div
               style={{
-                width: 42,
+                width: isDragging || isHovered ? 72 : 42,
                 height: 4,
-                background: isDragging || isHovered ? PALETTE.ambra : PALETTE.ardesia,
-                border: `1px solid ${PALETTE.inchiostro}`,
+                background: isDragging || isHovered ? T.accento : T.linea,
+                transition: 'width 0.12s, background 0.12s',
               }}
             />
           </div>
@@ -448,34 +447,35 @@ const schermoStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   height: '100%',
-  background: PALETTE.bianco,
+  background: T.abisso,
 };
 
 const corpoStyle: React.CSSProperties = {
   flex: 1,
   display: 'flex',
   minHeight: 0,
-  background: PALETTE.bianco,
+  background: T.abisso,
 };
 
 const colonnaSinistraStyle: React.CSSProperties = {
-  width: 390,
+  width: 400,
   minWidth: 320,
   display: 'flex',
   flexDirection: 'column',
   padding: 10,
-  background: PALETTE.nebbia + '22',
-  borderRight: `3px solid ${PALETTE.inchiostro}`,
+  background: T.rialzo2,
+  borderRight: `2px solid ${T.fondo}`,
   minHeight: 0,
 };
 
+/** La griglia e' carta: chiara, incorniciata dal buio del resto dello schermo. */
 const colonnaDestraStyle: React.CSSProperties = {
   flex: 1,
   display: 'flex',
   flexDirection: 'column',
   minWidth: 0,
   minHeight: 0,
-  background: PALETTE.bianco,
+  background: T.carta,
 };
 
 export default PlayScreen;

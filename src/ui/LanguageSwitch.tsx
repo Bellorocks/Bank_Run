@@ -9,7 +9,6 @@
 
 import { LANGUAGES, setLanguage, type Language } from '../i18n/language';
 import { tr, useLanguage } from '../i18n/ui';
-import { PALETTE } from '../styles/palette';
 import { track } from '../analytics/analytics';
 
 const NOME: Record<Language, string> = { en: 'EN', it: 'IT' };
@@ -37,13 +36,9 @@ export function LanguageSwitch({ compatto = false }: { readonly compatto?: boole
             aria-pressed={attivo}
             title={NOME_ESTESO[lang]}
             onClick={() => scegli(lang)}
+            className={attivo ? 'br-linguetta is-scelta' : 'br-linguetta'}
             style={{
-              fontFamily: 'var(--font-titolo)',
-              fontSize: compatto ? 13 : 15,
-              color: attivo ? PALETTE.inchiostro : PALETTE.bianco,
-              background: attivo ? PALETTE.ambra : PALETTE.grafite,
-              border: `2px solid ${PALETTE.inchiostro}`,
-              padding: compatto ? '2px 8px' : '4px 12px',
+              padding: compatto ? '5px 9px' : '8px 14px',
               cursor: attivo ? 'default' : 'pointer',
             }}
           >

@@ -15,9 +15,9 @@
 
 import { useMemo, type CSSProperties, type ReactNode } from 'react';
 import type { LevelMode } from '../content/types';
-import { PALETTE, UI } from '../styles/palette';
+import { T } from '../styles/palette';
 import { parseMarkdown, type MdInline, type MdNode } from './markdown';
-import { Badge, Pannello, TESTO_LUNGO, TESTO_UI } from './primitives';
+import { Badge, Pannello, TESTO_LUNGO } from './primitives';
 
 import { tr } from '../i18n/ui';
 // ---------------------------------------------------------------------------
@@ -27,10 +27,10 @@ import { tr } from '../i18n/ui';
 const STILE_CODICE: CSSProperties = {
   fontFamily: 'var(--font-griglia)',
   fontSize: 13,
-  padding: '1px 4px',
-  color: UI.evidenza,
-  background: PALETTE.inchiostro,
-  border: `1px solid ${UI.bordo}`,
+  padding: '1px 5px',
+  color: T.accento,
+  background: T.abisso,
+  border: `1px solid ${T.linea}`,
   // La formula in un brief va letta carattere per carattere: qui l'antialiasing
   // serve, mentre il resto dell'interfaccia lo spegne per restare pixelata.
   WebkitFontSmoothing: 'antialiased',
@@ -49,13 +49,13 @@ function renderInline(nodes: readonly MdInline[]): ReactNode {
         );
       case 'strong':
         return (
-          <strong key={i} style={{ color: PALETTE.inchiostro, fontWeight: 'bold' }}>
+          <strong key={i} style={{ color: '#ffffff', fontWeight: 400 }}>
             {renderInline(n.children)}
           </strong>
         );
       case 'em':
         return (
-          <em key={i} style={{ color: PALETTE.petrolio, fontStyle: 'italic' }}>
+          <em key={i} style={{ color: T.oro, fontStyle: 'normal' }}>
             {renderInline(n.children)}
           </em>
         );
@@ -66,17 +66,14 @@ function renderInline(nodes: readonly MdInline[]): ReactNode {
 function renderBlock(node: MdNode, key: number): ReactNode {
   switch (node.kind) {
     case 'heading': {
-      // I titoli del brief sono chrome, non contenuto: font da interfaccia,
-      // corpo piccolo, inchiostro su bianco/pergamena.
-      const dimensione = node.level <= 2 ? 12 : 10;
+      // I titoli del brief sono chrome, non contenuto: etichetta da interfaccia.
       return (
         <h3
           key={key}
+          className="br-label"
           style={{
-            ...TESTO_UI,
             margin: key === 0 ? '0 0 10px' : '18px 0 8px',
-            fontSize: dimensione,
-            color: PALETTE.inchiostro,
+            color: T.accento,
           }}
         >
           {renderInline(node.children)}
@@ -100,10 +97,10 @@ function renderBlock(node: MdNode, key: number): ReactNode {
                 style={{
                   position: 'absolute',
                   left: -14,
-                  top: 8,
+                  top: 9,
                   width: 6,
                   height: 6,
-                  background: PALETTE.rubino,
+                  background: T.corallo,
                 }}
               />
               {renderInline(item)}
@@ -143,12 +140,12 @@ export interface BriefProps {
 
 /** Il badge della modalita' usa il colore che il gioco associa a quella tensione. */
 const COLORE_MODE: Readonly<Record<LevelMode, string>> = {
-  GUIDED: UI.info,
-  PRACTICE: UI.successo,
-  BLIND: UI.accento,
-  SPEEDRUN: UI.attenzione,
-  AUDIT: UI.evidenza,
-  BOSS: PALETTE.prugna,
+  GUIDED: T.accento,
+  PRACTICE: T.menta,
+  BLIND: T.oro,
+  SPEEDRUN: T.corallo,
+  AUDIT: T.viola,
+  BOSS: T.rosso,
 };
 
 /** Un testo markdown con lo stesso aspetto del mandato (usato anche dall'informativa privacy). */
@@ -160,7 +157,7 @@ export function Brief({ brief, titolo, mode, seed, style }: BriefProps) {
   return (
     <Pannello
       titolo={titolo ?? tr('Brief.1')}
-      variante="pergamena"
+      colore={T.testo}
       scorrevole
       style={style}
       azione={
@@ -175,7 +172,7 @@ export function Brief({ brief, titolo, mode, seed, style }: BriefProps) {
           )}
         </span>
       }
-      bodyStyle={{ ...TESTO_LUNGO, color: PALETTE.inchiostro }}
+      bodyStyle={{ ...TESTO_LUNGO, color: T.tenue }}
     >
       <div className="dd-selezionabile">
         <Markdown source={brief} />

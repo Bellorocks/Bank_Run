@@ -8,7 +8,7 @@ import { ConsentBanner } from './ui/ConsentBanner';
 import { TouchNotice } from './ui/TouchNotice';
 import { WorldMap } from './ui/WorldMap';
 import { TitleScreen } from './ui/TitleScreen';
-import { PALETTE } from './styles/palette';
+import { T } from './styles/palette';
 import { SpriteDebug } from './ui/sprites/SpriteDebug';
 
 import { tr } from './i18n/ui';
@@ -58,28 +58,18 @@ export default function App() {
 
   if (scelta) {
     return (
-      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: PALETTE.bianco }}>
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: T.abisso }}>
         <div style={barraStyle}>
-          <span className="dd-titolo" style={{ fontSize: 19, color: PALETTE.bianco, textShadow: `2px 2px 0 ${PALETTE.inchiostro}` }}>
+          <span className="br-logo" style={{ fontSize: 26, animation: 'none' }}>
             {tr('App.1')}
+          </span>
+          <span className="br-label" style={{ color: T.spento, fontFamily: 'var(--font-griglia)', letterSpacing: '0.04em' }}>
+            {scelta.id} · #{scelta.seed}
           </span>
 
           <span style={{ flex: 1 }} />
 
-          <button
-            type="button"
-            onClick={() => setScelta(null)}
-            style={{
-              fontFamily: 'var(--font-titolo)',
-              fontSize: 15,
-              color: PALETTE.bianco,
-              background: PALETTE.inchiostro,
-              border: `2px solid ${PALETTE.ardesia}`,
-              padding: '6px 14px',
-              cursor: 'pointer',
-              boxShadow: `2px 2px 0 ${PALETTE.rubino}`,
-            }}
-          >
+          <button type="button" onClick={() => setScelta(null)} className="br-btn br-btn--piccolo">
             {tr('App.2')}
           </button>
         </div>
@@ -124,11 +114,11 @@ export default function App() {
 const barraStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
+  gap: 14,
   padding: '6px 14px',
-  background: PALETTE.corallo,
-  borderBottom: `3px solid ${PALETTE.inchiostro}`,
-  borderTop: `2px solid ${PALETTE.ambra}`,
-  boxShadow: `0 2px 0 ${PALETTE.rubino}`,
+  minHeight: 44,
+  background: T.fondo,
+  borderBottom: `2px solid ${T.linea}`,
   zIndex: 20,
 };
 
@@ -138,7 +128,9 @@ const caricamentoStyle: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'center',
   fontFamily: 'var(--font-titolo)',
-  fontSize: 18,
-  color: PALETTE.ambra,
-  background: PALETTE.inchiostro,
+  fontSize: 13,
+  letterSpacing: '0.2em',
+  textTransform: 'uppercase',
+  color: T.accento,
+  background: T.abisso,
 };
